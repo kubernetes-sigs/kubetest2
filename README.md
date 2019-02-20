@@ -1,16 +1,11 @@
 # kubetest2
 
-Kubetest2 is the framework for launching and running end-to-end tests on Kubernetes.
+kubetest2 is intended to be the next significant iteration of [kubetest].
 
-## Community, discussion, contribution, and support
+This project is a stub currently, this doc will contain more details in the future.
 
-Learn how to engage with the Kubernetes community on the [community page](http://kubernetes.io/community/).
+See also [the initial design doc] shared with kubernetes-sig-testing@googlegroups.com
+and kubernetes-dev@googlegroups.com
 
-You can reach the maintainers of this project at:
-
-- [Slack](https://kubernetes.slack.com/messages/sig-testing)
-- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-sig-testing)
-
-### Code of conduct
-
-Participation in the Kubernetes community is governed by the [Kubernetes Code of Conduct](code-of-conduct.md).
+[kubetest]: https://github.com/kubernetes/test-infra/tree/master/kubtest
+[the initial design doc]: https://docs.google.com/document/d/1Dc7xg9lq4cxdDuz20YZjunuL5eju2WIXwO32praC5hs/
