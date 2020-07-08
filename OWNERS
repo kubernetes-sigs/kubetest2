@@ -1,6 +1,10 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
+reviewers:
+- BenTheElder
+- amwat
+- cofyc
 approvers:
-  - amwat
-  - BenTheElder
-  - spiffxp
+- BenTheElder
+- amwat
+- spiffxp

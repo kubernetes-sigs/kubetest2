@@ -1,6 +1,7 @@
 # kubetest2
 
 Kubetest2 is the framework for launching and running end-to-end tests on Kubernetes.
+It is intended to be the next significant iteration of [kubetest](https://github.com/kubernetes/test-infra/tree/master/kubetest).
 
 ## Community, discussion, contribution, and support
 
