@@ -25,9 +25,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/test-infra/kubetest2/pkg/app/shim"
-	"k8s.io/test-infra/kubetest2/pkg/app/testers"
-	"k8s.io/test-infra/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/app/shim"
+	"sigs.k8s.io/kubetest2/pkg/app/testers"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 // Run instantiates and executes the kubetest2 cobra command, returning the result

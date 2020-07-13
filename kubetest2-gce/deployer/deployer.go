@@ -24,13 +24,15 @@ import (
 	"path/filepath"
 	"sync"
 
-	"k8s.io/klog"
-	"k8s.io/test-infra/kubetest2/pkg/exec"
-	"k8s.io/test-infra/kubetest2/pkg/types"
-	"sigs.k8s.io/boskos/client"
-
 	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
+
+	"k8s.io/klog"
+
+	"sigs.k8s.io/boskos/client"
+
+	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 // Name is the name of the deployer

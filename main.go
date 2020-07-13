@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"k8s.io/test-infra/kubetest2/pkg/app/shim"
+	"sigs.k8s.io/kubetest2/pkg/app/shim"
 )
 
 func main() {

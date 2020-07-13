@@ -17,11 +17,11 @@ limitations under the License.
 package main
 
 import (
-	"k8s.io/test-infra/kubetest2/pkg/app"
+	"sigs.k8s.io/kubetest2/pkg/app"
 	// import the standard set of testers so they are loaded & registered
-	_ "k8s.io/test-infra/kubetest2/pkg/app/testers/standard"
+	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard"
 
-	"k8s.io/test-infra/kubetest2/kubetest2-gce/deployer"
+	"sigs.k8s.io/kubetest2/kubetest2-gce/deployer"
 )
 
 func main() {

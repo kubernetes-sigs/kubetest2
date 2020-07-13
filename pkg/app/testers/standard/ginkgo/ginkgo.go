@@ -22,12 +22,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"k8s.io/test-infra/kubetest2/pkg/app/testers"
-	"k8s.io/test-infra/kubetest2/pkg/app/testers/standard/ginkgo/kubectl"
-	"k8s.io/test-infra/kubetest2/pkg/exec"
-	"k8s.io/test-infra/kubetest2/pkg/types"
-
 	"github.com/spf13/pflag"
+
+	"sigs.k8s.io/kubetest2/pkg/app/testers"
+	"sigs.k8s.io/kubetest2/pkg/app/testers/standard/ginkgo/kubectl"
+	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 const (

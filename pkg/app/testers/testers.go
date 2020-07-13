@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"k8s.io/test-infra/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 type testerInfo struct {

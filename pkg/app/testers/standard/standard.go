@@ -15,12 +15,12 @@ limitations under the License.
 */
 
 // Package standard imports a set of standard kubetest2 tetser implementations
-// causing them to be registered in k8s.io/test-infra/kubetest2/pkg/app/testers
+// causing them to be registered in sigs.k8s.io/kubetest2/pkg/app/testers
 // most deployer binaries should import this package
 package standard
 
 import (
 	// load standard testers
-	_ "k8s.io/test-infra/kubetest2/pkg/app/testers/standard/exec"
-	_ "k8s.io/test-infra/kubetest2/pkg/app/testers/standard/ginkgo"
+	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard/exec"
+	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard/ginkgo"
 )
