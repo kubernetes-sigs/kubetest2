@@ -1,0 +1,6 @@
+# Intellij specific files
+.idea/
+*.iml
+
+# kubetest2 default artifacts
+_artifacts/
