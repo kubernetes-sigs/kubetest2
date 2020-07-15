@@ -25,10 +25,10 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/test-infra/kubetest2/pkg/exec"
-	"k8s.io/test-infra/kubetest2/pkg/metadata"
-	"k8s.io/test-infra/kubetest2/pkg/process"
-	"k8s.io/test-infra/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/metadata"
+	"sigs.k8s.io/kubetest2/pkg/process"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 // Name is the name of the deployer

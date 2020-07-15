@@ -23,8 +23,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"k8s.io/test-infra/kubetest2/pkg/metadata"
-	"k8s.io/test-infra/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/metadata"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 // Main implements the kubetest2 deployer binary entrypoint

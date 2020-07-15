@@ -23,7 +23,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/test-infra/kubetest2/pkg/process"
+	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
 // Main implements the kubetest2 root binary entrypoint

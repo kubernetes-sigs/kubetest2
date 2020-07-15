@@ -62,7 +62,7 @@ type Options interface {
 // Deployer defines the interface between kubetest and a deployer
 //
 // If any returned error meets the:
-// k8s.io/test-infra/kubetest2/pkg/metadata.JUnitError
+// sigs.k8s.io/kubetest2/pkg/metadata.JUnitError
 // interface, then this metadata will be pulled out when writing out the results
 type Deployer interface {
 	// Up should provision a new cluster for testing

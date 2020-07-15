@@ -21,9 +21,9 @@ package exec
 import (
 	"os"
 
-	"k8s.io/test-infra/kubetest2/pkg/app/testers"
-	"k8s.io/test-infra/kubetest2/pkg/process"
-	"k8s.io/test-infra/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/app/testers"
+	"sigs.k8s.io/kubetest2/pkg/process"
+	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
 const usage = `  [TestCommand] [TestArgs]

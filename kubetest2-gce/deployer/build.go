@@ -21,7 +21,8 @@ import (
 	"os"
 
 	"k8s.io/klog"
-	"k8s.io/test-infra/kubetest2/pkg/exec"
+
+	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 func (d *deployer) Build() error {

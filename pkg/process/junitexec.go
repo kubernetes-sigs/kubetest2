@@ -22,7 +22,7 @@ import (
 	"os"
 	"os/exec"
 
-	"k8s.io/test-infra/kubetest2/pkg/metadata"
+	"sigs.k8s.io/kubetest2/pkg/metadata"
 )
 
 type execJunitError struct {

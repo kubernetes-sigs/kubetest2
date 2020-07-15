@@ -20,11 +20,11 @@ import (
 	"github.com/aws/aws-k8s-tester/eks"
 	"github.com/aws/aws-k8s-tester/eksconfig"
 	"github.com/spf13/pflag"
-	"k8s.io/test-infra/kubetest2/pkg/app"
-	"k8s.io/test-infra/kubetest2/pkg/types"
 
+	"sigs.k8s.io/kubetest2/pkg/app"
+	"sigs.k8s.io/kubetest2/pkg/types"
 	// import the standard set of testers so they are loaded & registered
-	_ "k8s.io/test-infra/kubetest2/pkg/app/testers/standard"
+	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard"
 )
 
 func main() {
