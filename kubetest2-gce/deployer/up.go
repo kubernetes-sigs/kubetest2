@@ -32,9 +32,11 @@ func (d *deployer) Up() error {
 		return fmt.Errorf("up failed to init: %s", err)
 	}
 
-	klog.V(2).Info("enabling compute API for project")
-	if err := enableComputeAPI(d.GCPProject); err != nil {
-		return fmt.Errorf("up couldn't enable compute API: %s", err)
+	if d.EnableComputeAPI {
+		klog.V(2).Info("enabling compute API for project")
+		if err := enableComputeAPI(d.GCPProject); err != nil {
+			return fmt.Errorf("up couldn't enable compute API: %s", err)
+		}
 	}
 
 	defer func() {
