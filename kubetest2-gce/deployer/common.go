@@ -104,11 +104,12 @@ func (d *deployer) buildEnv() []string {
 	// which is by default disabled on GCE VMs if USER is root. In order
 	// for the deployer to work without fuss when run as root (like it
 	// does by default in Prow) we can simply change USER to be something
-	// non-root.
-	if user := os.Getenv("USER"); user == "root" {
+	// non-root. USER is not always set in a given environment, so the UID
+	// is checked instead for guaranteed correct information.
+	if uid := os.Getuid(); uid == 0 {
 		env = append(env, fmt.Sprintf("USER=%s", "kubetest2"))
 	} else {
-		env = append(env, fmt.Sprintf("USER=%s", user))
+		env = append(env, fmt.Sprintf("USER=%s", os.Getenv("USER")))
 	}
 
 	// kube-up.sh, kube-down.sh etc. use PROJECT as a parameter
