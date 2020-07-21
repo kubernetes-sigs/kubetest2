@@ -95,10 +95,21 @@ func (d *deployer) buildEnv() []string {
 	// can be removed if env is inherited from the os
 	env = append(env, fmt.Sprintf("PATH=%s", os.Getenv("PATH")))
 
-	// used by config-test.sh to set $NETWORK in the default case
-	// if unset, bash's set -u gets angry and kills the log dump script
-	// can be removed if env is inherited from the os
-	env = append(env, fmt.Sprintf("USER=%s", os.Getenv("USER")))
+	// USER is used by config-test.sh to set $NETWORK in the default case.
+	// Also, if unset, bash's set -u gets angry and kills the log dump script.
+	//
+	// Because the log dump script uses `gcloud compute ssh` and
+	// `gcloud compute scp`, we have to check if the active user is root.
+	// This is because `gcloud compute ssh/scp` try to log in as USER@vm
+	// which is by default disabled on GCE VMs if USER is root. In order
+	// for the deployer to work without fuss when run as root (like it
+	// does by default in Prow) we can simply change USER to be something
+	// non-root.
+	if user := os.Getenv("USER"); user == "root" {
+		env = append(env, fmt.Sprintf("USER=%s", "kubetest2"))
+	} else {
+		env = append(env, fmt.Sprintf("USER=%s", user))
+	}
 
 	// kube-up.sh, kube-down.sh etc. use PROJECT as a parameter
 	// for gcloud commands
