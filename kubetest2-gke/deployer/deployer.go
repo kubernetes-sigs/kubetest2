@@ -32,12 +32,12 @@ import (
 	"sync"
 
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
+	"sigs.k8s.io/boskos/client"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/types"
-	"k8s.io/klog"
-	"sigs.k8s.io/boskos/client"
 )
 
 // Name is the name of the deployer
@@ -87,6 +87,8 @@ type deployer struct {
 	zone              string
 	region            string
 	cluster           string
+	nodes             int
+	machineType       string
 	network           string
 	environment       string
 	createCommandFlag string
@@ -139,6 +141,9 @@ func (d *deployer) verifyUpFlags() error {
 	if _, err := d.location(); err != nil {
 		return err
 	}
+	if d.nodes <= 0 {
+		return fmt.Errorf("--num-nodes must be larger than 0")
+	}
 	return nil
 }
 
@@ -185,8 +190,10 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.network, "network", "default", "Cluster network. Defaults to the default network.")
 	flags.StringVar(&d.environment, "environment", "staging", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL")
 	flags.StringVar(&d.project, "project", "", "Project to deploy to.")
-	flags.StringVar(&d.region, "region", "", "For use with gcloud commands")
-	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands")
+	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
+	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
+	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
+	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
 	flags.StringVar(&d.boskosLocation, "boskos-location", "http://boskos.test-pods.svc.cluster.local.", "If set, manually specifies the location of the boskos server")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
@@ -244,9 +251,9 @@ func (d *deployer) Up() error {
 	args = append(args,
 		"--project="+d.project,
 		loc,
-		"--machine-type="+defaultNodePool.MachineType,
+		"--machine-type="+d.machineType,
 		"--image-type="+image,
-		"--num-nodes="+strconv.Itoa(defaultNodePool.Nodes),
+		"--num-nodes="+strconv.Itoa(d.nodes),
 		"--network="+d.network,
 	)
 	fmt.Printf("Environment: %v", os.Environ())
