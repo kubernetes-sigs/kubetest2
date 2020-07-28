@@ -44,7 +44,6 @@ import (
 const Name = "gke"
 
 const (
-	defaultPool   = "default"
 	e2eAllow      = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
 	defaultCreate = "container clusters create --quiet"
 	image         = "cos"
@@ -95,7 +94,6 @@ type deployer struct {
 	gcpServiceAccount string
 
 	kubecfgPath    string
-	gcpPrepared    bool
 	testPrepared   bool
 	instanceGroups []*ig
 

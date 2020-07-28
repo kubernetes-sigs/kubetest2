@@ -61,7 +61,7 @@ func execCmdWithSignals(cmd *exec.Cmd) error {
 		select {
 		case sig := <-signals:
 			// TODO(bentheelder): can this actually fail? should we log this?
-			cmd.Process.Signal(sig)
+			_ = cmd.Process.Signal(sig)
 		case err := <-wait:
 			return err
 		}

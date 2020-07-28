@@ -90,8 +90,3 @@ func home(parts ...string) string {
 	p := append([]string{os.Getenv("HOME")}, parts...)
 	return filepath.Join(p...)
 }
-
-// insertPath does export PATH=path:$PATH
-func insertPath(path string) error {
-	return os.Setenv("PATH", fmt.Sprintf("%v:%v", path, os.Getenv("PATH")))
-}

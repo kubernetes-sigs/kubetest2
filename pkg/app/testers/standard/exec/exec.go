@@ -33,7 +33,7 @@ const usage = `  [TestCommand] [TestArgs]
 `
 
 func init() {
-	testers.Register("exec", usage, NewTester)
+	_ = testers.Register("exec", usage, NewTester)
 }
 
 // Tester implements a kubetest2 types.Tester that exec's it's arguments

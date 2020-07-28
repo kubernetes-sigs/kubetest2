@@ -90,7 +90,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		cmd.Printf("Error: could not find kubetest2 deployer %#v\n", deployerName)
 		cmd.Println()
-		usage(cmd, args)
+		usage(cmd)
 		return err
 	}
 	return process.Exec(deployer, args[1:], os.Environ())
@@ -100,11 +100,11 @@ func runE(cmd *cobra.Command, args []string) error {
 func help(cmd *cobra.Command, args []string) {
 	cmd.Println(usageLong)
 	cmd.Println()
-	usage(cmd, args)
+	usage(cmd)
 }
 
 // the usage subset of help info, attempts to identify and list known deployers
-func usage(cmd *cobra.Command, args []string) {
+func usage(cmd *cobra.Command) {
 	deployers := FindDeployers()
 	cmd.Println("Usage:")
 	cmd.Printf("  %s [deployer] [flags]\n", BinaryName)
