@@ -1,6 +1,6 @@
 # Common uses:
-# - installing kind: `make install INSTALL_DIR=$HOME/go/bin`
-# - building: `make build`
+# - installing kubetest2: `make install INSTALL_DIR=$HOME/go/bin`
+# installing a deployer: `make install-deployer-$(deployer-name) INSTALL_DIR=$HOME/go/bin`
 # - cleaning up and starting over: `make clean`
 
 # get the repo root and output path, go_container.sh respects these
@@ -22,7 +22,6 @@ install:
 	$(REPO_ROOT)/hack/go_container.sh go build -v -o /out/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
-
 
 install-deployer-%: BINARY_PATH=./kubetest2-$*
 install-deployer-%: BINARY_NAME=kubetest2-$*
