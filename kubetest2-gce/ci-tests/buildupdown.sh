@@ -30,7 +30,7 @@ K_REPO_ROOT="${REPO_ROOT}/../../kubernetes/cloud-provider-gcp"
 
 kubetest2 gce \
             -v 2 \
-            --repo-root $K_REPO_ROOT \
+            --repo-root "$K_REPO_ROOT" \
             --build \
             --up \
             --down
