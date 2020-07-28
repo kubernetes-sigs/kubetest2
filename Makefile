@@ -18,6 +18,9 @@ BINARY_PATH?=.
 DOCKER?=$(shell which docker || which podman || echo "docker")
 export DOCKER
 
+build-all:
+	$(REPO_ROOT)/hack/go_container.sh go build -v ./...
+
 install:
 	$(REPO_ROOT)/hack/go_container.sh go build -v -o /out/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
@@ -59,4 +62,4 @@ unit:
 verify:
 	$(MAKE) -j lint shellcheck
 
-.PHONY: install install-deployer-% quick-verify clean-cache clean-output clean verify lint shellcheck
+.PHONY: build-all install install-deployer-% quick-verify clean-cache clean-output clean verify lint shellcheck
