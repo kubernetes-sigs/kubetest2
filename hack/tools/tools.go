@@ -6,7 +6,6 @@ https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-
 */
 package tools
 
-
 import (
 	// linter(s)
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"

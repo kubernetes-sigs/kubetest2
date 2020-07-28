@@ -24,6 +24,17 @@ cd "${REPO_ROOT}"
 SOURCE_DIR="${REPO_ROOT}/hack/tools" GOOS="linux" hack/go_container.sh \
   go build -o /out/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
 
+
+# run golangci-lint
+LINTS=(
+  # default golangci-lint lints
+  deadcode errcheck gosimple govet ineffassign staticcheck \
+  structcheck typecheck unused varcheck \
+  # additional lints
+  golint gofmt misspell unparam scopelint gosec
+)
+LINTS_JOINED="$(IFS=','; echo "${LINTS[*]}")"
+
 # first for the repo in general
 SOURCE_DIR="${REPO_ROOT}" hack/go_container.sh \
-  /out/golangci-lint -v --enable-all --timeout=2m run .
+  /out/golangci-lint --disable-all --enable="${LINTS_JOINED}" --timeout=2m run ./...
