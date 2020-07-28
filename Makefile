@@ -53,6 +53,9 @@ lint:
 shellcheck:
 	./hack/verify/shellcheck.sh
 
+unit:
+	./hack/ci/unit.sh
+
 verify:
 	$(MAKE) -j lint shellcheck
 
