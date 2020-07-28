@@ -44,6 +44,9 @@ clean-output:
 # standard cleanup target
 clean: clean-output clean-cache
 
+format:
+	./hack/update/gofmt.sh
+
 lint:
 	./hack/verify/lint.sh
 
