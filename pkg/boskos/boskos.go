@@ -80,7 +80,7 @@ func startBoskosHeartbeat(boskosClient *client.Client, resource *common.Resource
 			case <-close:
 				klog.V(2).Info("Boskos heartbeat func received signal to close")
 				return
-			case <-time.Tick(interval):
+			case <-time.NewTicker(interval).C:
 				klog.V(2).Info("Sending heartbeat to Boskos")
 				if err := c.UpdateOne(resource.Name, "busy", nil); err != nil {
 					klog.Warningf("[Boskos] Update of %s failed with %v", resource.Name, err)

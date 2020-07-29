@@ -14,23 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
-set -o nounset
-set -o pipefail
-set -o xtrace
+# script to run gofmt over our code (not vendor)
+set -o errexit -o nounset -o pipefail
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
-cd "${REPO_ROOT}" || exit 1
+# cd to the repo root
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "${REPO_ROOT}"
 
-make install
-make install-deployer-gce
-
-# currently equivalent to /home/prow/go/src/github.com/kubernetes/cloud-provider-gcp
-K_REPO_ROOT="${REPO_ROOT}/../../kubernetes/cloud-provider-gcp"
-
-kubetest2 gce \
-            -v 2 \
-            --repo-root "$K_REPO_ROOT" \
-            --build \
-            --up \
-            --down
+hack/go_container.sh sh -c "find . -name '*.go' -type f -print0 | xargs -0 gofmt -s -w"

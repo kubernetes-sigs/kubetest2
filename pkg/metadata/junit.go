@@ -64,7 +64,7 @@ type testSuite struct {
 
 func (t *testSuite) Write(writer io.Writer) error {
 	// write xml header
-	io.WriteString(writer, `<?xml version="1.0" encoding="UTF-8"?>`)
+	_, _ = io.WriteString(writer, `<?xml version="1.0" encoding="UTF-8"?>`)
 	// write indented suite
 	e := xml.NewEncoder(writer)
 	e.Indent("", "    ")

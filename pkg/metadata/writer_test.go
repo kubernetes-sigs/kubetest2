@@ -159,8 +159,8 @@ func TestWriter(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
-			tc := tc // capture range variable
 			// these are parallel safe, we faked out time etc.
 			t.Parallel()
 			// fake output io.WriteCloser

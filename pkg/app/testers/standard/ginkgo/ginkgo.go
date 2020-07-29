@@ -35,7 +35,6 @@ const (
 )
 
 var (
-	kubeRoot    string
 	e2eTestPath = filepath.Join("kubernetes", "test", "bin", "e2e.test")
 )
 
@@ -44,7 +43,7 @@ const usage = `--flake-attempts Make up to this many attempts to run each spec.
 --skip Regular expression of jobs to skip.`
 
 func init() {
-	testers.Register("ginkgo", usage, NewTester)
+	_ = testers.Register("ginkgo", usage, NewTester)
 }
 
 // Tester implements a kubetest2 types.Tester that exec's it's arguments
@@ -65,14 +64,11 @@ type Tester struct {
 
 // NewTester creates a new Tester
 func NewTester(common types.Options, testArgs []string, deployer types.Deployer) (types.Tester, error) {
-	wd, _ := os.Getwd()
-	kubeRoot = filepath.Join(wd, "kubernetes")
-
 	t := Tester{}
 	t.deployer = deployer
 
 	flags := bindFlags(&t)
-	flags.Parse(testArgs)
+	_ = flags.Parse(testArgs)
 
 	t.conformanceTest = true //TODO(RonWeber): Better logic here.
 
