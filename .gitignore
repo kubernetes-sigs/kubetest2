@@ -5,3 +5,6 @@
 # kubetest2 default artifacts
 _artifacts/
 bin/
+
+# VisualStudio Code specific files
+.vscode/

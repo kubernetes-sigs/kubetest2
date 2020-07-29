@@ -17,6 +17,7 @@ limitations under the License.
 package exec
 
 import (
+	"context"
 	"io"
 	osexec "os/exec"
 )
@@ -37,6 +38,13 @@ var _ Cmder = &LocalCmder{}
 func (c *LocalCmder) Command(name string, arg ...string) Cmd {
 	return &LocalCmd{
 		Cmd: osexec.Command(name, arg...),
+	}
+}
+
+// CommandWithContext returns a new exec.Cmd with the context, backed by Cmd
+func (c *LocalCmder) CommandWithContext(ctx context.Context, name string, arg ...string) Cmd {
+	return &LocalCmd{
+		Cmd: osexec.CommandContext(ctx, name, arg...),
 	}
 }
 
