@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) prepareGcpIfNeeded() error {
+func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 	// TODO(RonWeber): This is an almost direct copy/paste from kubetest's prepareGcp()
 	// It badly needs refactored.
 
@@ -53,8 +53,8 @@ func (d *deployer) prepareGcpIfNeeded() error {
 		return err
 	}
 
-	if err := runWithOutput(exec.Command("gcloud", "config", "set", "project", d.project)); err != nil {
-		return fmt.Errorf("Failed to set project %s : err %v", d.project, err)
+	if err := runWithOutput(exec.Command("gcloud", "config", "set", "project", projectID)); err != nil {
+		return fmt.Errorf("Failed to set project %s : err %v", projectID, err)
 	}
 
 	// gcloud creds may have changed

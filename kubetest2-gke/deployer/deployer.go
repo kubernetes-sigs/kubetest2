@@ -82,10 +82,11 @@ type deployer struct {
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// gke specific details
-	project           string
+	projects          []string
 	zone              string
 	region            string
-	cluster           string
+	clusters          []string
+	clustersLayout    map[string][]string
 	nodes             int
 	machineType       string
 	network           string
@@ -93,9 +94,13 @@ type deployer struct {
 	createCommandFlag string
 	gcpServiceAccount string
 
-	kubecfgPath    string
-	testPrepared   bool
-	instanceGroups []*ig
+	// multi-project details
+	boskosProjectsRequested int
+
+	kubecfgPath  string
+	testPrepared bool
+	// project -> cluster -> instance groups
+	instanceGroups map[string]map[string][]*ig
 
 	stageLocation string
 
@@ -133,7 +138,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 
 // verifyCommonFlags validates flags for up phase.
 func (d *deployer) verifyUpFlags() error {
-	if d.cluster == "" {
+	if d.clusters == nil {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
 	if _, err := d.location(); err != nil {
@@ -147,10 +152,10 @@ func (d *deployer) verifyUpFlags() error {
 
 // verifyDownFlags validates flags for down phase.
 func (d *deployer) verifyDownFlags() error {
-	if d.cluster == "" {
+	if d.clusters == nil {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
-	if d.project == "" {
+	if d.projects == nil {
 		return fmt.Errorf("--project must be set for GKE deployment")
 	}
 	if _, err := d.location(); err != nil {
@@ -182,12 +187,12 @@ var _ types.NewDeployer = New
 func bindFlags(d *deployer) *pflag.FlagSet {
 	flags := pflag.NewFlagSet(Name, pflag.ContinueOnError)
 
-	flags.StringVar(&d.cluster, "cluster-name", "", "Cluster name. Must be set.")
+	flags.StringSliceVar(&d.clusters, "cluster-name", []string{}, "Cluster names separated by comma. Must be set.")
 	flags.StringVar(&d.createCommandFlag, "create-command", defaultCreate, "gcloud subcommand used to create a cluster. Modify if you need to pass arbitrary arguments to create.")
 	flags.StringVar(&d.gcpServiceAccount, "gcp-service-account", "", "Service account to activate before using gcloud")
-	flags.StringVar(&d.network, "network", "default", "Cluster network. Defaults to the default network.")
-	flags.StringVar(&d.environment, "environment", "staging", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL")
-	flags.StringVar(&d.project, "project", "", "Project to deploy to.")
+	flags.StringVar(&d.network, "network", "default", "Cluster network. Defaults to the default network if not provided. For multi-project use cases, this will be the Shared VPC network name.")
+	flags.StringVar(&d.environment, "environment", "prod", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided")
+	flags.StringSliceVar(&d.projects, "project", []string{}, "Project to deploy to separated by comma.")
 	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
@@ -195,6 +200,10 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
 	flags.StringVar(&d.boskosLocation, "boskos-location", "http://boskos.test-pods.svc.cluster.local.", "If set, manually specifies the location of the boskos server")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
+
+	// Multi-project parameters
+	flags.IntVar(&d.boskosProjectsRequested, "projects-requested", 0, "Number of projects ")
+
 	return flags
 }
 
@@ -218,61 +227,156 @@ func (d *deployer) Build() error {
 	return nil
 }
 
+func (d *deployer) enableSharedVPCProjects(projects []string) error {
+	if len(projects) > 1 {
+		// The host project will enabled a Shared VPC for other projects and clusters
+		// to be part of the same network topology and form a mesh. At current stage,
+		// no particular customization has to be made and a single mesh will cover all
+		// identified use cases
+
+		// Enable Shared VPC for multiproject requests on the host project
+		// Assuming we have Shared VPC Admin role at the organization level
+		networkHostProject := d.projects[0]
+		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "enable", networkHostProject)); err != nil {
+			return fmt.Errorf("error creating Shared VPC host project: %s", err)
+		}
+
+		// Associate the rest of the projects
+		for i := 1; i < len(projects); i++ {
+			if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
+				"associated-projects", "add", projects[i],
+				"--host-project", networkHostProject)); err != nil {
+				return fmt.Errorf("error associating project (%s) to Shared VPC: %s", projects[i], err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (d *deployer) disableSharedVPCProjects(projects []string) error {
+	if len(projects) > 1 {
+		// The host project will enabled a Shared VPC for other projects and clusters
+		// to be part of the same network topology and form a mesh. At current stage,
+		// no particular customization has to be made and a single mesh will cover all
+		// identified use cases
+
+		// Assuming we have Shared VPC Admin role at the organization level
+		networkHostProject := d.projects[0]
+
+		// Disassociate the rest of the projects
+		for i := 1; i < len(projects); i++ {
+			if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
+				"associated-projects", "remove", projects[i],
+				"--host-project", networkHostProject)); err != nil {
+				return fmt.Errorf("error associating project (%s) to Shared VPC: %s", projects[i], err)
+			}
+		}
+
+		// Disable Shared VPC for multiproject requests on the host project
+		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "disable", networkHostProject)); err != nil {
+			return fmt.Errorf("error creating Shared VPC host project: %s", err)
+		}
+	}
+
+	return nil
+}
+
+func (d *deployer) createNetwork(projects []string) error {
+	// Create network if it doesn't exist.
+	// Verify networks for all projects and configure the mesh if parameter is set
+	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.network,
+		"--project="+d.projects[0],
+		"--format=value(name)")) != nil {
+		// Assume error implies non-existent.
+		log.Printf("Couldn't describe network '%s', assuming it doesn't exist and creating it", d.network)
+		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.network,
+			"--project="+d.projects[0],
+			"--subnet-mode=auto")); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *deployer) transformNetworkName() string {
+	if len(d.projects) == 1 {
+		return d.network
+	}
+	// Multiproject should specify the network at cluster creation such as:
+	// projects/HOST_PROJECT_ID/global/networks/SHARED_VPC_NETWORK
+	return fmt.Sprintf("projects/%s/global/networks/%s", d.projects[0], d.network)
+}
+
 // Deployer implementation methods below
 func (d *deployer) Up() error {
 	if err := d.init(); err != nil {
 		return err
 	}
-	if err := d.prepareGcpIfNeeded(); err != nil {
+
+	if err := d.enableSharedVPCProjects(d.projects); err != nil {
 		return err
 	}
 
-	// Create network if it doesn't exist.
-	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.network,
-		"--project="+d.project,
-		"--format=value(name)")) != nil {
-		// Assume error implies non-existent.
-		log.Printf("Couldn't describe network '%s', assuming it doesn't exist and creating it", d.network)
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.network,
-			"--project="+d.project,
-			"--subnet-mode=auto")); err != nil {
+	if err := d.createNetwork(d.projects); err != nil {
+		return err
+	}
+
+	for _, project := range d.projects {
+		// TODO Prepare should be performed per GCP project
+		if err := d.prepareGcpIfNeeded(project); err != nil {
 			return err
+		}
+
+		loc, err := d.location()
+		if err != nil {
+			return err
+		}
+
+		for _, cluster := range d.clustersLayout[project] {
+			// Create the cluster
+			args := make([]string, len(d.createCommand()))
+			copy(args, d.createCommand())
+			args = append(args,
+				"--project="+project,
+				loc,
+				"--machine-type="+d.machineType,
+				"--image-type="+image,
+				"--num-nodes="+strconv.Itoa(d.nodes),
+				"--network="+d.transformNetworkName(),
+			)
+			fmt.Printf("Environment: %v", os.Environ())
+
+			args = append(args, cluster)
+			fmt.Printf("Gcloud command: gcloud %+v\n", args)
+			if err := runWithOutput(exec.Command("gcloud", args...)); err != nil {
+				return fmt.Errorf("error creating cluster: %v", err)
+			}
 		}
 	}
 
-	loc, err := d.location()
-	if err != nil {
-		return err
-	}
-	args := make([]string, len(d.createCommand()))
-	copy(args, d.createCommand())
-	args = append(args,
-		"--project="+d.project,
-		loc,
-		"--machine-type="+d.machineType,
-		"--image-type="+image,
-		"--num-nodes="+strconv.Itoa(d.nodes),
-		"--network="+d.network,
-	)
-	fmt.Printf("Environment: %v", os.Environ())
-
-	args = append(args, d.cluster)
-	fmt.Printf("Gcloud command: gcloud %+v", args)
-	if err := runWithOutput(exec.Command("gcloud", args...)); err != nil {
-		return fmt.Errorf("error creating cluster: %v", err)
-	}
 	return nil
 }
 
 func (d *deployer) IsUp() (up bool, err error) {
-	// naively assume that if the api server reports nodes, the cluster is up
-	lines, err := exec.CombinedOutputLines(
-		exec.Command("kubectl", "get", "nodes", "-o=name"),
-	)
-	if err != nil {
-		return false, metadata.NewJUnitError(err, strings.Join(lines, "\n"))
+	for _, project := range d.projects {
+		// TODO Prepare should be performed per GCP project
+		if err := d.prepareGcpIfNeeded(project); err != nil {
+			return false, err
+		}
+
+		// naively assume that if the api server reports nodes, the cluster is up
+		lines, err := exec.CombinedOutputLines(
+			exec.Command("kubectl", "get", "nodes", "-o=name"),
+		)
+		if err != nil {
+			return false, metadata.NewJUnitError(err, strings.Join(lines, "\n"))
+		}
+		if len(lines) == 0 {
+			return false, fmt.Errorf("project had no nodes active: %s", project)
+		}
 	}
-	return len(lines) > 0, nil
+	return true, nil
 }
 
 // DumpClusterLogs for GKE generates a small script that wraps
@@ -305,32 +409,40 @@ export KUBERNETES_PROVIDER=gke
 export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 %[5]s
 `
-	// Prevent an obvious injection.
-	if strings.Contains(d.localLogsDir, "'") || strings.Contains(d.gcsLogsDir, "'") {
-		return fmt.Errorf("%q or %q contain single quotes - nice try", d.localLogsDir, d.gcsLogsDir)
+	for _, project := range d.projects {
+		// Prevent an obvious injection.
+		if strings.Contains(d.localLogsDir, "'") || strings.Contains(d.gcsLogsDir, "'") {
+			return fmt.Errorf("%q or %q contain single quotes - nice try", d.localLogsDir, d.gcsLogsDir)
+		}
+
+		// Generate a slice of filters to be OR'd together below
+		var filters []string
+		for _, cluster := range d.clustersLayout[project] {
+			if err := d.getInstanceGroups(); err != nil {
+				return err
+			}
+			for _, ig := range d.instanceGroups[project][cluster] {
+				filters = append(filters, fmt.Sprintf("(metadata.created-by:*%s)", ig.path))
+			}
+		}
+
+		// Generate the log-dump.sh command-line
+		dumpCmd := fmt.Sprintf("./cluster/log-dump/log-dump.sh '%s'", d.localLogsDir)
+		if d.gcsLogsDir != "" {
+			dumpCmd += " " + d.gcsLogsDir
+		}
+
+		if err := runWithOutput(exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
+			project,
+			d.zone,
+			os.Getenv("NODE_OS_DISTRIBUTION"),
+			strings.Join(filters, " OR "),
+			dumpCmd))); err != nil {
+			return err
+		}
 	}
 
-	// Generate a slice of filters to be OR'd together below
-	if err := d.getInstanceGroups(); err != nil {
-		return err
-	}
-	var filters []string
-	for _, ig := range d.instanceGroups {
-		filters = append(filters, fmt.Sprintf("(metadata.created-by:*%s)", ig.path))
-	}
-
-	// Generate the log-dump.sh command-line
-	dumpCmd := fmt.Sprintf("./cluster/log-dump/log-dump.sh '%s'", d.localLogsDir)
-	if d.gcsLogsDir != "" {
-		dumpCmd += " " + d.gcsLogsDir
-	}
-
-	return runWithOutput(exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
-		d.project,
-		d.zone,
-		os.Getenv("NODE_OS_DISTRIBUTION"),
-		strings.Join(filters, " OR "),
-		dumpCmd)))
+	return nil
 }
 
 func (d *deployer) TestSetup() error {
@@ -338,14 +450,21 @@ func (d *deployer) TestSetup() error {
 		// Ensure setup is a singleton.
 		return nil
 	}
-	if _, err := d.Kubeconfig(); err != nil {
-		return err
-	}
-	if err := d.getInstanceGroups(); err != nil {
-		return err
-	}
-	if err := d.ensureFirewall(); err != nil {
-		return err
+	for _, project := range d.projects {
+		for _, cluster := range d.clustersLayout[project] {
+			if err := d.prepareGcpIfNeeded(project); err != nil {
+				return err
+			}
+			if _, err := d.Kubeconfig(project, cluster); err != nil {
+				return err
+			}
+			if err := d.getInstanceGroups(); err != nil {
+				return err
+			}
+			if err := d.ensureFirewall(project, cluster, d.network); err != nil {
+				return err
+			}
+		}
 	}
 	d.testPrepared = true
 	return nil
@@ -354,11 +473,7 @@ func (d *deployer) TestSetup() error {
 // Kubeconfig returns a path to a kubeconfig file for the cluster in
 // a temp directory, creating one if one does not exist.
 // It also sets the KUBECONFIG environment variable appropriately.
-func (d *deployer) Kubeconfig() (string, error) {
-	if err := d.prepareGcpIfNeeded(); err != nil {
-		return "", err
-	}
-
+func (d *deployer) Kubeconfig(project, cluster string) (string, error) {
 	if d.kubecfgPath != "" {
 		return d.kubecfgPath, nil
 	}
@@ -378,23 +493,23 @@ func (d *deployer) Kubeconfig() (string, error) {
 	if err := os.Setenv("KUBECONFIG", filename); err != nil {
 		return "", err
 	}
-	if err := runWithOutput(exec.Command("gcloud", d.containerArgs("clusters", "get-credentials", d.cluster, "--project="+d.project, loc)...)); err != nil {
+	if err := runWithOutput(exec.Command("gcloud", d.containerArgs("clusters", "get-credentials", cluster, "--project="+project, loc)...)); err != nil {
 		return "", fmt.Errorf("error executing get-credentials: %v", err)
 	}
 	d.kubecfgPath = filename
 	return d.kubecfgPath, nil
 }
 
-func (d *deployer) ensureFirewall() error {
-	if d.network == "default" {
+func (d *deployer) ensureFirewall(project, cluster, network string) error {
+	if network == "default" {
 		return nil
 	}
-	firewall, err := d.getClusterFirewall()
+	firewall, err := d.getClusterFirewall(project, cluster)
 	if err != nil {
 		return fmt.Errorf("error getting unique firewall: %v", err)
 	}
 	if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
-		"--project="+d.project,
+		"--project="+project,
 		"--format=value(name)")) == nil {
 		// Assume that if this unique firewall exists, it's good to go.
 		return nil
@@ -402,8 +517,8 @@ func (d *deployer) ensureFirewall() error {
 	log.Printf("Couldn't describe firewall '%s', assuming it doesn't exist and creating it", firewall)
 
 	tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
-		"--project="+d.project,
-		"--filter=metadata.created-by:*"+d.instanceGroups[0].path,
+		"--project="+project,
+		"--filter=metadata.created-by:*"+d.instanceGroups[project][cluster][0].path,
 		"--limit=1",
 		"--format=get(tags.items)"))
 	if err != nil {
@@ -415,8 +530,8 @@ func (d *deployer) ensureFirewall() error {
 	}
 
 	if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
-		"--project="+d.project,
-		"--network="+d.network,
+		"--project="+project,
+		"--network="+network,
 		"--allow="+e2eAllow,
 		"--target-tags="+tag)); err != nil {
 		return fmt.Errorf("error creating e2e firewall: %v", err)
@@ -425,36 +540,52 @@ func (d *deployer) ensureFirewall() error {
 }
 
 func (d *deployer) getInstanceGroups() error {
-	if len(d.instanceGroups) > 0 {
+	if d.instanceGroups != nil {
 		return nil
 	}
+
+	// Initialize project instance groups structure
+	d.instanceGroups = map[string]map[string][]*ig{}
+
 	location, err := d.location()
 	if err != nil {
 		return err
 	}
-	igs, err := exec.Output(exec.Command("gcloud", d.containerArgs("clusters", "describe", d.cluster,
-		"--format=value(instanceGroupUrls)",
-		"--project="+d.project,
-		location)...))
-	if err != nil {
-		return fmt.Errorf("instance group URL fetch failed: %s", execError(err))
-	}
-	igURLs := strings.Split(strings.TrimSpace(string(igs)), ";")
-	if len(igURLs) == 0 {
-		return fmt.Errorf("no instance group URLs returned by gcloud, output %q", string(igs))
-	}
-	sort.Strings(igURLs)
-	for _, igURL := range igURLs {
-		m := poolRe.FindStringSubmatch(igURL)
-		if len(m) == 0 {
-			return fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
+
+	for _, project := range d.projects {
+		d.instanceGroups[project] = map[string][]*ig{}
+
+		for _, cluster := range d.clustersLayout[project] {
+			igs, err := exec.Output(exec.Command("gcloud", d.containerArgs("clusters", "describe", cluster,
+				"--format=value(instanceGroupUrls)",
+				"--project="+project,
+				location)...))
+			if err != nil {
+				return fmt.Errorf("instance group URL fetch failed: %s", execError(err))
+			}
+			igURLs := strings.Split(strings.TrimSpace(string(igs)), ";")
+			if len(igURLs) == 0 {
+				return fmt.Errorf("no instance group URLs returned by gcloud, output %q", string(igs))
+			}
+			sort.Strings(igURLs)
+
+			// Inialize cluster instance groups
+			d.instanceGroups[project][cluster] = make([]*ig, 0)
+
+			for _, igURL := range igURLs {
+				m := poolRe.FindStringSubmatch(igURL)
+				if len(m) == 0 {
+					return fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
+				}
+				d.instanceGroups[project][cluster] = append(d.instanceGroups[project][cluster], &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
+			}
 		}
-		d.instanceGroups = append(d.instanceGroups, &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
 	}
+
 	return nil
 }
 
-func (d *deployer) getClusterFirewall() (string, error) {
+func (d *deployer) getClusterFirewall(project, cluster string) (string, error) {
 	if err := d.getInstanceGroups(); err != nil {
 		return "", err
 	}
@@ -462,25 +593,25 @@ func (d *deployer) getClusterFirewall() (string, error) {
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
 	// node pool instead.
-	return "e2e-ports-" + d.instanceGroups[0].uniq, nil
+	return "e2e-ports-" + d.instanceGroups[project][cluster][0].uniq, nil
 }
 
 // This function ensures that all firewall-rules are deleted from specific network.
 // We also want to keep in logs that there were some resources leaking.
-func (d *deployer) cleanupNetworkFirewalls() (int, error) {
+func (d *deployer) cleanupNetworkFirewalls(project, network string) (int, error) {
 	fws, err := exec.Output(exec.Command("gcloud", "compute", "firewall-rules", "list",
 		"--format=value(name)",
-		"--project="+d.project,
-		"--filter=network:"+d.network))
+		"--project="+project,
+		"--filter=network:"+network))
 	if err != nil {
 		return 0, fmt.Errorf("firewall rules list failed: %s", execError(err))
 	}
 	if len(fws) > 0 {
 		fwList := strings.Split(strings.TrimSpace(string(fws)), "\n")
-		log.Printf("Network %s has %v undeleted firewall rules %v", d.network, len(fwList), fwList)
+		log.Printf("Network %s has %v undeleted firewall rules %v", network, len(fwList), fwList)
 		commandArgs := []string{"compute", "firewall-rules", "delete", "-q"}
 		commandArgs = append(commandArgs, fwList...)
-		commandArgs = append(commandArgs, "--project="+d.project)
+		commandArgs = append(commandArgs, "--project="+project)
 		errFirewall := runWithOutput(exec.Command("gcloud", commandArgs...))
 		if errFirewall != nil {
 			return 0, fmt.Errorf("error deleting firewall: %v", errFirewall)
@@ -494,67 +625,77 @@ func (d *deployer) Down() error {
 	if err := d.init(); err != nil {
 		return err
 	}
-	if err := d.prepareGcpIfNeeded(); err != nil {
-		return err
-	}
-	firewall, err := d.getClusterFirewall()
-	if err != nil {
-		// This is expected if the cluster doesn't exist.
-		return nil
-	}
-	d.instanceGroups = nil
 
-	loc, err := d.location()
-	if err != nil {
-		return err
-	}
+	d.disableSharedVPCProjects(d.projects)
 
-	// We best-effort try all of these and report errors as appropriate.
-	errCluster := runWithOutput(exec.Command(
-		"gcloud", d.containerArgs("clusters", "delete", "-q", d.cluster,
-			"--project="+d.project,
-			loc)...))
-
-	// don't delete default network
-	if d.network == "default" {
-		if errCluster != nil {
-			log.Printf("Error deleting cluster using default network, allow the error for now %s", errCluster)
+	for _, project := range d.projects {
+		if err := d.prepareGcpIfNeeded(project); err != nil {
+			return err
 		}
-		return nil
+
+		for _, cluster := range d.clustersLayout[project] {
+			firewall, err := d.getClusterFirewall(project, cluster)
+			if err != nil {
+				// This is expected if the cluster doesn't exist.
+				return nil
+			}
+			d.instanceGroups = nil
+
+			loc, err := d.location()
+			if err != nil {
+				return err
+			}
+
+			// We best-effort try all of these and report errors as appropriate.
+			errCluster := runWithOutput(exec.Command(
+				"gcloud", d.containerArgs("clusters", "delete", "-q", cluster,
+					"--project="+project,
+					loc)...))
+
+			// don't delete default network
+			if d.network == "default" {
+				if errCluster != nil {
+					log.Printf("Error deleting cluster using default network, allow the error for now %s", errCluster)
+				}
+				return nil
+			}
+
+			var errFirewall error
+			if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
+				"--project="+project,
+				"--format=value(name)")) == nil {
+				log.Printf("Found rules for firewall '%s', deleting them", firewall)
+				errFirewall = exec.Command("gcloud", "compute", "firewall-rules", "delete", "-q", firewall,
+					"--project="+project).Run()
+			} else {
+				log.Printf("Found no rules for firewall '%s', assuming resources are clean", firewall)
+			}
+			numLeakedFWRules, errCleanFirewalls := d.cleanupNetworkFirewalls(project, d.network)
+			var errSubnet error
+			errNetwork := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.network,
+				"--project="+project))
+
+			if errCluster != nil {
+				return fmt.Errorf("error deleting cluster: %v", errCluster)
+			}
+			if errFirewall != nil {
+				return fmt.Errorf("error deleting firewall: %v", errFirewall)
+			}
+			if errCleanFirewalls != nil {
+				return fmt.Errorf("error cleaning-up firewalls: %v", errCleanFirewalls)
+			}
+			if errSubnet != nil {
+				return fmt.Errorf("error deleting subnetwork: %v", errSubnet)
+			}
+			if errNetwork != nil {
+				return fmt.Errorf("error deleting network: %v", errNetwork)
+			}
+			if numLeakedFWRules > 0 {
+				return fmt.Errorf("leaked firewall rules")
+			}
+		}
 	}
 
-	var errFirewall error
-	if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
-		"--project="+d.project,
-		"--format=value(name)")) == nil {
-		log.Printf("Found rules for firewall '%s', deleting them", firewall)
-		errFirewall = exec.Command("gcloud", "compute", "firewall-rules", "delete", "-q", firewall,
-			"--project="+d.project).Run()
-	} else {
-		log.Printf("Found no rules for firewall '%s', assuming resources are clean", firewall)
-	}
-	numLeakedFWRules, errCleanFirewalls := d.cleanupNetworkFirewalls()
-	var errSubnet error
-	errNetwork := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.network,
-		"--project="+d.project))
-	if errCluster != nil {
-		return fmt.Errorf("error deleting cluster: %v", errCluster)
-	}
-	if errFirewall != nil {
-		return fmt.Errorf("error deleting firewall: %v", errFirewall)
-	}
-	if errCleanFirewalls != nil {
-		return fmt.Errorf("error cleaning-up firewalls: %v", errCleanFirewalls)
-	}
-	if errSubnet != nil {
-		return fmt.Errorf("error deleting subnetwork: %v", errSubnet)
-	}
-	if errNetwork != nil {
-		return fmt.Errorf("error deleting network: %v", errNetwork)
-	}
-	if numLeakedFWRules > 0 {
-		return fmt.Errorf("leaked firewall rules")
-	}
 	return nil
 }
 
