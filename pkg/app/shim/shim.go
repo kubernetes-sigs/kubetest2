@@ -114,5 +114,11 @@ func usage(cmd *cobra.Command) {
 		cmd.Printf("  %s\n", deployer)
 	}
 	cmd.Println()
+	testers := FindTesters()
+	cmd.Println("Detected Testers:")
+	for tester := range testers {
+		cmd.Printf("  %s\n", tester)
+	}
+	cmd.Println()
 	cmd.Println("For more help, run kubetest2 [deployer] --help")
 }
