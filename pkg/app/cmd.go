@@ -19,6 +19,7 @@ package app
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -168,12 +169,17 @@ func runE(
 }
 
 // the default is $ARTIFACTS if set, otherwise ./_artifacts
-func defaultArtifactsDir() string {
+func defaultArtifactsDir() (string, error) {
 	path, set := os.LookupEnv("ARTIFACTS")
 	if set {
-		return path
+		return path, nil
 	}
-	return "./_artifacts"
+
+	workDir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("when constructing default artifacts dir, failed to get working directory: %s", err)
+	}
+	return filepath.Join(workDir, "_artifacts"), nil
 }
 
 // splitArgs splits args into deployerArgs and testerArgs at the first bare `--`
@@ -209,7 +215,12 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.up, "up", false, "provision the test cluster")
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
-	flags.StringVar(&o.artifacts, "artifacts", defaultArtifactsDir(), `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}"`)
+
+	defaultArtifacts, err := defaultArtifactsDir()
+	if err != nil {
+		panic(err)
+	}
+	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}"`)
 }
 
 // assert that options implements deployer options
