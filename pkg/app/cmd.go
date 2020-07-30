@@ -220,7 +220,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	if err != nil {
 		panic(err)
 	}
-	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}"`)
+	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}". If using the ginkgo tester, this must be an absolute path.`)
 }
 
 // assert that options implements deployer options

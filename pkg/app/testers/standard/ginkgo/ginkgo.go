@@ -70,6 +70,10 @@ func NewTester(common types.Options, testArgs []string, deployer types.Deployer)
 	flags := bindFlags(&t)
 	_ = flags.Parse(testArgs)
 
+	if !filepath.IsAbs(common.ArtifactsDir()) {
+		return nil, fmt.Errorf("the ginkgo tester requires the artifacts directory to be an absolute path, it was actually: %s", common.ArtifactsDir())
+	}
+
 	t.conformanceTest = true //TODO(RonWeber): Better logic here.
 
 	return &t, nil
