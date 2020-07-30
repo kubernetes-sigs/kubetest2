@@ -100,16 +100,9 @@ type DeployerWithProvider interface {
 	Provider() string
 }
 
-// NewTester should process & store deployerArgs and the common Options
-// kubetest2 will call this once at startup
-// common will provide access to options defined by common flags and kubetest2
-// logic, while testArgs provides all arguments passed to kubetest2
-// after the first bare `--` if any.
-// When incorrect arguments or flags are supplied, the IncorrectUsage superset
-// of error can be returned. kubetest2 will display the HelpText() output
-type NewTester func(common Options, testArgs []string, deployer Deployer) (Tester, error)
-
-// Tester defines the interface between kubetest2 and a tester
-type Tester interface {
-	Test() error
+// Tester defines the "interface" between kubetest2 and a tester
+// The tester is executed as a separate binary during the Test() phase
+type Tester struct {
+	TesterPath string
+	TesterArgs []string
 }
