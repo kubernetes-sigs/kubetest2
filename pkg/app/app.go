@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/kubetest2/pkg/exec"
 
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/types"
@@ -112,7 +113,9 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 	// and finally test, if a test was specified
 	if opts.ShouldTest() {
-		if err := writer.WrapStep("Test", tester.Test); err != nil {
+		test := exec.Command(tester.TesterPath, tester.TesterArgs...)
+		exec.InheritOutput(test)
+		if err := writer.WrapStep("Test", test.Run); err != nil {
 			return err
 		}
 	}
