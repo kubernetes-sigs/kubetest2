@@ -44,7 +44,7 @@ It orchestrates creating clusters, building kubernetes, deleting clusters, runni
 
 kubetest2 should be called with a deployer like: 'kubetest2 kind --help'
 
-For more information see: https://github.com/kubernetes/test-infra/tree/master/kubetest2`
+For more information see: https://github.com/kubernetes-sigs/kubetest2`
 
 // NewCommand returns a new cobra.Command for building the base image
 func NewCommand() *cobra.Command {

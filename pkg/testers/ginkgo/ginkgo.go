@@ -34,12 +34,6 @@ const (
 	binary = "ginkgo" // TODO(RonWeber): Actually find these binaries.
 )
 
-// Fixing this path temporarily for local testing
-// TODO(amwat): implement actual logic
-var (
-	e2eTestPath = filepath.Join("_artifacts", "kubernetes", "test", "bin", "e2e.test")
-)
-
 type Tester struct {
 	FlakeAttempts int    `desc:"Make up to this many attempts to run each spec."`
 	Parallel      int    `desc:"Run this many tests in parallel at once."`
@@ -54,6 +48,9 @@ func (t *Tester) Test() error {
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
+	// Fixing this path temporarily for local testing
+	// TODO(amwat): implement actual logic
+	e2eTestPath := filepath.Join(os.Getenv("ARTIFACTS"), "kubernetes", "test", "bin", "e2e.test")
 
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
@@ -73,11 +70,14 @@ func (t *Tester) Test() error {
 }
 
 func (t *Tester) pretestSetup() error {
-	// TODO(amwat): pass this from kubetest2
 	if config := os.Getenv("KUBECONFIG"); config != "" {
 		t.kubeconfigPath = config
 	} else {
-		t.kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to find home directory: %v", err)
+		}
+		t.kubeconfigPath = filepath.Join(home, ".kube", "config")
 	}
 	log.Printf("Using kubeconfig at %s", t.kubeconfigPath)
 

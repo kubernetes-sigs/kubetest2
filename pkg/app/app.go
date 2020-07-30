@@ -115,6 +115,19 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 	if opts.ShouldTest() {
 		test := exec.Command(tester.TesterPath, tester.TesterArgs...)
 		exec.InheritOutput(test)
+
+		envsForTester := os.Environ()
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.ArtifactsDir()))
+		// If the deployer provides a kubeconfig pass it to the tester
+		// else assumes that it is handled offline by default methods like
+		// ~/.kube/config
+		if dWithKubeconfig, ok := d.(types.DeployerWithKubeconfig); ok {
+			if kconfig, err := dWithKubeconfig.Kubeconfig(); err == nil {
+				envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBECONFIG", kconfig))
+			}
+
+		}
+		test.SetEnv(envsForTester...)
 		if err := writer.WrapStep("Test", test.Run); err != nil {
 			return err
 		}
