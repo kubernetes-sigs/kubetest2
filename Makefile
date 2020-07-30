@@ -33,7 +33,14 @@ install-deployer-%:
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
-quick-verify: install install-deployer-kind
+install-tester-%: BINARY_PATH=./kubetest2-tester-$*
+install-tester-%: BINARY_NAME=kubetest2-tester-$*
+install-tester-%:
+	$(REPO_ROOT)/hack/go_container.sh go build -v -o /out/$(BINARY_NAME) $(BINARY_PATH)
+	$(INSTALL) -d $(INSTALL_DIR)
+	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
+
+quick-verify: install install-deployer-kind install-tester-exec
 	kubetest2 kind --up --down --test=exec -- kubectl get all -A
 
 # cleans the cache volume
@@ -60,6 +67,6 @@ unit:
 	./hack/ci/unit.sh
 
 verify:
-	$(MAKE) -j lint shellcheck
+	$(MAKE) -j lint shellcheck unit
 
-.PHONY: build-all install install-deployer-% quick-verify clean-cache clean-output clean verify lint shellcheck
+.PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-cache clean-output clean verify lint shellcheck
