@@ -23,8 +23,6 @@ import (
 
 	"sigs.k8s.io/kubetest2/pkg/app"
 	"sigs.k8s.io/kubetest2/pkg/types"
-	// import the standard set of testers so they are loaded & registered
-	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard"
 )
 
 func main() {
