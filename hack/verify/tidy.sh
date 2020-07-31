@@ -20,21 +20,6 @@ set -o errexit -o nounset -o pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
 
-# build golangci-lint
-SOURCE_DIR="${REPO_ROOT}/hack/tools" GOOS="linux" hack/go_container.sh \
-  go build -o /out/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
-
-
-# run golangci-lint
-LINTS=(
-  # default golangci-lint lints
-  deadcode errcheck gosimple govet ineffassign staticcheck \
-  structcheck typecheck unused varcheck \
-  # additional lints
-  golint gofmt misspell unparam scopelint gosec
-)
-LINTS_JOINED="$(IFS=','; echo "${LINTS[*]}")"
-
 # first for the repo in general
 SOURCE_DIR="${REPO_ROOT}" hack/go_container.sh \
-  /out/golangci-lint --disable-all --enable="${LINTS_JOINED}" --timeout=5m run ./...
+  ./hack/verify/tidy_quiet.sh

@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -24,9 +25,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	"sigs.k8s.io/kubetest2/pkg/app/shim"
-	"sigs.k8s.io/kubetest2/pkg/app/testers"
+	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
@@ -80,20 +80,30 @@ func runE(
 	parseError := kubetest2Flags.Parse(deployerArgs)
 
 	// now that we've parsed flags we can look up the tester
-	var newTester types.NewTester
+	tester := types.Tester{}
 	if opts.test != "" {
-		n, testerUsage, ok := testers.Get(opts.test)
-		newTester = n
-
-		// if the tester exists, record usage info
-		if ok {
-			usage.testerUsage = testerUsage
-			usage.testerName = opts.test
-		} else if parseError == nil {
-			// otherwise fail if the named tester does not exist
-			// NOTE: we only retain the first parse error currently, and handle below
-			parseError = errors.Errorf("no such tester: %#v (Registered testers: %+v)", opts.test, testers.Names())
+		testerPath, err := shim.FindTester(opts.test)
+		if err != nil {
+			return fmt.Errorf("unable to find tester %v: %v", opts.test, err)
 		}
+
+		// Get tester usage by running it with --help
+		var helpArgs []string
+		helpArgs = append(helpArgs, "--help")
+		helpArgs = append(helpArgs, testerArgs...)
+		testerUsageCmd := exec.Command(testerPath, helpArgs...)
+		var stderr bytes.Buffer
+		testerUsageCmd.SetStderr(&stderr)
+		testerUsage, err := exec.Output(testerUsageCmd)
+		if err != nil {
+			return fmt.Errorf(stderr.String())
+		}
+
+		usage.testerUsage = string(testerUsage)
+		usage.testerName = opts.test
+
+		tester.TesterPath = testerPath
+		tester.TesterArgs = testerArgs
 	}
 
 	// instantiate the deployer
@@ -117,20 +127,6 @@ func runE(
 	allFlags.AddFlagSet(kubetest2Flags)
 	allFlags.AddFlagSet(deployerFlags)
 	if err := allFlags.Parse(deployerArgs); err != nil {
-		// NOTE: we only retain the first parse error currently, and handle below
-		if err != nil && parseError == nil {
-			parseError = err
-		}
-	}
-
-	// instantiate the tester if testing was specified
-	// NOTE: we need to do this before building etc, so we can fail fast on
-	// invalid options to the tester
-	var tester types.Tester
-	if newTester != nil {
-		t, err := newTester(opts, testerArgs, deployer)
-		tester = t
-
 		// NOTE: we only retain the first parse error currently, and handle below
 		if err != nil && parseError == nil {
 			parseError = err

@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	kubectl = "./kubernetes/client/bin/kubectl"
+	kubectl = "kubectl"
 )
 
 // APIServerURL obtains the URL of the k8s master from kubectl

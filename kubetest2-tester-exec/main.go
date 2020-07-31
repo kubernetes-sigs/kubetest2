@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package standard imports a set of standard kubetest2 tetser implementations
-// causing them to be registered in sigs.k8s.io/kubetest2/pkg/app/testers
-// most deployer binaries should import this package
-package standard
+// Package exec implements a kubetest2 tester that simply executes the arguments
+// as a subprocess
+package main
 
 import (
-	// load standard testers
-	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard/exec"
-	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard/ginkgo"
+	"sigs.k8s.io/kubetest2/pkg/testers/exec"
 )
+
+func main() {
+	exec.Main()
+}

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,11 +17,9 @@ limitations under the License.
 package main
 
 import (
-	"sigs.k8s.io/kubetest2/pkg/app"
-
-	"sigs.k8s.io/kubetest2/kubetest2-kind/deployer"
+	ginkgotester "sigs.k8s.io/kubetest2/pkg/testers/ginkgo"
 )
 
 func main() {
-	app.Main(deployer.Name, deployer.New)
+	ginkgotester.Main()
 }
