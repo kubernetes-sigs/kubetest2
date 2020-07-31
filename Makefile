@@ -54,8 +54,9 @@ clean-output:
 # standard cleanup target
 clean: clean-output clean-cache
 
-format:
+fix:
 	./hack/update/gofmt.sh
+	./hack/update/tidy.sh
 
 lint:
 	./hack/verify/lint.sh
@@ -63,10 +64,13 @@ lint:
 shellcheck:
 	./hack/verify/shellcheck.sh
 
+tidy:
+	./hack/verify/tidy.sh
+
 unit:
 	./hack/ci/unit.sh
 
 verify:
-	$(MAKE) -j lint shellcheck unit
+	$(MAKE) -j lint shellcheck unit tidy
 
 .PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-cache clean-output clean verify lint shellcheck
