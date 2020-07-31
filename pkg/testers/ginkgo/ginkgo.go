@@ -70,6 +70,20 @@ func (t *Tester) Test() error {
 
 func (t *Tester) pretestSetup() error {
 	if config := os.Getenv("KUBECONFIG"); config != "" {
+		// The ginkgo tester errors out if the kubeconfig provided
+		// is not an absolute path, likely because ginkgo changes its
+		// working directory while executing. To get around this problem
+		// we can manually edit the provided KUBECONFIG to ensure a
+		// successful run.
+		if !filepath.IsAbs(config) {
+			newKubeconfig, err := filepath.Abs(config)
+			if err != nil {
+				return fmt.Errorf("failed to convert kubeconfig to absolute path: %s", err)
+			}
+			log.Printf("Ginkgo tester received a non-absolute path for KUBECONFIG. Updating to: %s", newKubeconfig)
+			config = newKubeconfig
+		}
+
 		t.kubeconfigPath = config
 	} else {
 		home, err := os.UserHomeDir()

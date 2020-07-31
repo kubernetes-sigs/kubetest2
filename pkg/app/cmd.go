@@ -20,7 +20,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"k8s.io/klog"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -164,12 +167,23 @@ func runE(
 }
 
 // the default is $ARTIFACTS if set, otherwise ./_artifacts
-func defaultArtifactsDir() string {
+// constructed as an absolute path to help the ginkgo tester because
+// for some reason it needs an absolute path to the kubeconfig
+func defaultArtifactsDir() (string, error) {
 	path, set := os.LookupEnv("ARTIFACTS")
 	if set {
-		return path
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return "", fmt.Errorf("failed to convert filepath from $ARTIFACTS (%s) to absolute path: %s", path, err)
+		}
+		return absPath, nil
 	}
-	return "./_artifacts"
+
+	absPath, err := filepath.Abs("_artifacts")
+	if err != nil {
+		return "", fmt.Errorf("when constructing default artifacts dir, failed to get absolute path: %s", err)
+	}
+	return absPath, nil
 }
 
 // splitArgs splits args into deployerArgs and testerArgs at the first bare `--`
@@ -205,7 +219,12 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.up, "up", false, "provision the test cluster")
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
-	flags.StringVar(&o.artifacts, "artifacts", defaultArtifactsDir(), `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}"`)
+
+	defaultArtifacts, err := defaultArtifactsDir()
+	if err != nil {
+		klog.Fatalf("failed to get default artifacts directory: %s", err)
+	}
+	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}". If using the ginkgo tester, this must be an absolute path.`)
 }
 
 // assert that options implements deployer options
