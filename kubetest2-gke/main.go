@@ -18,8 +18,6 @@ package main
 
 import (
 	"sigs.k8s.io/kubetest2/pkg/app"
-	// import the standard set of testers so they are loaded & registered
-	_ "sigs.k8s.io/kubetest2/pkg/app/testers/standard"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer"
 )

@@ -27,10 +27,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FindDeployer locates the binary implementing the named deployer
+// FindTester locates the binary implementing the named tester
 // TODO(bentheelder): move this to another package?
-func FindDeployer(name string) (path string, err error) {
-	binary := fmt.Sprintf("%s-%s", BinaryName, name)
+func FindTester(name string) (path string, err error) {
+	binary := fmt.Sprintf("%s-tester-%s", BinaryName, name)
 	path, err = exec.LookPath(binary)
 	if err != nil {
 		return "", errors.Errorf("%#v not found in PATH, could not locate %#v deployer", binary, name)
@@ -38,13 +38,13 @@ func FindDeployer(name string) (path string, err error) {
 	return path, err
 }
 
-// FindDeployers looks for all deployers in PATH, returning a map of the
-// deployer name to the first matching binary found in path
-func FindDeployers() map[string]string {
+// FindTesters looks for all testers in PATH, returning a map of the
+// tester name to the first matching binary found in path
+func FindTesters() map[string]string {
 	nameToPath := make(map[string]string)
-	prefix := fmt.Sprintf("%s-", BinaryName)
-	testerPrefix := fmt.Sprintf("%s-tester-", BinaryName)
-	// search every directory in PATH for kubetest2-* binaries
+	prefix := fmt.Sprintf("%s-tester-", BinaryName)
+
+	// search every directory in PATH for kubetest2-tester-* binaries
 	searchPaths := filepath.SplitList(os.Getenv("PATH"))
 	for _, dir := range searchPaths {
 		// mimic LookPath() for nicer results
@@ -72,10 +72,6 @@ func FindDeployers() map[string]string {
 			if !strings.HasPrefix(fileName, prefix) {
 				continue
 			}
-			// ignore if it is a tester
-			if strings.HasPrefix(fileName, testerPrefix) {
-				continue
-			}
 			// convert the file name to a deployer name
 			// TODO(bentheelder): handle PATHEXT on windows
 			name := strings.TrimPrefix(fileName, prefix)
@@ -83,8 +79,8 @@ func FindDeployers() map[string]string {
 			if _, foundAlready := nameToPath[name]; foundAlready {
 				continue
 			}
-			// use FindDeployer / LookPath to ensure consistency
-			path, err := FindDeployer(name)
+			// use FindTester / LookPath to ensure consistency
+			path, err := FindTester(name)
 			if err != nil {
 				continue
 			}

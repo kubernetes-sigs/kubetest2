@@ -2,9 +2,7 @@ module sigs.k8s.io/kubetest2
 
 go 1.14
 
-replace (
-	k8s.io/client-go => k8s.io/client-go v0.17.3
-)
+replace k8s.io/client-go => k8s.io/client-go v0.17.3
 
 require (
 	github.com/aws/aws-k8s-tester v1.0.0
