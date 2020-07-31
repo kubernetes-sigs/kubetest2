@@ -17,6 +17,7 @@ limitations under the License.
 package app
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-
 	"sigs.k8s.io/kubetest2/pkg/app/shim"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/types"
@@ -88,10 +88,15 @@ func runE(
 		}
 
 		// Get tester usage by running it with --help
-		testerUsageCmd := exec.Command(testerPath, "--help")
+		var helpArgs []string
+		helpArgs = append(helpArgs, "--help")
+		helpArgs = append(helpArgs, testerArgs...)
+		testerUsageCmd := exec.Command(testerPath, helpArgs...)
+		var stderr bytes.Buffer
+		testerUsageCmd.SetStderr(&stderr)
 		testerUsage, err := exec.Output(testerUsageCmd)
 		if err != nil {
-			return fmt.Errorf("failed to get tester usage: %v", err)
+			return fmt.Errorf(stderr.String())
 		}
 
 		usage.testerUsage = string(testerUsage)

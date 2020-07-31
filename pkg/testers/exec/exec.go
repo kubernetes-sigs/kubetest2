@@ -5,8 +5,6 @@ import (
 	"os"
 
 	"github.com/octago/sflags/gen/gpflag"
-	"github.com/spf13/pflag"
-
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/process"
@@ -37,18 +35,13 @@ func (t *Tester) Execute() error {
 	}
 
 	// gracefully handle -h or --help if it is the only argument
-	if len(os.Args) == 2 {
-		// check for -h, --help
-		fs.Init("", pflag.ContinueOnError)
-		help := fs.BoolP("help", "h", false, "")
-		// we don't care about errors, only if -h / --help was set
-		if err := fs.Parse(os.Args); err != nil {
-			return fmt.Errorf("failed to parse flags: %v", err)
-		}
-		if *help {
-			fs.Usage()
-			return nil
-		}
+	help := fs.BoolP("help", "h", false, "")
+	// we don't care about errors, only if -h / --help was set
+	_ = fs.Parse(os.Args[1:2])
+
+	if *help {
+		fs.Usage()
+		return nil
 	}
 
 	t.argv = os.Args[1:]

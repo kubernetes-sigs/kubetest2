@@ -24,7 +24,6 @@ import (
 	"strconv"
 
 	"github.com/octago/sflags/gen/gpflag"
-	"github.com/spf13/pflag"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -90,23 +89,15 @@ func (t *Tester) Execute() error {
 		return fmt.Errorf("failed to initialize tester: %v", err)
 	}
 
-	// gracefully handle -h or --help if it is the only argument
-	if len(os.Args) == 2 {
-		// check for -h, --help
-		fs.Init("", pflag.ContinueOnError)
-		help := fs.BoolP("help", "h", false, "")
-		// we don't care about errors, only if -h / --help was set
-		if err := fs.Parse(os.Args); err != nil {
-			return fmt.Errorf("failed to parse flags: %v", err)
-		}
-		if *help {
-			fs.PrintDefaults()
-			return nil
-		}
-	}
-
+	help := fs.BoolP("help", "h", false, "")
 	if err := fs.Parse(os.Args); err != nil {
 		return fmt.Errorf("failed to parse flags: %v", err)
+	}
+
+	if *help {
+		fs.SetOutput(os.Stdout)
+		fs.PrintDefaults()
+		return nil
 	}
 
 	return t.Test()
