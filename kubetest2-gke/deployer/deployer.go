@@ -62,6 +62,17 @@ var (
 		Nodes:       3,
 		MachineType: "n1-standard-2",
 	}
+
+	// If one of the error patterns below is matched, it would be recommended to
+	// retry creating the cluster in a different region/zone.
+	// - stockout (https://github.com/knative/test-infra/issues/592)
+	// - latest GKE not available in this region/zone yet (https://github.com/knative/test-infra/issues/694)
+	retryableCreationErrors = []*regexp.Regexp{
+		regexp.MustCompile(`.*Master version "[0-9a-z\-.]+" is unsupported.*`),
+		regexp.MustCompile(`.*No valid versions with the prefix "[0-9.]+" found.*`),
+		regexp.MustCompile(`.*does not have enough resources available to fulfill.*`),
+		regexp.MustCompile(`.*only \d+ nodes out of \d+ have registered; this is likely due to Nodes failing to start correctly.*`),
+	}
 )
 
 type gkeNodePool struct {
@@ -85,6 +96,7 @@ type deployer struct {
 	project           string
 	zone              string
 	region            string
+	backupRegions     []string
 	cluster           string
 	nodes             int
 	machineType       string
@@ -101,6 +113,9 @@ type deployer struct {
 
 	localLogsDir string
 	gcsLogsDir   string
+
+	// whether the GCP SSH key is required or not
+	gcpSSHKeyRequired bool
 
 	boskosLocation              string
 	boskosAcquireTimeoutSeconds int
@@ -189,10 +204,12 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.environment, "environment", "staging", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL")
 	flags.StringVar(&d.project, "project", "", "Project to deploy to.")
 	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
+	flags.StringSliceVar(&d.backupRegions, "backup-regions", []string{}, "Regions that will be used for retrying if the cluster creation fails due to some specific reasons like quota running out.")
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
+	flags.BoolVar(&d.gcpSSHKeyRequired, "require-gcp-ssh-key", true, "Whether the GCP SSH key is required for bringing up the cluster.")
 	flags.StringVar(&d.boskosLocation, "boskos-location", "http://boskos.test-pods.svc.cluster.local.", "If set, manually specifies the location of the boskos server")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
 	return flags
@@ -220,10 +237,11 @@ func (d *deployer) Build() error {
 
 // Deployer implementation methods below
 func (d *deployer) Up() error {
-	if err := d.init(); err != nil {
+	var err error
+	if err = d.init(); err != nil {
 		return err
 	}
-	if err := d.prepareGcpIfNeeded(); err != nil {
+	if err = d.prepareGcpIfNeeded(); err != nil {
 		return err
 	}
 
@@ -233,35 +251,55 @@ func (d *deployer) Up() error {
 		"--format=value(name)")) != nil {
 		// Assume error implies non-existent.
 		log.Printf("Couldn't describe network '%s', assuming it doesn't exist and creating it", d.network)
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.network,
+		if err = runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.network,
 			"--project="+d.project,
 			"--subnet-mode=auto")); err != nil {
 			return err
 		}
 	}
 
-	loc, err := d.location()
-	if err != nil {
-		return err
-	}
-	args := make([]string, len(d.createCommand()))
-	copy(args, d.createCommand())
-	args = append(args,
-		"--project="+d.project,
-		loc,
-		"--machine-type="+d.machineType,
-		"--image-type="+image,
-		"--num-nodes="+strconv.Itoa(d.nodes),
-		"--network="+d.network,
-	)
-	fmt.Printf("Environment: %v", os.Environ())
+	regions := append([]string{d.region}, d.backupRegions...)
+	for _, region := range regions {
+		d.region = region
+		loc, err := d.location()
+		if err != nil {
+			return err
+		}
+		args := make([]string, len(d.createCommand()))
+		copy(args, d.createCommand())
+		args = append(args,
+			"--project="+d.project,
+			loc,
+			"--machine-type="+d.machineType,
+			"--image-type="+image,
+			"--num-nodes="+strconv.Itoa(d.nodes),
+			"--network="+d.network,
+		)
+		log.Printf("Environment: %v", os.Environ())
 
-	args = append(args, d.cluster)
-	fmt.Printf("Gcloud command: gcloud %+v", args)
-	if err := runWithOutput(exec.Command("gcloud", args...)); err != nil {
-		return fmt.Errorf("error creating cluster: %v", err)
+		args = append(args, d.cluster)
+		log.Printf("Gcloud command: gcloud %+v", args)
+		var output []byte
+		if output, err = exec.Output(exec.Command("gcloud", args...)); err != nil {
+			if isRetryableCreationError(string(output)) {
+				continue
+			} else {
+				return fmt.Errorf("error creating cluster: %v", err)
+			}
+		}
+		return nil
 	}
-	return nil
+	return err
+}
+
+// isRetryableCreationError determines if cluster creation should be retried based on the error message.
+func isRetryableCreationError(errMsg string) bool {
+	for _, regx := range retryableCreationErrors {
+		if regx.MatchString(errMsg) {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *deployer) IsUp() (up bool, err error) {
