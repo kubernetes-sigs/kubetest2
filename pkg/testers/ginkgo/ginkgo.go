@@ -21,7 +21,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
@@ -47,8 +49,8 @@ func (t *Tester) Test() error {
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
-	// Fixing this path temporarily for local testing
-	// TODO(amwat): implement actual logic
+
+	// This path is set up by AcquireTestPackage()
 	e2eTestPath := filepath.Join(os.Getenv("ARTIFACTS"), "kubernetes", "test", "bin", "e2e.test")
 
 	e2eTestArgs := []string{
@@ -94,7 +96,41 @@ func (t *Tester) pretestSetup() error {
 	}
 	log.Printf("Using kubeconfig at %s", t.kubeconfigPath)
 
+	if err := t.AcquireTestPackage(); err != nil {
+		return fmt.Errorf("failed to get ginkgo test package from published releases: %s", err)
+	}
+
 	return nil
+}
+
+// TODO(michaelmdresser): change behavior if a local built e2e.test package
+// is available
+func (t *Tester) AcquireTestPackage() error {
+	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+
+	script := []string{
+		"set -o xtrace",
+		"set -o pipefail",
+		"set -o errexit",
+		"set -o nounset",
+		"cd $ARTIFACTS",
+		fmt.Sprintf(
+			"gsutil cp gs://kubernetes-release/release/$(gsutil cat gs://kubernetes-release/release/latest.txt)/%s .",
+			releaseTar),
+		fmt.Sprintf(
+			"tar -xzf %s",
+			releaseTar),
+	}
+
+	command := "bash"
+	args := []string{
+		"-c",
+		strings.Join(script, "; "),
+	}
+
+	cmd := exec.Command(command, args...)
+	exec.InheritOutput(cmd)
+	return cmd.Run()
 }
 
 func (t *Tester) Execute() error {
