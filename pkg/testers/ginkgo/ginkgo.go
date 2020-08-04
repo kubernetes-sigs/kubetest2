@@ -21,6 +21,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -111,7 +112,19 @@ func (t *Tester) pretestSetup() error {
 // is available
 func (t *Tester) AcquireTestPackage() error {
 	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
-	downloadPath := filepath.Join(os.Getenv("ARTIFACTS"), releaseTar)
+
+	downloadDir, err := ioutil.TempDir("", "kubetest2-ginkgo-download")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary directory for download: %s", err)
+	}
+
+	defer func(dir string) {
+		if err := os.RemoveAll(dir); err != nil {
+			log.Printf("failed to remove temp dir %s used for release tar download: %s", dir, err)
+		}
+	}(downloadDir)
+
+	downloadPath := filepath.Join(downloadDir, releaseTar)
 
 	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
 
