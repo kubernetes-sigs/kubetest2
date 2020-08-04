@@ -17,13 +17,16 @@ limitations under the License.
 package ginkgo
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
@@ -33,6 +36,11 @@ import (
 
 const (
 	binary = "ginkgo" // TODO(RonWeber): Actually find these binaries.
+)
+
+var (
+	// This path is set up by AcquireTestPackage()
+	e2eTestPath = filepath.Join(os.Getenv("ARTIFACTS"), "e2e.test")
 )
 
 type Tester struct {
@@ -49,9 +57,6 @@ func (t *Tester) Test() error {
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
-
-	// This path is set up by AcquireTestPackage()
-	e2eTestPath := filepath.Join(os.Getenv("ARTIFACTS"), "kubernetes", "test", "bin", "e2e.test")
 
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
@@ -107,30 +112,78 @@ func (t *Tester) pretestSetup() error {
 // is available
 func (t *Tester) AcquireTestPackage() error {
 	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+	downloadPath := filepath.Join(os.Getenv("ARTIFACTS"), releaseTar)
 
-	script := []string{
-		"set -o xtrace",
-		"set -o pipefail",
-		"set -o errexit",
-		"set -o nounset",
-		"cd $ARTIFACTS",
-		fmt.Sprintf(
-			"gsutil cp gs://kubernetes-release/release/$(gsutil cat gs://kubernetes-release/release/latest.txt)/%s .",
-			releaseTar),
-		fmt.Sprintf(
-			"tar -xzf %s",
-			releaseTar),
+	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
+
+	cmd := exec.Command("gsutil", "cat", "gs://kubernetes-release/release/latest.txt")
+	lines, err := exec.OutputLines(cmd)
+	if err != nil {
+		return fmt.Errorf("failed to get latest release name: %s", err)
+	}
+	if len(lines) == 0 {
+		return fmt.Errorf("getting latest release name had no output")
 	}
 
-	command := "bash"
-	args := []string{
-		"-c",
-		strings.Join(script, "; "),
-	}
+	releaseName := lines[0]
 
-	cmd := exec.Command(command, args...)
+	// next, download the matching release tar
+
+	cmd = exec.Command("gsutil", "cp",
+		fmt.Sprintf(
+			"gs://kubernetes-release/release/%s/%s",
+			releaseName,
+			releaseTar,
+		),
+		downloadPath,
+	)
 	exec.InheritOutput(cmd)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, releaseName, err)
+	}
+
+	// finally, search for the test package and extract it
+
+	f, err := os.Open(downloadPath)
+	if err != nil {
+		return fmt.Errorf("failed to open downloaded tar at %s: %s", downloadPath, err)
+	}
+	defer f.Close()
+
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %s", err)
+	}
+
+	tarReader := tar.NewReader(gzf)
+
+	// this is the expected path of the package inside the tar
+	// it will be extracted to e2eTestPath in the loop
+	testPackagePath := "kubernetes/test/bin/e2e.test"
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error during tar read: %s", err)
+		}
+
+		if header.Name == testPackagePath {
+			data := make([]byte, header.Size)
+			if _, err := tarReader.Read(data); err != nil {
+				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
+			}
+
+			if err := ioutil.WriteFile(e2eTestPath, data, 0700); err != nil {
+				return fmt.Errorf("error writing file with header name %s to location %s: %s", header.Name, e2eTestPath, err)
+			}
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to find %s in %s", testPackagePath, downloadPath)
 }
 
 func (t *Tester) Execute() error {
