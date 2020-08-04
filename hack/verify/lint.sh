@@ -31,7 +31,7 @@ LINTS=(
   deadcode errcheck gosimple govet ineffassign staticcheck \
   structcheck typecheck unused varcheck \
   # additional lints
-  golint gofmt misspell unparam scopelint gosec
+  golint gofmt misspell unparam scopelint
 )
 LINTS_JOINED="$(IFS=','; echo "${LINTS[*]}")"
 
