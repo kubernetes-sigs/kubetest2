@@ -21,7 +21,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -171,14 +170,20 @@ func (t *Tester) AcquireTestPackage() error {
 		}
 
 		if header.Name == testPackagePath {
-			data := make([]byte, header.Size)
-			if _, err := tarReader.Read(data); err != nil {
+			outFile, err := os.Create(e2eTestPath)
+			if err != nil {
+				return fmt.Errorf("error creating file at %s: %s", e2eTestPath, err)
+			}
+			defer outFile.Close()
+
+			if err := outFile.Chmod(0700); err != nil {
+				return fmt.Errorf("failed to make %s executable: %s", e2eTestPath, err)
+			}
+
+			if _, err := io.Copy(outFile, tarReader); err != nil {
 				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
 			}
 
-			if err := ioutil.WriteFile(e2eTestPath, data, 0700); err != nil {
-				return fmt.Errorf("error writing file with header name %s to location %s: %s", header.Name, e2eTestPath, err)
-			}
 			return nil
 		}
 	}
