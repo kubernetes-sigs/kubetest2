@@ -17,10 +17,15 @@ limitations under the License.
 package ginkgo
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 
 	"github.com/octago/sflags/gen/gpflag"
@@ -33,11 +38,18 @@ const (
 	binary = "ginkgo" // TODO(RonWeber): Actually find these binaries.
 )
 
+var (
+	// This path is set up by AcquireTestPackage()
+	e2eTestPath = filepath.Join(os.Getenv("ARTIFACTS"), "e2e.test")
+)
+
 type Tester struct {
-	FlakeAttempts int    `desc:"Make up to this many attempts to run each spec."`
-	Parallel      int    `desc:"Run this many tests in parallel at once."`
-	SkipRegex     string `desc:"Regular expression of jobs to skip."`
-	FocusRegex    string `desc:"Regular expression of jobs to focus on."`
+	FlakeAttempts      int    `desc:"Make up to this many attempts to run each spec."`
+	Parallel           int    `desc:"Run this many tests in parallel at once."`
+	SkipRegex          string `desc:"Regular expression of jobs to skip."`
+	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
+	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to GCS. Defaults to latest. Use \"gsutil ls gs://kubernetes-release/release/\" to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageBucket  string `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
 
 	kubeconfigPath string
 }
@@ -47,9 +59,6 @@ func (t *Tester) Test() error {
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
-	// Fixing this path temporarily for local testing
-	// TODO(amwat): implement actual logic
-	e2eTestPath := filepath.Join(os.Getenv("ARTIFACTS"), "kubernetes", "test", "bin", "e2e.test")
 
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
@@ -94,7 +103,114 @@ func (t *Tester) pretestSetup() error {
 	}
 	log.Printf("Using kubeconfig at %s", t.kubeconfigPath)
 
+	if err := t.AcquireTestPackage(); err != nil {
+		return fmt.Errorf("failed to get ginkgo test package from published releases: %s", err)
+	}
+
 	return nil
+}
+
+// TODO(michaelmdresser): change behavior if a local built e2e.test package
+// is available
+func (t *Tester) AcquireTestPackage() error {
+	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
+
+	downloadDir, err := ioutil.TempDir("", "kubetest2-ginkgo-download")
+	if err != nil {
+		return fmt.Errorf("failed to create temporary directory for download: %s", err)
+	}
+
+	defer func(dir string) {
+		if err := os.RemoveAll(dir); err != nil {
+			log.Printf("failed to remove temp dir %s used for release tar download: %s", dir, err)
+		}
+	}(downloadDir)
+
+	downloadPath := filepath.Join(downloadDir, releaseTar)
+
+	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
+	if t.TestPackageVersion == "" {
+		cmd := exec.Command(
+			"gsutil",
+			"cat",
+			fmt.Sprintf("gs://%s/release/latest.txt", t.TestPackageBucket),
+		)
+		lines, err := exec.OutputLines(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to get latest release name: %s", err)
+		}
+		if len(lines) == 0 {
+			return fmt.Errorf("getting latest release name had no output")
+		}
+		t.TestPackageVersion = lines[0]
+
+		log.Printf("Test package version was not specified. Defaulting to latest: %s", t.TestPackageVersion)
+	}
+
+	// next, download the matching release tar
+
+	cmd := exec.Command("gsutil", "cp",
+		fmt.Sprintf(
+			"gs://%s/release/%s/%s",
+			t.TestPackageBucket,
+			t.TestPackageVersion,
+			releaseTar,
+		),
+		downloadPath,
+	)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, t.TestPackageVersion, err)
+	}
+
+	// finally, search for the test package and extract it
+
+	f, err := os.Open(downloadPath)
+	if err != nil {
+		return fmt.Errorf("failed to open downloaded tar at %s: %s", downloadPath, err)
+	}
+	defer f.Close()
+
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		return fmt.Errorf("failed to create gzip reader: %s", err)
+	}
+
+	tarReader := tar.NewReader(gzf)
+
+	// this is the expected path of the package inside the tar
+	// it will be extracted to e2eTestPath in the loop
+	testPackagePath := "kubernetes/test/bin/e2e.test"
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("error during tar read: %s", err)
+		}
+
+		if header.Name == testPackagePath {
+			outFile, err := os.Create(e2eTestPath)
+			if err != nil {
+				return fmt.Errorf("error creating file at %s: %s", e2eTestPath, err)
+			}
+			defer outFile.Close()
+
+			if err := outFile.Chmod(0700); err != nil {
+				return fmt.Errorf("failed to make %s executable: %s", e2eTestPath, err)
+			}
+
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
+			}
+
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to find %s in %s", testPackagePath, downloadPath)
 }
 
 func (t *Tester) Execute() error {
@@ -119,8 +235,9 @@ func (t *Tester) Execute() error {
 
 func NewDefaultTester() *Tester {
 	return &Tester{
-		FlakeAttempts: 1,
-		Parallel:      1,
+		FlakeAttempts:     1,
+		Parallel:          1,
+		TestPackageBucket: "kubernetes-release",
 	}
 }
 
