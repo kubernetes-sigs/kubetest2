@@ -129,15 +129,13 @@ func runE(
 	allFlags := pflag.NewFlagSet(deployerName, pflag.ContinueOnError)
 	allFlags.AddFlagSet(kubetest2Flags)
 	allFlags.AddFlagSet(deployerFlags)
-	if err := allFlags.Parse(deployerArgs); err != nil {
+	if err := allFlags.Parse(deployerArgs); err != nil && parseError == nil {
 		// NOTE: we only retain the first parse error currently, and handle below
-		if err != nil && parseError == nil {
-			parseError = err
-		}
+		parseError = err
 	}
 
-	// print usage and return if explicitly requested
-	if opts.HelpRequested() {
+	// print usage and return if no args are provided, or help is explicitly requested
+	if len(args) == 0 || opts.HelpRequested() {
 		cmd.Print(usage.String())
 		return nil
 	}
