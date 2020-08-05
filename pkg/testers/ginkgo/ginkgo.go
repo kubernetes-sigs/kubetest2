@@ -44,10 +44,11 @@ var (
 )
 
 type Tester struct {
-	FlakeAttempts int    `desc:"Make up to this many attempts to run each spec."`
-	Parallel      int    `desc:"Run this many tests in parallel at once."`
-	SkipRegex     string `desc:"Regular expression of jobs to skip."`
-	FocusRegex    string `desc:"Regular expression of jobs to focus on."`
+	FlakeAttempts      int    `desc:"Make up to this many attempts to run each spec."`
+	Parallel           int    `desc:"Run this many tests in parallel at once."`
+	SkipRegex          string `desc:"Regular expression of jobs to skip."`
+	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
+	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to GCS. Defaults to latest. Use \"gsutil ls gs://kubernetes-release/release/\" to find release names. Example: v1.20.0-alpha.0"`
 
 	kubeconfigPath string
 }
@@ -127,31 +128,33 @@ func (t *Tester) AcquireTestPackage() error {
 	downloadPath := filepath.Join(downloadDir, releaseTar)
 
 	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
+	if t.TestPackageVersion == "" {
+		cmd := exec.Command("gsutil", "cat", "gs://kubernetes-release/release/latest.txt")
+		lines, err := exec.OutputLines(cmd)
+		if err != nil {
+			return fmt.Errorf("failed to get latest release name: %s", err)
+		}
+		if len(lines) == 0 {
+			return fmt.Errorf("getting latest release name had no output")
+		}
+		t.TestPackageVersion = lines[0]
 
-	cmd := exec.Command("gsutil", "cat", "gs://kubernetes-release/release/latest.txt")
-	lines, err := exec.OutputLines(cmd)
-	if err != nil {
-		return fmt.Errorf("failed to get latest release name: %s", err)
+		log.Printf("Test package version was not specified. Defaulting to latest: %s", t.TestPackageVersion)
 	}
-	if len(lines) == 0 {
-		return fmt.Errorf("getting latest release name had no output")
-	}
-
-	releaseName := lines[0]
 
 	// next, download the matching release tar
 
-	cmd = exec.Command("gsutil", "cp",
+	cmd := exec.Command("gsutil", "cp",
 		fmt.Sprintf(
 			"gs://kubernetes-release/release/%s/%s",
-			releaseName,
+			t.TestPackageVersion,
 			releaseTar,
 		),
 		downloadPath,
 	)
 	exec.InheritOutput(cmd)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, releaseName, err)
+		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, t.TestPackageVersion, err)
 	}
 
 	// finally, search for the test package and extract it
