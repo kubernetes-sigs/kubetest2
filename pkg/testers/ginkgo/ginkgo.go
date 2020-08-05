@@ -49,6 +49,7 @@ type Tester struct {
 	SkipRegex          string `desc:"Regular expression of jobs to skip."`
 	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
 	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to GCS. Defaults to latest. Use \"gsutil ls gs://kubernetes-release/release/\" to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageBucket  string `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
 
 	kubeconfigPath string
 }
@@ -129,7 +130,11 @@ func (t *Tester) AcquireTestPackage() error {
 
 	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
 	if t.TestPackageVersion == "" {
-		cmd := exec.Command("gsutil", "cat", "gs://kubernetes-release/release/latest.txt")
+		cmd := exec.Command(
+			"gsutil",
+			"cat",
+			fmt.Sprintf("gs://%s/release/latest.txt", t.TestPackageBucket),
+		)
 		lines, err := exec.OutputLines(cmd)
 		if err != nil {
 			return fmt.Errorf("failed to get latest release name: %s", err)
@@ -146,7 +151,8 @@ func (t *Tester) AcquireTestPackage() error {
 
 	cmd := exec.Command("gsutil", "cp",
 		fmt.Sprintf(
-			"gs://kubernetes-release/release/%s/%s",
+			"gs://%s/release/%s/%s",
+			t.TestPackageBucket,
 			t.TestPackageVersion,
 			releaseTar,
 		),
@@ -229,8 +235,9 @@ func (t *Tester) Execute() error {
 
 func NewDefaultTester() *Tester {
 	return &Tester{
-		FlakeAttempts: 1,
-		Parallel:      1,
+		FlakeAttempts:     1,
+		Parallel:          1,
+		TestPackageBucket: "kubernetes-release",
 	}
 }
 
