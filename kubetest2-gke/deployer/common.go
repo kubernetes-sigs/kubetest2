@@ -18,9 +18,12 @@ package deployer
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/klog"
+
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 )
 
@@ -41,8 +44,8 @@ func (d *deployer) initialize() error {
 			return fmt.Errorf("init failed to verify flags for up: %s", err)
 		}
 
-		if d.project == "" {
-			klog.V(1).Info("No GCP project provided, acquiring from Boskos")
+		if len(d.projects) == 0 {
+			klog.V(1).Infof("No GCP projects provided, acquiring from Boskos %d project/s", d.boskosProjectsRequested)
 
 			boskosClient, err := boskos.NewClient(d.boskosLocation)
 			if err != nil {
@@ -50,20 +53,33 @@ func (d *deployer) initialize() error {
 			}
 			d.boskos = boskosClient
 
-			resource, err := boskos.Acquire(
-				d.boskos,
-				gkeProjectResourceType,
-				time.Duration(d.boskosAcquireTimeoutSeconds)*time.Second,
-				d.boskosHeartbeatClose,
-			)
+			for i := 0; i < d.boskosProjectsRequested; i++ {
+				resource, err := boskos.Acquire(
+					d.boskos,
+					gkeProjectResourceType,
+					time.Duration(d.boskosAcquireTimeoutSeconds)*time.Second,
+					d.boskosHeartbeatClose,
+				)
 
-			if err != nil {
-				return fmt.Errorf("init failed to get project from boskos: %s", err)
+				if err != nil {
+					return fmt.Errorf("init failed to get project from boskos: %s", err)
+				}
+				d.projects = append(d.projects, resource.Name)
+				klog.V(1).Infof("Got project %s from boskos", resource.Name)
 			}
-			d.project = resource.Name
-			klog.V(1).Infof("Got project %s from boskos", d.project)
 		}
 
+		// Multi-cluster name adjustment
+		numProjects := len(d.projects)
+		d.projectClustersLayout = make(map[string][]string, numProjects)
+		if numProjects > 1 {
+			if err := buildProjectClustersLayout(d.projects, d.clusters, d.projectClustersLayout); err != nil {
+				return fmt.Errorf("failed to build the project clusters layout: %v", err)
+			}
+		} else {
+			// Backwards compatible construction
+			d.projectClustersLayout[d.projects[0]] = d.clusters
+		}
 	}
 
 	if d.commonOptions.ShouldDown() {
@@ -72,5 +88,24 @@ func (d *deployer) initialize() error {
 		}
 	}
 
+	return nil
+}
+
+// buildProjectClustersLayout builds the projects and real cluster names mapping based on the provided --cluster-name flag.
+func buildProjectClustersLayout(projects, clusters []string, projectClustersLayout map[string][]string) error {
+	for _, clusterName := range clusters {
+		parts := strings.Split(clusterName, ":")
+		if len(parts) != 2 {
+			return fmt.Errorf("cluster name does not follow expected format (name:projectIndex): %s", clusterName)
+		}
+		projectIndex, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return fmt.Errorf("cluster name does not follow contain a valid project index (name:projectIndex. E.g: cluster:0): %v", err)
+		}
+		if projectIndex >= len(projects) {
+			return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
+		}
+		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], parts[0])
+	}
 	return nil
 }

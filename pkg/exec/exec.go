@@ -19,6 +19,7 @@ package exec
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"os"
@@ -51,6 +52,10 @@ var DefaultCmder = &LocalCmder{}
 // Command is a convience wrapper over DefaultCmder.Command
 func Command(command string, args ...string) Cmd {
 	return DefaultCmder.Command(command, args...)
+}
+
+func CommandWithContext(ctx context.Context, command string, args ...string) Cmd {
+	return DefaultCmder.CommandWithContext(ctx, command, args...)
 }
 
 // Output is for compatibility with cmd.Output.
