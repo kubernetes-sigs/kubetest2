@@ -199,7 +199,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.gcpServiceAccount, "gcp-service-account", "", "Service account to activate before using gcloud")
 	flags.StringVar(&d.network, "network", "default", "Cluster network. Defaults to the default network if not provided. For multi-project use cases, this will be the Shared VPC network name.")
 	flags.StringSliceVar(&d.subnetworkRanges, "subnetwork-ranges", []string{}, "Subnetwork ranges as required for shared VPC setup as described in https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets."+
-		"For multi-project profile, it is required and should be in the format of `10.0.4.0/22 10.0.32.0/20 10.4.0.0/14,172.16.4.0/22 172.16.16.0/20 172.16.4.0/22`, where the subnetworks configuration for different project"+
+		"For multi-project profile, it is required and should be in the format of 10.0.4.0/22 10.0.32.0/20 10.4.0.0/14,172.16.4.0/22 172.16.16.0/20 172.16.4.0/22, where the subnetworks configuration for different project"+
 		"are separated by comma, and the ranges of each subnetwork configuration is separated by space.")
 	flags.StringVar(&d.environment, "environment", "prod", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided")
 	flags.StringSliceVar(&d.projects, "project", []string{}, "Project to deploy to separated by comma.")
