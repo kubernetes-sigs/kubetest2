@@ -71,6 +71,7 @@ unit:
 	./hack/ci/unit.sh
 
 verify:
+	./hack/go_container.sh true
 	$(MAKE) -j lint shellcheck unit tidy
 
 .PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-cache clean-output clean verify lint shellcheck
