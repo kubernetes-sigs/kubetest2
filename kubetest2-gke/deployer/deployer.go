@@ -141,10 +141,13 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 
 // verifyCommonFlags validates flags for up phase.
 func (d *deployer) verifyUpFlags() error {
+	if len(d.projects) == 0 && d.boskosProjectsRequested <= 0 {
+		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
+	}
 	if err := d.verifyNetworkFlags(); err != nil {
 		return err
 	}
-	if d.clusters == nil {
+	if len(d.clusters) == 0 {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
 	if _, err := d.location(); err != nil {
@@ -158,10 +161,10 @@ func (d *deployer) verifyUpFlags() error {
 
 // verifyDownFlags validates flags for down phase.
 func (d *deployer) verifyDownFlags() error {
-	if d.clusters == nil {
+	if len(d.clusters) == 0 {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
-	if d.projects == nil {
+	if len(d.projects) == 0 {
 		return fmt.Errorf("--project must be set for GKE deployment")
 	}
 	if _, err := d.location(); err != nil {

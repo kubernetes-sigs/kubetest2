@@ -39,7 +39,11 @@ etag: %s
 
 func (d *deployer) verifyNetworkFlags() error {
 	// For single project, no verification is needed.
-	if len(d.projects) == 1 {
+	numProjects := len(d.projects)
+	if numProjects == 0 {
+		numProjects = d.boskosProjectsRequested
+	}
+	if numProjects == 1 {
 		return nil
 	}
 
@@ -47,9 +51,9 @@ func (d *deployer) verifyNetworkFlags() error {
 		return errors.New("the default network cannot be used for multi-project profile")
 	}
 
-	if len(d.subnetworkRanges) != len(d.projects)-1 {
+	if len(d.subnetworkRanges) != numProjects-1 {
 		return fmt.Errorf("the number of subnetwork ranges provided "+
-			"should be the same as the number of service projects: %d!=%d", len(d.subnetworkRanges), len(d.projects)-1)
+			"should be the same as the number of service projects: %d!=%d", len(d.subnetworkRanges), numProjects-1)
 	}
 
 	for _, sr := range d.subnetworkRanges {
