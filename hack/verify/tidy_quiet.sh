@@ -15,11 +15,10 @@
 
 set -o errexit -o nounset -o pipefail
 
-# Run inside go_container.sh
-
-# cd to the repo root
+# cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
+source hack/build/setup-go.sh
 
 function cleanup {
   exit_code=$?
@@ -32,8 +31,8 @@ function cleanup {
 
 tmp="$(mktemp -d)"
 trap 'cleanup' EXIT
-cp -r /src "${tmp}"
-cd "${tmp}"/src
+cp -r . "${tmp}"
+cd "${tmp}"
 git add .
 go mod tidy
 git diff --quiet -- go.mod go.sum
