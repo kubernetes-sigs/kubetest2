@@ -135,6 +135,14 @@ func (d *deployer) buildEnv() []string {
 	env = append(env, fmt.Sprintf("NUM_NODES=%d", d.NumNodes))
 	env = append(env, fmt.Sprintf("CLUSTER_IP_RANGE=%s", getClusterIPRange(d.NumNodes)))
 
+	if d.EnableCacheMutationDetector {
+		env = append(env, "ENABLE_CACHE_MUTATION_DETECTOR=true")
+	}
+
+	if d.RuntimeConfig != "" {
+		env = append(env, fmt.Sprintf("KUBE_RUNTIME_CONFIG=%s", d.RuntimeConfig))
+	}
+
 	return env
 }
 
