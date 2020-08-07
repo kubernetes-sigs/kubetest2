@@ -29,26 +29,28 @@ export PATH GOROOT GO111MODULE
 # work around broken PATH export
 SHELL:=env PATH=$(PATH) $(SHELL)
 # ==============================================================================
+# flags for reproducible go builds
+BUILD_FLAGS?=-trimpath -ldflags="-buildid="
 
 build-all:
-	go build -v ./...
+	go build -v $(BUILD_FLAGS) ./...
 
 install:
-	go build -v -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
+	go build -v $(BUILD_FLAGS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
 install-deployer-%: BINARY_PATH=./kubetest2-$*
 install-deployer-%: BINARY_NAME=kubetest2-$*
 install-deployer-%:
-	go build -v -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
+	go build -v $(BUILD_FLAGS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
 install-tester-%: BINARY_PATH=./kubetest2-tester-$*
 install-tester-%: BINARY_NAME=kubetest2-tester-$*
 install-tester-%:
-	go build -v -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
+	go build $(BUILD_FLAGS) -v $(BUILD_OPTS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
