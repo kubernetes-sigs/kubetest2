@@ -16,14 +16,15 @@
 # script to run linters
 set -o errexit -o nounset -o pipefail
 
-# cd to the repo root
+# cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}"
+source hack/build/setup-go.sh
 
 # build golangci-lint
-SOURCE_DIR="${REPO_ROOT}/hack/tools" GOOS="linux" hack/go_container.sh \
-  go build -o /out/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
-
+cd "${REPO_ROOT}/hack/tools"
+go build -o "${REPO_ROOT}/bin/golangci-lint" github.com/golangci/golangci-lint/cmd/golangci-lint
+cd "${REPO_ROOT}"
 
 # run golangci-lint
 LINTS=(
@@ -36,5 +37,4 @@ LINTS=(
 LINTS_JOINED="$(IFS=','; echo "${LINTS[*]}")"
 
 # first for the repo in general
-SOURCE_DIR="${REPO_ROOT}" hack/go_container.sh \
-  /out/golangci-lint --disable-all --enable="${LINTS_JOINED}" --timeout=5m run ./...
+"${REPO_ROOT}/bin/golangci-lint" --disable-all --enable="${LINTS_JOINED}" --timeout=5m run ./...
