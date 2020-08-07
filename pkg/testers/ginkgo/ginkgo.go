@@ -65,6 +65,7 @@ func (t *Tester) Test() error {
 		"--ginkgo.flakeAttempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
+		"--report-dir=" + os.Getenv("ARTIFACTS"),
 	}
 	ginkgoArgs := append([]string{
 		"--nodes=" + strconv.Itoa(t.Parallel),
