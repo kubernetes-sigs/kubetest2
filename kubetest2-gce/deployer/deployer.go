@@ -65,6 +65,11 @@ type deployer struct {
 	BoskosLocation              string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed, defaults to http://boskos.test-pods.svc.cluster.local."`
 	LegacyMode                  bool   `desc:"Set if the provided repo root is the kubernetes/kubernetes repo and not kubernetes/cloud-provider-gcp."`
 	NumNodes                    int    `desc:"The number of nodes in the cluster."`
+
+	EnableCacheMutationDetector bool   `desc:"Sets the environment variable ENABLE_CACHE_MUTATION_DETECTOR=true during deployment. This should cause a panic if anything mutates a shared informer cache."`
+	RuntimeConfig               string `desc:"Sets the KUBE_RUNTIME_CONFIG environment variable during deployment."`
+	EnablePodSecurityPolicy     bool   `desc:"Sets the environment variable ENABLE_POD_SECURITY_POLICY=true during deployment."`
+	CreateCustomNetwork         bool   `desc:"Sets the environment variable CREATE_CUSTOM_NETWORK=true during deployment."`
 }
 
 // New implements deployer.New for gce
