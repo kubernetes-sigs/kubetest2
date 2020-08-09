@@ -47,7 +47,6 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 		return fmt.Errorf("--environment must be one of {test,staging,staging2,prod} or match %v, found %q", urlRe, env)
 	}
 
-	//TODO(RonWeber): boskos
 	if err := os.Setenv("CLOUDSDK_CORE_PRINT_UNHANDLED_TRACEBACKS", "1"); err != nil {
 		return fmt.Errorf("could not set CLOUDSDK_CORE_PRINT_UNHANDLED_TRACEBACKS=1: %v", err)
 	}
@@ -64,15 +63,17 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 		return err
 	}
 
-	// Ensure ssh keys exist
-	klog.V(1).Info("Checking existing of GCP ssh keys...")
-	k := filepath.Join(home(".ssh"), "google_compute_engine")
-	if _, err := os.Stat(k); err != nil {
-		return err
-	}
-	pk := k + ".pub"
-	if _, err := os.Stat(pk); err != nil {
-		return err
+	if d.gcpSSHKeyRequired {
+		// Ensure ssh keys exist
+		klog.V(1).Info("Checking existing of GCP ssh keys...")
+		k := filepath.Join(home(".ssh"), "google_compute_engine")
+		if _, err := os.Stat(k); err != nil {
+			return err
+		}
+		pk := k + ".pub"
+		if _, err := os.Stat(pk); err != nil {
+			return err
+		}
 	}
 
 	//TODO(RonWeber): kubemark
