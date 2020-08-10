@@ -108,7 +108,11 @@ type deployer struct {
 	localLogsDir string
 	gcsLogsDir   string
 
+	// whether the GCP SSH key is required or not
+	gcpSSHKeyRequired bool
+
 	boskosLocation              string
+	boskosResourceType          string
 	boskosAcquireTimeoutSeconds int
 	// number of boskos projects to request if `projects` is empty
 	boskosProjectsRequested int
@@ -211,9 +215,11 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
-	flags.StringVar(&d.boskosLocation, "boskos-location", "http://boskos.test-pods.svc.cluster.local.", "If set, manually specifies the location of the boskos server")
+	flags.BoolVar(&d.gcpSSHKeyRequired, "require-gcp-ssh-key", true, "Whether the GCP SSH key is required for bringing up the cluster.")
+	flags.StringVar(&d.boskosLocation, "boskos-location", defaultBoskosLocation, "If set, manually specifies the location of the Boskos server")
+	flags.StringVar(&d.boskosResourceType, "boskos-resource-type", defaultGKEProjectResourceType, "If set, manually specifies the resource type of GCP projects to acquire from Boskos")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
-	flags.IntVar(&d.boskosProjectsRequested, "projects-requested", 1, "Number of projects to request from boskos. It is only respected if projects is empty, and must be larger than zero ")
+	flags.IntVar(&d.boskosProjectsRequested, "projects-requested", 1, "Number of projects to request from Boskos. It is only respected if projects is empty, and must be larger than zero ")
 
 	return flags
 }
