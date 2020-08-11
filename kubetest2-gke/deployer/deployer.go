@@ -300,7 +300,11 @@ func (d *deployer) Up() error {
 	}
 
 	if err := eg.Wait(); err != nil {
-		return err
+		return fmt.Errorf("error creating clusters: %v", err)
+	}
+
+	if err := d.testSetup(); err != nil {
+		return fmt.Errorf("error running setup for the tests: %v", err)
 	}
 
 	return nil
@@ -399,7 +403,7 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 	return nil
 }
 
-func (d *deployer) TestSetup() error {
+func (d *deployer) testSetup() error {
 	if d.testPrepared {
 		// Ensure setup is a singleton.
 		return nil
@@ -418,6 +422,7 @@ func (d *deployer) TestSetup() error {
 			if err := d.getInstanceGroups(); err != nil {
 				return err
 			}
+
 			if err := d.ensureFirewall(project, cluster, d.network); err != nil {
 				return err
 			}
