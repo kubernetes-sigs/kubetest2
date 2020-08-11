@@ -37,6 +37,7 @@ func (d *deployer) Build() error {
 		klog.V(2).Info("starting the legacy build")
 
 		cmd := exec.Command("make", "bazel-release")
+		exec.InheritOutput(cmd)
 		cmd.SetDir(d.RepoRoot)
 		err := cmd.Run()
 		if err != nil {
@@ -47,6 +48,7 @@ func (d *deployer) Build() error {
 		klog.V(2).Info("starting the build")
 
 		cmd := exec.Command("bazel", "build", "//release:release-tars")
+		exec.InheritOutput(cmd)
 		cmd.SetDir(d.RepoRoot)
 		err := cmd.Run()
 		if err != nil {
