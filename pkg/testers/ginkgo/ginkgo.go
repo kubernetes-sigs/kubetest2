@@ -34,13 +34,10 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-const (
-	binary = "ginkgo" // TODO(RonWeber): Actually find these binaries.
-)
-
 var (
-	// This path is set up by AcquireTestPackage()
+	// These paths are set up by AcquireTestPackage()
 	e2eTestPath = filepath.Join(os.Getenv("ARTIFACTS"), "e2e.test")
+	binary      = filepath.Join(os.Getenv("ARTIFACTS"), "ginkgo")
 )
 
 type Tester struct {
@@ -113,6 +110,9 @@ func (t *Tester) pretestSetup() error {
 
 // TODO(michaelmdresser): change behavior if a local built e2e.test package
 // is available
+// AcquireTestPackage obtains two test binaries and places them in $ARTIFACTS.
+// The first is "ginkgo", the actual ginkgo executable.
+// The second is "e2e.test", which contains kubernetes e2e test cases.
 func (t *Tester) AcquireTestPackage() error {
 	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
 
@@ -182,8 +182,19 @@ func (t *Tester) AcquireTestPackage() error {
 	// this is the expected path of the package inside the tar
 	// it will be extracted to e2eTestPath in the loop
 	testPackagePath := "kubernetes/test/bin/e2e.test"
+	foundTestPackage := false
+
+	// likewise for the actual ginkgo binary
+	binaryPath := "kubernetes/test/bin/ginkgo"
+	foundBinary := false
 
 	for {
+		// Put this check before any break condition so we don't
+		// accidentally incorrectly error
+		if foundTestPackage && foundBinary {
+			return nil
+		}
+
 		header, err := tarReader.Next()
 		if err == io.EOF {
 			break
@@ -207,10 +218,32 @@ func (t *Tester) AcquireTestPackage() error {
 				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
 			}
 
-			return nil
+			foundTestPackage = true
+		} else if header.Name == binaryPath {
+			outFile, err := os.Create(binary)
+			if err != nil {
+				return fmt.Errorf("error creating file at %s: %s", binary, err)
+			}
+			defer outFile.Close()
+
+			if err := outFile.Chmod(0700); err != nil {
+				return fmt.Errorf("failed to make %s executable: %s", binary, err)
+			}
+
+			if _, err := io.Copy(outFile, tarReader); err != nil {
+				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
+			}
+
+			foundBinary = true
 		}
 	}
 
+	if !foundBinary && !foundTestPackage {
+		return fmt.Errorf("failed to find %s or %s in %s", binaryPath, testPackagePath, downloadPath)
+	}
+	if !foundBinary {
+		return fmt.Errorf("failed to find %s in %s", binaryPath, downloadPath)
+	}
 	return fmt.Errorf("failed to find %s in %s", testPackagePath, downloadPath)
 }
 
