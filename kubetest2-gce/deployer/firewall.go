@@ -33,6 +33,10 @@ func (d *deployer) nodePortRuleName() string {
 	return fmt.Sprintf("%s-nodeports", d.nodeTag())
 }
 
+func (d *deployer) hostPortRuleName() string {
+	return fmt.Sprintf("%s-http-alt", d.nodeTag())
+}
+
 func (d *deployer) createFirewallRuleNodePort() error {
 	cmd := exec.Command(
 		"gcloud", "compute", "firewall-rules", "create",
@@ -59,6 +63,37 @@ func (d *deployer) deleteFirewallRuleNodePort() error {
 	exec.InheritOutput(cmd)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to delete nodeports firewall rules: %s", err)
+	}
+
+	return nil
+}
+
+func (d *deployer) createFirewallRuleHostPort() error {
+	cmd := exec.Command(
+		"gcloud", "compute", "firewall-rules", "create",
+		"--project", d.GCPProject,
+		"--target-tags", d.nodeTag(),
+		"--allow", "tcp:80,tcp:8080",
+		"--network", d.network,
+		d.hostPortRuleName(),
+	)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to create hostport firewall rule: %s", err)
+	}
+
+	return nil
+}
+
+func (d *deployer) deleteFirewallRuleHostPort() error {
+	cmd := exec.Command(
+		"gcloud", "compute", "firewall-rules", "delete",
+		"--project", d.GCPProject,
+		d.hostPortRuleName(),
+	)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to delete hostport firewall rules: %s", err)
 	}
 
 	return nil
