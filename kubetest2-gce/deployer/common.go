@@ -128,12 +128,16 @@ func (d *deployer) buildEnv() []string {
 
 	// kube-up and kube-down get this as a default ("kubernetes") but log-dump
 	// does not. opted to set it manually here for maximum consistency
-	env = append(env, "KUBE_GCE_INSTANCE_PREFIX=kubetest2")
+	env = append(env, fmt.Sprintf("KUBE_GCE_INSTANCE_PREFIX=%s", d.instancePrefix))
 
 	// Pass through number of nodes and associated IP range. In the future,
 	// IP range will be configurable.
 	env = append(env, fmt.Sprintf("NUM_NODES=%d", d.NumNodes))
 	env = append(env, fmt.Sprintf("CLUSTER_IP_RANGE=%s", getClusterIPRange(d.NumNodes)))
+
+	// NETWORK has to be manually specified to ensure created firewall rules
+	// target the right network
+	env = append(env, fmt.Sprintf("NETWORK=%s", d.network))
 
 	if d.EnableCacheMutationDetector {
 		env = append(env, "ENABLE_CACHE_MUTATION_DETECTOR=true")
