@@ -71,6 +71,11 @@ func (d *deployer) Up() error {
 		return fmt.Errorf("failed to create firewall rule: %s", err)
 	}
 
+	klog.V(2).Info("about to create hostport firewall rule")
+	if err := d.createFirewallRuleHostPort(); err != nil {
+		return fmt.Errorf("failed to create firewall rule: %s", err)
+	}
+
 	return nil
 }
 
