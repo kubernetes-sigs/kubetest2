@@ -199,7 +199,10 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 	// Assuming we have Shared VPC Admin role at the organization level.
 	networkHostProject := projects[0]
 	if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "enable", networkHostProject)); err != nil {
-		return fmt.Errorf("error creating Shared VPC host project: %s", err)
+		// Sometimes we may want to use the projects pre-configured with shared-vpc for testing,
+		// and the service account that runs this command might not have the right permission, so do not
+		// error out if an error happens here.
+		klog.Warningf("Error creating Shared VPC for project %q: %v, it might be due to permission issues.", networkHostProject, err)
 	}
 
 	// Associate the rest of the projects.
@@ -207,7 +210,7 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
 			"associated-projects", "add", projects[i],
 			"--host-project", networkHostProject)); err != nil {
-			return fmt.Errorf("error associating project (%s) to Shared VPC: %s", projects[i], err)
+			klog.Warningf("Error associating project %q to Shared VPC: %v, it might be due to permission issues.", projects[i], err)
 		}
 	}
 
@@ -302,13 +305,13 @@ func disableSharedVPCProjects(projects []string) error {
 		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
 			"associated-projects", "remove", projects[i],
 			"--host-project", networkHostProject)); err != nil {
-			return fmt.Errorf("error associating project (%s) to Shared VPC: %s", projects[i], err)
+			klog.Warningf("Error removing the associated project %q from Shared VPC: %v", projects[i], err)
 		}
 	}
 
 	// Disable Shared VPC for multiproject requests on the host project
 	if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "disable", networkHostProject)); err != nil {
-		return fmt.Errorf("error creating Shared VPC host project: %s", err)
+		klog.Warningf("Error disabling Shared VPC for the host project: %v", err)
 	}
 
 	return nil

@@ -109,7 +109,10 @@ type deployer struct {
 	gcsLogsDir   string
 
 	// whether the GCP SSH key is required or not
-	gcpSSHKeyRequired bool
+	gcpSSHKeyIgnored bool
+
+	// Enable workload identity or not.
+	workloadIdentityEnabled bool
 
 	boskosLocation              string
 	boskosResourceType          string
@@ -215,7 +218,8 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
-	flags.BoolVar(&d.gcpSSHKeyRequired, "require-gcp-ssh-key", true, "Whether the GCP SSH key is required for bringing up the cluster.")
+	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
+	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
 	flags.StringVar(&d.boskosLocation, "boskos-location", defaultBoskosLocation, "If set, manually specifies the location of the Boskos server")
 	flags.StringVar(&d.boskosResourceType, "boskos-resource-type", defaultGKEProjectResourceType, "If set, manually specifies the resource type of GCP projects to acquire from Boskos")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
@@ -286,6 +290,9 @@ func (d *deployer) Up() error {
 					"--num-nodes="+strconv.Itoa(d.nodes),
 					"--network="+transformNetworkName(d.projects, d.network),
 				)
+				if d.workloadIdentityEnabled {
+					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
+				}
 				args = append(args, subNetworkArgs...)
 				args = append(args, cluster)
 				klog.V(1).Infof("Gcloud command: gcloud %+v\n", args)
