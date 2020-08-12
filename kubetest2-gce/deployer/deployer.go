@@ -56,6 +56,12 @@ type deployer struct {
 	// so that it can be explicitly closed
 	boskosHeartbeatClose chan struct{}
 
+	// instancePrefix is set for a mandatory env and for firewall rule creation
+	// see buildEnv() and nodeTag()
+	instancePrefix string
+	// network is set for firewall rule creation, see buildEnv() and firewall.go
+	network string
+
 	BoskosAcquireTimeoutSeconds int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	RepoRoot                    string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
 	GCPProject                  string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
@@ -79,6 +85,8 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		kubeconfigPath:              filepath.Join(opts.ArtifactsDir(), "kubetest2-kubeconfig"),
 		logsDir:                     filepath.Join(opts.ArtifactsDir(), "cluster-logs"),
 		boskosHeartbeatClose:        make(chan struct{}),
+		instancePrefix:              "kubetest2",
+		network:                     "default",
 		BoskosAcquireTimeoutSeconds: 5 * 60,
 		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
 		NumNodes:                    3,

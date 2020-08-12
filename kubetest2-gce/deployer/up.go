@@ -66,6 +66,11 @@ func (d *deployer) Up() error {
 		klog.Errorf("cluster reported as down")
 	}
 
+	klog.V(2).Info("about to create nodeport firewall rule")
+	if err := d.createFirewallRuleNodePort(); err != nil {
+		return fmt.Errorf("failed to create firewall rule: %s", err)
+	}
+
 	return nil
 }
 

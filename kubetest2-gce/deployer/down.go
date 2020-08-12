@@ -44,6 +44,11 @@ func (d *deployer) Down() error {
 		return fmt.Errorf("error encountered during %s: %s", script, err)
 	}
 
+	klog.V(2).Info("about to delete nodeport firewall rule")
+	if err := d.deleteFirewallRuleNodePort(); err != nil {
+		return fmt.Errorf("failed to delete firewall rule: %s", err)
+	}
+
 	if d.boskos != nil {
 		klog.V(2).Info("releasing boskos project")
 		err := boskos.Release(
