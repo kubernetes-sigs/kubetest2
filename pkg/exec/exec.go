@@ -23,6 +23,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+
+	shell "github.com/kballard/go-shellquote"
 )
 
 // Cmd abstracts over running a command somewhere, this is useful for testing
@@ -40,22 +42,41 @@ type Cmd interface {
 type Cmder interface {
 	// command, args..., just like os/exec.Cmd
 	Command(string, ...string) Cmd
+	CommandContext(context.Context, string, ...string) Cmd
 }
 
-// DefaultCmder is a LocalCmder instance used for convienience, packages
+// DefaultCmder is a LocalCmder instance used for convenience, packages
 // originally using os/exec.Command can instead use pkg/kind/exec.Command
 // which forwards to this instance
 // TODO(bentheelder): swap this for testing
 // TODO(bentheelder): consider not using a global for this :^)
 var DefaultCmder = &LocalCmder{}
 
-// Command is a convience wrapper over DefaultCmder.Command
+// Command is a convenience wrapper over DefaultCmder.Command
 func Command(command string, args ...string) Cmd {
 	return DefaultCmder.Command(command, args...)
 }
 
-func CommandWithContext(ctx context.Context, command string, args ...string) Cmd {
-	return DefaultCmder.CommandWithContext(ctx, command, args...)
+func CommandContext(ctx context.Context, command string, args ...string) Cmd {
+	return DefaultCmder.CommandContext(ctx, command, args...)
+}
+
+func RawCommand(raw string) Cmd {
+	cmdSplit, err := shell.Split(raw)
+	// If failed to split, just return the raw string as the command.
+	if len(cmdSplit) == 0 || err != nil {
+		return DefaultCmder.Command(raw)
+	}
+	return DefaultCmder.Command(cmdSplit[0], cmdSplit[1:]...)
+}
+
+func RawCommandContext(ctx context.Context, raw string) Cmd {
+	cmdSplit, err := shell.Split(raw)
+	// If failed to split, just return the raw string as the command.
+	if len(cmdSplit) == 0 || err != nil {
+		return DefaultCmder.CommandContext(ctx, raw)
+	}
+	return DefaultCmder.CommandContext(ctx, cmdSplit[0], cmdSplit[1:]...)
 }
 
 // Output is for compatibility with cmd.Output.

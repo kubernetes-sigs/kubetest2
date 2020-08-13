@@ -41,8 +41,8 @@ func (c *LocalCmder) Command(name string, arg ...string) Cmd {
 	}
 }
 
-// CommandWithContext returns a new exec.Cmd with the context, backed by Cmd
-func (c *LocalCmder) CommandWithContext(ctx context.Context, name string, arg ...string) Cmd {
+// CommandContext returns a new exec.Cmd with the context, backed by Cmd
+func (c *LocalCmder) CommandContext(ctx context.Context, name string, arg ...string) Cmd {
 	return &LocalCmd{
 		Cmd: osexec.CommandContext(ctx, name, arg...),
 	}
