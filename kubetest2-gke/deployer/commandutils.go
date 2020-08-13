@@ -105,3 +105,19 @@ func home(parts ...string) string {
 	p := append([]string{os.Getenv("HOME")}, parts...)
 	return filepath.Join(p...)
 }
+
+func (d *deployer) getClusterCredentials(project, cluster string) error {
+	// Get gcloud to create the file.
+	loc, err := d.location()
+	if err != nil {
+		return err
+	}
+
+	if err := runWithOutput(exec.Command("gcloud",
+		d.containerArgs("clusters", "get-credentials", cluster, "--project="+project, loc)...),
+	); err != nil {
+		return fmt.Errorf("error executing get-credentials: %v", err)
+	}
+
+	return nil
+}

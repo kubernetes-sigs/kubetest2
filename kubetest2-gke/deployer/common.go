@@ -18,6 +18,7 @@ package deployer
 
 import (
 	"fmt"
+	realexec "os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/boskos"
+	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 const (
@@ -109,4 +111,27 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], parts[0])
 	}
 	return nil
+}
+
+func (d *deployer) containerArgs(args ...string) []string {
+	return append(append([]string{}, "container"), args...)
+}
+
+func runWithNoOutput(cmd exec.Cmd) error {
+	exec.NoOutput(cmd)
+	return cmd.Run()
+}
+
+func runWithOutput(cmd exec.Cmd) error {
+	exec.InheritOutput(cmd)
+	return cmd.Run()
+}
+
+// execError returns a string format of err including stderr if the
+// err is an ExitError, useful for errors from e.g. exec.Cmd.Output().
+func execError(err error) string {
+	if ee, ok := err.(*realexec.ExitError); ok {
+		return fmt.Sprintf("%v (output: %q)", err, string(ee.Stderr))
+	}
+	return err.Error()
 }
