@@ -289,7 +289,7 @@ func (d *deployer) Up() error {
 				args = append(args, subNetworkArgs...)
 				args = append(args, cluster)
 				klog.V(1).Infof("Gcloud command: gcloud %+v\n", args)
-				if err := runWithOutput(exec.CommandWithContext(ctx, "gcloud", args...)); err != nil {
+				if err := runWithOutput(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
 					// Cancel the context to kill other cluster creation processes if any error happens.
 					cancel()
 					return fmt.Errorf("error creating cluster: %v", err)
@@ -323,7 +323,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 
 			// naively assume that if the api server reports nodes, the cluster is up
 			lines, err := exec.CombinedOutputLines(
-				exec.Command("kubectl", "get", "nodes", "-o=name"),
+				exec.RawCommand("kubectl get nodes -o=name"),
 			)
 			if err != nil {
 				return false, metadata.NewJUnitError(err, strings.Join(lines, "\n"))

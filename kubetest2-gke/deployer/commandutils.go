@@ -54,8 +54,8 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 		return err
 	}
 
-	if err := runWithOutput(exec.Command("gcloud", "config", "set", "project", projectID)); err != nil {
-		return fmt.Errorf("Failed to set project %s : err %v", projectID, err)
+	if err := runWithOutput(exec.RawCommand("gcloud config set project " + projectID)); err != nil {
+		return fmt.Errorf("failed to set project %s : err %v", projectID, err)
 	}
 
 	// gcloud creds may have changed
@@ -85,14 +85,14 @@ func activateServiceAccount(path string) error {
 	if path == "" {
 		return nil
 	}
-	return runWithOutput(exec.Command("gcloud", "auth", "activate-service-account", "--key-file="+path))
+	return runWithOutput(exec.RawCommand("gcloud auth activate-service-account --key-file=" + path))
 }
 
 // Get the project number for the given project ID.
 func getProjectNumber(projectID string) (string, error) {
 	// Get the service project number.
-	projectNum, err := exec.Output(exec.Command("gcloud", "projects", "describe",
-		projectID, "--format=value(projectNumber)"))
+	projectNum, err := exec.Output(exec.RawCommand(
+		fmt.Sprintf("gcloud projects describe %s --format=value(projectNumber)", projectID)))
 	if err != nil {
 		return "", err
 	}

@@ -3,6 +3,7 @@ module sigs.k8s.io/kubetest2
 go 1.14
 
 require (
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/octago/sflags v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.0.0
