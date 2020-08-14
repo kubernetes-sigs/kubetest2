@@ -33,7 +33,7 @@ func FindTester(name string) (path string, err error) {
 	binary := fmt.Sprintf("%s-tester-%s", BinaryName, name)
 	path, err = exec.LookPath(binary)
 	if err != nil {
-		return "", errors.Errorf("%#v not found in PATH, could not locate %#v deployer", binary, name)
+		return "", errors.Errorf("%#v not found in PATH, could not locate %#v tester", binary, name)
 	}
 	return path, err
 }
