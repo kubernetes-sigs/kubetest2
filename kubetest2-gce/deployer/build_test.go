@@ -18,10 +18,15 @@ package deployer
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
 func TestSetRepoPathIfNotSet(t *testing.T) {
+	tmpdir, err := filepath.EvalSymlinks(os.TempDir())
+	if err != nil {
+		t.Errorf("failed to read tempdir")
+	}
 	cases := []struct {
 		name string
 
@@ -30,7 +35,7 @@ func TestSetRepoPathIfNotSet(t *testing.T) {
 	}{
 		{
 			name:             "set empty repo path",
-			expectedRepoPath: os.TempDir(),
+			expectedRepoPath: tmpdir,
 		},
 		{
 			name: "set preset repo path",
@@ -41,7 +46,7 @@ func TestSetRepoPathIfNotSet(t *testing.T) {
 		},
 	}
 
-	err := os.Chdir(os.TempDir())
+	err = os.Chdir(os.TempDir())
 	if err != nil {
 		t.Errorf("failed to chdir for test: %s", err)
 	}
