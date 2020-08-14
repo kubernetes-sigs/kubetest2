@@ -71,7 +71,7 @@ func (d *deployer) setRepoPathIfNotSet() error {
 
 	path, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("Failed to get current working directory for setting Kubernetes root path: %s", err)
+		return fmt.Errorf("failed to get current working directory for setting Kubernetes root path: %s", err)
 	}
 	klog.V(1).Infof("defaulting repo root to the current directory: %s", path)
 	d.RepoRoot = path

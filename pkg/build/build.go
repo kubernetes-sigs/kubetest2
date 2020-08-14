@@ -20,11 +20,12 @@ package build
 import (
 	"fmt"
 	"go/build"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+
+	"k8s.io/klog"
 )
 
 const (
@@ -125,10 +126,10 @@ func extractBuiltTars() error {
 			return err
 		}
 		if shouldExtract[info.Name()] {
-			log.Printf("Extracting %s into current directory", path)
+			klog.V(0).Infof("Extracting %s into current directory", path)
 			//Extract it into current directory.
 			if err := inheritOutput(exec.Command("tar", "-xzf", path)).Run(); err != nil {
-				return fmt.Errorf("Could not extract built tar archive: %v", err)
+				return fmt.Errorf("could not extract built tar archive: %v", err)
 			}
 			shouldExtract[info.Name()] = false
 		}
