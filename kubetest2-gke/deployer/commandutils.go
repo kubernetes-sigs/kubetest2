@@ -63,7 +63,7 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 		return err
 	}
 
-	if d.gcpSSHKeyIgnored {
+	if !d.gcpSSHKeyIgnored {
 		// Ensure ssh keys exist
 		klog.V(1).Info("Checking existing of GCP ssh keys...")
 		k := filepath.Join(home(".ssh"), "google_compute_engine")
