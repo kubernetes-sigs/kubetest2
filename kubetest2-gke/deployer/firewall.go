@@ -20,22 +20,21 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) ensureFirewall(project, cluster, network string) error {
+func (d *deployer) ensureFirewall(hostProject, curtProject, cluster, network string) error {
+	klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", cluster, curtProject)
 	if network == "default" {
 		return nil
 	}
-	firewall, err := d.getClusterFirewall(project, cluster)
-	if err != nil {
-		return fmt.Errorf("error getting unique firewall: %v", err)
-	}
+	firewall := d.getClusterFirewall(curtProject, cluster)
 	if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
-		"--project="+project,
+		"--project="+hostProject,
 		"--format=value(name)")) == nil {
 		// Assume that if this unique firewall exists, it's good to go.
 		return nil
@@ -43,8 +42,8 @@ func (d *deployer) ensureFirewall(project, cluster, network string) error {
 	klog.V(1).Infof("Couldn't describe firewall '%s', assuming it doesn't exist and creating it", firewall)
 
 	tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
-		"--project="+project,
-		"--filter=metadata.created-by:*"+d.instanceGroups[project][cluster][0].path,
+		"--project="+curtProject,
+		"--filter=metadata.created-by:*"+d.instanceGroups[curtProject][cluster][0].path,
 		"--limit=1",
 		"--format=get(tags.items)"))
 	if err != nil {
@@ -56,7 +55,7 @@ func (d *deployer) ensureFirewall(project, cluster, network string) error {
 	}
 
 	if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
-		"--project="+project,
+		"--project="+hostProject,
 		"--network="+network,
 		"--allow="+e2eAllow,
 		"--target-tags="+tag)); err != nil {
@@ -65,23 +64,26 @@ func (d *deployer) ensureFirewall(project, cluster, network string) error {
 	return nil
 }
 
-func (d *deployer) getClusterFirewall(project, cluster string) (string, error) {
-	if err := d.getInstanceGroups(); err != nil {
-		return "", err
-	}
+func (d *deployer) getClusterFirewall(project, cluster string) string {
 	// We want to ensure that there's an e2e-ports-* firewall rule
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
 	// node pool instead.
-	return "e2e-ports-" + d.instanceGroups[project][cluster][0].uniq, nil
+	return "e2e-ports-" + d.instanceGroups[project][cluster][0].uniq
 }
 
 // This function ensures that all firewall-rules are deleted from specific network.
 // We also want to keep in logs that there were some resources leaking.
-func (d *deployer) cleanupNetworkFirewalls(project, network string) (int, error) {
+func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, error) {
+	// Do not delete firewall rules for the default network.
+	if network == "default" {
+		return 0, nil
+	}
+
+	klog.V(1).Infof("Cleaning up network firewall rules for network %s in %s", network, hostProject)
 	fws, err := exec.Output(exec.Command("gcloud", "compute", "firewall-rules", "list",
 		"--format=value(name)",
-		"--project="+project,
+		"--project="+hostProject,
 		"--filter=network:"+network))
 	if err != nil {
 		return 0, fmt.Errorf("firewall rules list failed: %s", execError(err))
@@ -91,17 +93,21 @@ func (d *deployer) cleanupNetworkFirewalls(project, network string) (int, error)
 		klog.V(1).Infof("Network %s has %v undeleted firewall rules %v", network, len(fwList), fwList)
 		commandArgs := []string{"compute", "firewall-rules", "delete", "-q"}
 		commandArgs = append(commandArgs, fwList...)
-		commandArgs = append(commandArgs, "--project="+project)
+		commandArgs = append(commandArgs, "--project="+hostProject)
 		errFirewall := runWithOutput(exec.Command("gcloud", commandArgs...))
 		if errFirewall != nil {
 			return 0, fmt.Errorf("error deleting firewall: %v", errFirewall)
 		}
-		return len(fwList), nil
+		// It looks sometimes gcloud exits before the firewall rules are actually deleted,
+		// so sleep 10 seconds to wait for the firewall rules being deleted completely.
+		// TODO(chizhg): change to a more reliable way to check if they are deleted or not.
+		time.Sleep(10 * time.Second)
 	}
-	return 0, nil
+	return len(fws), nil
 }
 
 func (d *deployer) getInstanceGroups() error {
+	// If instanceGroups has already been populated, return directly.
 	if d.instanceGroups != nil {
 		return nil
 	}

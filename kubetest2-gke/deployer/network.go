@@ -108,7 +108,7 @@ func (d *deployer) createNetwork() error {
 			"--network="+d.network,
 			"--range="+parts[0],
 			"--secondary-range",
-			fmt.Sprintf("%s-service=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
+			fmt.Sprintf("%s-services=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
 		)); err != nil {
 			return err
 		}
@@ -118,6 +118,11 @@ func (d *deployer) createNetwork() error {
 }
 
 func (d *deployer) deleteNetwork() error {
+	// Do not delete the default network.
+	if d.network == "default" {
+		return nil
+	}
+
 	// Delete the subnetworks if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#deleting_the_shared_network
 	if len(d.projects) >= 1 {
@@ -129,6 +134,7 @@ func (d *deployer) deleteNetwork() error {
 				subnetName,
 				"--project="+hostProject,
 				"--region="+d.region,
+				"--quiet",
 			)); err != nil {
 				return err
 			}
@@ -136,7 +142,7 @@ func (d *deployer) deleteNetwork() error {
 	}
 
 	if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.network,
-		"--project="+d.projects[0])); err != nil {
+		"--project="+d.projects[0], "--quiet")); err != nil {
 		return err
 	}
 
@@ -216,7 +222,7 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 
 	// Grant the required IAM roles to service accounts that belong to the service projects.
 	for i := 1; i < len(projects); i++ {
-		serviceProject := projects[1]
+		serviceProject := projects[i]
 		subnetName := network + "-" + serviceProject
 		// Get the subnet etag.
 		subnetETag, err := exec.Output(exec.Command("gcloud", "compute", "networks", "subnets",
@@ -260,7 +266,7 @@ func grantHostServiceAgentUserRole(projects []string) error {
 
 	hostProject := projects[0]
 	for i := 1; i < len(projects); i++ {
-		serviceProject := projects[1]
+		serviceProject := projects[i]
 		serviceProjectNum, err := getProjectNumber(serviceProject)
 		if err != nil {
 			return err
@@ -327,7 +333,7 @@ func removeHostServiceAgentUserRole(projects []string) error {
 
 	hostProject := projects[0]
 	for i := 1; i < len(projects); i++ {
-		serviceProject := projects[1]
+		serviceProject := projects[i]
 		serviceProjectNum, err := getProjectNumber(serviceProject)
 		if err != nil {
 			return err

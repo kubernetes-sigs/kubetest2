@@ -145,14 +145,14 @@ func (d *deployer) testSetup() error {
 	if _, err := d.Kubeconfig(); err != nil {
 		return err
 	}
+	if err := d.getInstanceGroups(); err != nil {
+		return err
+	}
 
+	hostProject := d.projects[0]
 	for _, project := range d.projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := d.getInstanceGroups(); err != nil {
-				return err
-			}
-
-			if err := d.ensureFirewall(project, cluster, d.network); err != nil {
+			if err := d.ensureFirewall(hostProject, project, cluster, d.network); err != nil {
 				return err
 			}
 		}
