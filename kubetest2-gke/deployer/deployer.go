@@ -40,6 +40,14 @@ const (
 	image         = "cos"
 )
 
+type privateClusterAccessLevel string
+
+const (
+	no           privateClusterAccessLevel = "no"
+	limited      privateClusterAccessLevel = "limited"
+	unrestricted privateClusterAccessLevel = "unrestricted"
+)
+
 var (
 	// poolRe matches instance group URLs of the form `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gke-some-cluster-some-pool-90fcb815-grp`. Match meaning:
 	// m[0]: path starting with zones/
@@ -101,7 +109,13 @@ type deployer struct {
 	gcpSSHKeyIgnored bool
 
 	// Enable workload identity or not.
+	// See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity
 	workloadIdentityEnabled bool
+
+	// Private cluster access level, must be one of "no", "limited" and "unrestricted".
+	// See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters
+	privateClusterAccessLevel   string
+	privateClusterMasterIPRange string
 
 	boskosLocation              string
 	boskosResourceType          string
@@ -212,6 +226,8 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
 	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
 	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
+	flags.StringVar(&d.privateClusterAccessLevel, "private-cluster-access-level", "", "Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'")
+	flags.StringVar(&d.privateClusterMasterIPRange, "private-cluster-master-ip-range", "172.16.0.32/28", "Private cluster master IP range. It should be an IPv4 CIDR, and must not be empty if private cluster is requested.")
 	flags.StringVar(&d.boskosLocation, "boskos-location", defaultBoskosLocation, "If set, manually specifies the location of the Boskos server")
 	flags.StringVar(&d.boskosResourceType, "boskos-resource-type", defaultGKEProjectResourceType, "If set, manually specifies the resource type of GCP projects to acquire from Boskos")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
