@@ -64,6 +64,14 @@ func (d *deployer) verifyNetworkFlags() error {
 		}
 	}
 
+	if d.privateClusterAccessLevel != "" && d.privateClusterAccessLevel != string(no) &&
+		d.privateClusterAccessLevel != string(limited) && d.privateClusterAccessLevel != string(unrestricted) {
+		return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
+	}
+	if d.privateClusterAccessLevel != "" && d.privateClusterMasterIPRange == "" {
+		return fmt.Errorf("--private-cluster-master-ip-range must not be empty when requesting a private cluster")
+	}
+
 	return nil
 }
 
@@ -347,4 +355,34 @@ func removeHostServiceAgentUserRole(projects []string) error {
 		}
 	}
 	return nil
+}
+
+// This function returns the args required for creating a private cluster.
+// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters#top_of_page
+func privateClusterArgs(network, cluster, accessLevel, masterIPRange string) []string {
+	if accessLevel == "" {
+		return []string{}
+	}
+
+	subnetName := network + "-" + cluster
+	common := []string{
+		"--create-subnetwork name=" + subnetName,
+		"--enable-ip-alias",
+		"--enable-private-nodes",
+		"--no-enable-basic-auth",
+		"--master-ipv4-cidr=" + masterIPRange,
+		"--no-issue-client-certificate",
+	}
+
+	switch accessLevel {
+	case string(no):
+		common = append(common, "--enable-master-authorized-networks",
+			"--enable-private-endpoint")
+	case string(limited):
+		common = append(common, "--enable-master-authorized-networks")
+	case string(unrestricted):
+		common = append(common, "--no-enable-master-authorized-networks")
+	}
+
+	return common
 }

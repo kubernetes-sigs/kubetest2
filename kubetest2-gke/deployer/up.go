@@ -62,6 +62,7 @@ func (d *deployer) Up() error {
 		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
+			privateClusterArgs := privateClusterArgs(d.network, cluster, d.privateClusterAccessLevel, d.privateClusterMasterIPRange)
 			eg.Go(func() error {
 				// Create the cluster
 				args := make([]string, len(d.createCommand()))
@@ -78,6 +79,7 @@ func (d *deployer) Up() error {
 					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
 				}
 				args = append(args, subNetworkArgs...)
+				args = append(args, privateClusterArgs...)
 				args = append(args, cluster)
 				klog.V(1).Infof("Gcloud command: gcloud %+v\n", args)
 				if err := runWithOutput(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
