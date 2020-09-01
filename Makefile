@@ -27,7 +27,8 @@ GOROOT:=
 GO111MODULE=on
 export PATH GOROOT GO111MODULE
 # work around broken PATH export
-SHELL:=env PATH=$(PATH) $(SHELL)
+SPACE:=$(subst ,, )
+SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
 # ==============================================================================
 # flags for reproducible go builds
 BUILD_FLAGS?=-trimpath -ldflags="-buildid="
