@@ -212,8 +212,8 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 	// Enable Shared VPC for multiproject requests on the host project.
 	// Assuming we have Shared VPC Admin role at the organization level.
 	networkHostProject := projects[0]
-	// We have to use the beta command group here, otherwise it runs into a weird permission error.
-	// TODO(chizhg): figure out why it has to be beta.
+	// Shared VPC is still in beta, so we have to use the beta command group here.
+	// TODO(chizhg): remove beta after shared VPC is in prod.
 	if err := runWithOutput(exec.Command("gcloud", "beta", "compute", "shared-vpc", "enable", networkHostProject)); err != nil {
 		// Sometimes we may want to use the projects pre-configured with shared-vpc for testing,
 		// and the service account that runs this command might not have the right permission, so do not
