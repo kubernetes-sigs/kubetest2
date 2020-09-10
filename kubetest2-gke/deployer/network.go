@@ -212,7 +212,9 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 	// Enable Shared VPC for multiproject requests on the host project.
 	// Assuming we have Shared VPC Admin role at the organization level.
 	networkHostProject := projects[0]
-	if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "enable", networkHostProject)); err != nil {
+	// We have to use the beta command group here, otherwise it runs into a weird permission error.
+	// TODO(chizhg): figure out why it has to be beta.
+	if err := runWithOutput(exec.Command("gcloud", "beta", "compute", "shared-vpc", "enable", networkHostProject)); err != nil {
 		// Sometimes we may want to use the projects pre-configured with shared-vpc for testing,
 		// and the service account that runs this command might not have the right permission, so do not
 		// error out if an error happens here.
@@ -221,7 +223,7 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 
 	// Associate the rest of the projects.
 	for i := 1; i < len(projects); i++ {
-		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
+		if err := runWithOutput(exec.Command("gcloud", "beta", "compute", "shared-vpc",
 			"associated-projects", "add", projects[i],
 			"--host-project", networkHostProject)); err != nil {
 			klog.Warningf("Error associating project %q to Shared VPC: %v, it might be due to permission issues.", projects[i], err)
@@ -316,7 +318,7 @@ func disableSharedVPCProjects(projects []string) error {
 
 	// Disassociate the rest of the projects
 	for i := 1; i < len(projects); i++ {
-		if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc",
+		if err := runWithOutput(exec.Command("gcloud", "beta", "compute", "shared-vpc",
 			"associated-projects", "remove", projects[i],
 			"--host-project", networkHostProject)); err != nil {
 			klog.Warningf("Error removing the associated project %q from Shared VPC: %v", projects[i], err)
@@ -324,7 +326,7 @@ func disableSharedVPCProjects(projects []string) error {
 	}
 
 	// Disable Shared VPC for multiproject requests on the host project
-	if err := runWithOutput(exec.Command("gcloud", "compute", "shared-vpc", "disable", networkHostProject)); err != nil {
+	if err := runWithOutput(exec.Command("gcloud", "beta", "compute", "shared-vpc", "disable", networkHostProject)); err != nil {
 		klog.Warningf("Error disabling Shared VPC for the host project: %v", err)
 	}
 
