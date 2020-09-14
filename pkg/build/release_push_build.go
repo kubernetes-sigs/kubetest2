@@ -15,7 +15,7 @@ var _ Stager = &ReleasePushBuild{}
 
 // Stage stages the build to GCS using
 // essentially release/push-build.sh --bucket=B --ci --gcs-suffix=S --noupdatelatest
-func (rpb *ReleasePushBuild) Stage() error {
+func (rpb *ReleasePushBuild) Stage(version string) error {
 	re := regexp.MustCompile(`^gs://([\w-]+)/(devel|ci)(/.*)?`)
 	mat := re.FindStringSubmatch(rpb.Location)
 	if mat == nil {

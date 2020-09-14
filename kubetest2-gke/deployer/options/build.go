@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/google/uuid"
-
 	"sigs.k8s.io/kubetest2/pkg/build"
 )
 
@@ -35,14 +33,10 @@ func (bo *BuildOptions) Validate() error {
 func (bo *BuildOptions) implementationFromStrategy() error {
 	switch bo.Strategy {
 	case "bazel":
-		// TODO(amwat): find a stable tag
-		// The prefix needs to be one of the supported version
-		bo.Version = "1.16.0-gke.0.0+" + uuid.New().String()
 		bazel := &build.Bazel{
 			RepoRoot:      bo.RepoRoot,
 			StageLocation: bo.StageLocation,
 			ImageLocation: "gke.gcr.io",
-			Version:       bo.Version,
 		}
 		bo.Builder = bazel
 		bo.Stager = bazel

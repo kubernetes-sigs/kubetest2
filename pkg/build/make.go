@@ -29,18 +29,22 @@ var (
 )
 
 // Build builds kubernetes with the bazel-release make target
-func (m *MakeBuilder) Build() error {
+func (m *MakeBuilder) Build() (string, error) {
 	// TODO(RonWeber): This needs options
 	src, err := K8sDir("kubernetes")
 	if err != nil {
-		return err
+		return "", err
+	}
+	version, err := sourceVersion(src)
+	if err != nil {
+		return "", fmt.Errorf("failed to get version: %v", err)
 	}
 	cmd := exec.Command("make", "-C", src, target)
 	exec.InheritOutput(cmd)
 	if err = cmd.Run(); err != nil {
-		return err
+		return "", err
 	}
-	return extractBuiltTars()
+	return version, extractBuiltTars()
 }
 
 // K8sDir returns $GOPATH/src/k8s.io/...
