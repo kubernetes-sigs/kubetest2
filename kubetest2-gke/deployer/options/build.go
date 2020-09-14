@@ -69,7 +69,7 @@ func validateVersion(version string) error {
 			return err
 		}
 		if !re.MatchString(version) {
-			return fmt.Errorf("unkown version %q", version)
+			return fmt.Errorf("unknown version %q", version)
 		}
 	}
 	return nil
