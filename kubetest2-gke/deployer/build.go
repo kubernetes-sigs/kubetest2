@@ -18,17 +18,18 @@ package deployer
 
 import (
 	"fmt"
-
-	"sigs.k8s.io/kubetest2/pkg/build"
 )
 
 func (d *deployer) Build() error {
-	if err := build.Build(); err != nil {
+	if err := d.BuildOptions.Validate(); err != nil {
+		return err
+	}
+	if err := d.BuildOptions.Build(); err != nil {
 		return err
 	}
 
-	if d.stageLocation != "" {
-		if err := build.Stage(d.stageLocation); err != nil {
+	if d.BuildOptions.StageLocation != "" {
+		if err := d.BuildOptions.Stage(); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
 		}
 	}

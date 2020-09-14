@@ -49,7 +49,7 @@ func (d *deployer) Up() error {
 		return err
 	}
 
-	klog.V(1).Infof("Environment: %v", os.Environ())
+	klog.V(2).Infof("Environment: %v", os.Environ())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
@@ -74,6 +74,7 @@ func (d *deployer) Up() error {
 					"--image-type="+image,
 					"--num-nodes="+strconv.Itoa(d.nodes),
 					"--network="+transformNetworkName(d.projects, d.network),
+					"--cluster-version="+d.BuildOptions.Version,
 				)
 				if d.workloadIdentityEnabled {
 					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
