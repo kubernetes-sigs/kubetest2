@@ -74,7 +74,7 @@ func (d *deployer) Up() error {
 					"--image-type="+image,
 					"--num-nodes="+strconv.Itoa(d.nodes),
 					"--network="+transformNetworkName(d.projects, d.network),
-					"--cluster-version="+d.BuildOptions.Version,
+					"--cluster-version="+d.Version,
 				)
 				if d.workloadIdentityEnabled {
 					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))

@@ -84,6 +84,8 @@ type deployer struct {
 
 	BuildOptions *options.BuildOptions
 
+	Version string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400 or 'latest'. If --build is specified it will default to building kubernetes from source."`
+
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// gke specific details
@@ -152,7 +154,6 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	d := &deployer{
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
-			Version:  "latest",
 			Builder:  &build.NoopBuilder{},
 			Stager:   &build.NoopStager{},
 			Strategy: "bazel",
@@ -185,6 +186,25 @@ func (d *deployer) verifyUpFlags() error {
 	}
 	if d.nodes <= 0 {
 		return fmt.Errorf("--num-nodes must be larger than 0")
+	}
+	if err := validateVersion(d.Version); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateVersion(version string) error {
+	switch version {
+	case "latest":
+		return nil
+	default:
+		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(-gke\.\d*\.\d*)(.*)`)
+		if err != nil {
+			return err
+		}
+		if !re.MatchString(version) {
+			return fmt.Errorf("unknown version %q", version)
+		}
 	}
 	return nil
 }

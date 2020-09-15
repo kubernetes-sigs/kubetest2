@@ -38,6 +38,6 @@ func (d *deployer) Build() error {
 			return fmt.Errorf("error staging build: %v", err)
 		}
 	}
-	d.BuildOptions.Version = version
+	d.Version = version
 	return nil
 }
