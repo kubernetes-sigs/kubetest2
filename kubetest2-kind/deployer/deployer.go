@@ -63,6 +63,17 @@ type deployer struct {
 	verbosity      int    // --verbosity for kind
 }
 
+func (d *deployer) Kubeconfig() (string, error) {
+	if d.kubeconfigPath != "" {
+		return d.kubeconfigPath, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".kube", "config"), nil
+}
+
 // helper used to create & bind a flagset to the deployer
 func bindFlags(d *deployer) *pflag.FlagSet {
 	flags := pflag.NewFlagSet(Name, pflag.ContinueOnError)
@@ -90,8 +101,8 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	return flags
 }
 
-// assert that deployer implements types.Deployer
-var _ types.Deployer = &deployer{}
+// assert that deployer implements types.DeployerWithKubeconfig
+var _ types.DeployerWithKubeconfig = &deployer{}
 
 // Deployer implementation methods below
 
