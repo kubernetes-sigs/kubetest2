@@ -21,7 +21,7 @@ type Tester struct {
 	Provider      string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
 	KubeConfig    string `desc:"Path to kubeconfig"`
 	RepoRoot      string `desc:"Path to repository root of kubernetes/perf-tests"`
-	Nodes int `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
+	Nodes         int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
 }
 
 func NewDefaultTester() *Tester {
