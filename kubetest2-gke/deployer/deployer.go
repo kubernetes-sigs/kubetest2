@@ -24,9 +24,12 @@ import (
 	"regexp"
 	"sync"
 
+	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
 	"sigs.k8s.io/boskos/client"
+	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
+	"sigs.k8s.io/kubetest2/pkg/build"
 
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
@@ -78,6 +81,11 @@ type ig struct {
 type deployer struct {
 	// generic parts
 	commonOptions types.Options
+
+	BuildOptions *options.BuildOptions
+
+	Version string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400 or 'latest'. If --build is specified it will default to building kubernetes from source."`
+
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// gke specific details
@@ -99,8 +107,6 @@ type deployer struct {
 	testPrepared bool
 	// project -> cluster -> instance groups
 	instanceGroups map[string]map[string][]*ig
-
-	stageLocation string
 
 	localLogsDir string
 	gcsLogsDir   string
@@ -147,7 +153,12 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
 	d := &deployer{
 		commonOptions: opts,
-		localLogsDir:  filepath.Join(opts.ArtifactsDir(), "logs"),
+		BuildOptions: &options.BuildOptions{
+			Builder:  &build.NoopBuilder{},
+			Stager:   &build.NoopStager{},
+			Strategy: "bazel",
+		},
+		localLogsDir: filepath.Join(opts.ArtifactsDir(), "logs"),
 	}
 
 	// register flags
@@ -175,6 +186,25 @@ func (d *deployer) verifyUpFlags() error {
 	}
 	if d.nodes <= 0 {
 		return fmt.Errorf("--num-nodes must be larger than 0")
+	}
+	if err := validateVersion(d.Version); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateVersion(version string) error {
+	switch version {
+	case "latest":
+		return nil
+	default:
+		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(-gke\.\d*\.\d*)(.*)`)
+		if err != nil {
+			return err
+		}
+		if !re.MatchString(version) {
+			return fmt.Errorf("unknown version %q", version)
+		}
 	}
 	return nil
 }
@@ -207,8 +237,11 @@ func (d *deployer) location() (string, error) {
 }
 
 func bindFlags(d *deployer) *pflag.FlagSet {
-	flags := pflag.NewFlagSet(Name, pflag.ContinueOnError)
-
+	flags, err := gpflag.Parse(d)
+	if err != nil {
+		klog.Fatalf("unable to generate flags from deployer")
+		return nil
+	}
 	flags.StringSliceVar(&d.clusters, "cluster-name", []string{}, "Cluster names separated by comma. Must be set. "+
 		"For multi-project profile, it should be in the format of clusterA:0,clusterB:1,clusterC:2, where the index means the index of the project.")
 	flags.StringVar(&d.createCommandFlag, "create-command", defaultCreate, "gcloud subcommand used to create a cluster. Modify if you need to pass arbitrary arguments to create.")
@@ -223,7 +256,6 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
-	flags.StringVar(&d.stageLocation, "stage", "", "Upload binaries to gs://bucket/ci/job-suffix if set")
 	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
 	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
 	flags.StringVar(&d.privateClusterAccessLevel, "private-cluster-access-level", "", "Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'")

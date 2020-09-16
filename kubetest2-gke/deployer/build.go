@@ -18,19 +18,26 @@ package deployer
 
 import (
 	"fmt"
+	"strings"
 
-	"sigs.k8s.io/kubetest2/pkg/build"
+	"github.com/google/uuid"
 )
 
 func (d *deployer) Build() error {
-	if err := build.Build(); err != nil {
+	if err := d.BuildOptions.Validate(); err != nil {
 		return err
 	}
-
-	if d.stageLocation != "" {
-		if err := build.Stage(d.stageLocation); err != nil {
+	version, err := d.BuildOptions.Build()
+	if err != nil {
+		return err
+	}
+	version = strings.TrimPrefix(version, "v")
+	version += ".0+" + uuid.New().String()
+	if d.BuildOptions.StageLocation != "" {
+		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
 		}
 	}
+	d.Version = version
 	return nil
 }
