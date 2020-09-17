@@ -198,7 +198,7 @@ func validateVersion(version string) error {
 	case "latest":
 		return nil
 	default:
-		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(-gke\.\d*\.\d*)(.*)`)
+		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(.*)`)
 		if err != nil {
 			return err
 		}
