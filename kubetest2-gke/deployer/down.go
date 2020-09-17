@@ -28,49 +28,49 @@ func (d *deployer) Down() error {
 	if err := d.init(); err != nil {
 		return err
 	}
+	if len(d.projects) > 0 {
+		if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
+			return err
+		}
 
-	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
-		return err
-	}
-
-	var wg sync.WaitGroup
-	for i := range d.projects {
-		project := d.projects[i]
-		for j := range d.projectClustersLayout[project] {
-			cluster := d.projectClustersLayout[project][j]
-			loc, err := d.location()
-			if err != nil {
-				return err
-			}
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				// We best-effort try all of these and report errors as appropriate.
-				if err := runWithOutput(exec.Command(
-					"gcloud", d.containerArgs("clusters", "delete", "-q", cluster,
-						"--project="+project,
-						loc)...)); err != nil {
-					klog.Errorf("Error deleting cluster: %v", err)
+		var wg sync.WaitGroup
+		for i := range d.projects {
+			project := d.projects[i]
+			for j := range d.projectClustersLayout[project] {
+				cluster := d.projectClustersLayout[project][j]
+				loc, err := d.location()
+				if err != nil {
+					return err
 				}
-			}()
+
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					// We best-effort try all of these and report errors as appropriate.
+					if err := runWithOutput(exec.Command(
+						"gcloud", d.containerArgs("clusters", "delete", "-q", cluster,
+							"--project="+project,
+							loc)...)); err != nil {
+						klog.Errorf("Error deleting cluster: %v", err)
+					}
+				}()
+			}
+		}
+		wg.Wait()
+
+		numDeletedFWRules, errCleanFirewalls := d.cleanupNetworkFirewalls(d.projects[0], d.network)
+		if errCleanFirewalls != nil {
+			klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
+		} else {
+			klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
+		}
+
+		if err := d.teardownNetwork(); err != nil {
+			return err
+		}
+		if err := d.deleteNetwork(); err != nil {
+			return err
 		}
 	}
-	wg.Wait()
-
-	numDeletedFWRules, errCleanFirewalls := d.cleanupNetworkFirewalls(d.projects[0], d.network)
-	if errCleanFirewalls != nil {
-		klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
-	} else {
-		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
-	}
-
-	if err := d.teardownNetwork(); err != nil {
-		return err
-	}
-	if err := d.deleteNetwork(); err != nil {
-		return err
-	}
-
 	return nil
 }
