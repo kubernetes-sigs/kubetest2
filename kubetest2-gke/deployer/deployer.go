@@ -159,6 +159,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			Strategy: "bazel",
 		},
 		localLogsDir: filepath.Join(opts.ArtifactsDir(), "logs"),
+		Version:      "latest",
 	}
 
 	// register flags
