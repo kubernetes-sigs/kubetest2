@@ -19,7 +19,7 @@ type Tester struct {
 	TestOverrides string `desc:"Comma separated list of paths to the config override files. The latter overrides take precedence over changes in former files."`
 	TestConfigs   string `desc:"Comma separated list of paths to test config files."`
 	Provider      string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
-	KubeConfig    string `desc:"Path to kubeconfig"`
+	KubeConfig    string `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
 	RepoRoot      string `desc:"Path to repository root of kubernetes/perf-tests"`
 	Nodes         int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
 }
