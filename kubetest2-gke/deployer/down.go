@@ -38,17 +38,14 @@ func (d *deployer) Down() error {
 			project := d.projects[i]
 			for j := range d.projectClustersLayout[project] {
 				cluster := d.projectClustersLayout[project][j]
-				loc, err := d.location()
-				if err != nil {
-					return err
-				}
+				loc := location(d.region, d.zone)
 
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					// We best-effort try all of these and report errors as appropriate.
 					if err := runWithOutput(exec.Command(
-						"gcloud", d.containerArgs("clusters", "delete", "-q", cluster,
+						"gcloud", containerArgs("clusters", "delete", "-q", cluster,
 							"--project="+project,
 							loc)...)); err != nil {
 						klog.Errorf("Error deleting cluster: %v", err)

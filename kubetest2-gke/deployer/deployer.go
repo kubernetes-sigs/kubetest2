@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
 	"sigs.k8s.io/boskos/client"
+
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
 	"sigs.k8s.io/kubetest2/pkg/build"
 
@@ -182,7 +183,7 @@ func (d *deployer) verifyUpFlags() error {
 	if len(d.clusters) == 0 {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
-	if _, err := d.location(); err != nil {
+	if err := d.verifyLocationFlags(); err != nil {
 		return err
 	}
 	if d.nodes <= 0 {
@@ -218,23 +219,27 @@ func (d *deployer) verifyDownFlags() error {
 	if len(d.projects) == 0 {
 		return fmt.Errorf("--project must be set for GKE deployment")
 	}
-	if _, err := d.location(); err != nil {
+	if err := d.verifyLocationFlags(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (d *deployer) location() (string, error) {
+func (d *deployer) verifyLocationFlags() error {
 	if d.zone == "" && d.region == "" {
-		return "", fmt.Errorf("--zone or --region must be set for GKE deployment")
+		return fmt.Errorf("--zone or --region must be set for GKE deployment")
 	} else if d.zone != "" && d.region != "" {
-		return "", fmt.Errorf("--zone and --region cannot both be set")
+		return fmt.Errorf("--zone and --region cannot both be set")
 	}
+	return nil
+}
 
-	if d.zone != "" {
-		return "--zone=" + d.zone, nil
+// location returns the location flags for gcloud commands.
+func location(region, zone string) string {
+	if zone != "" {
+		return "--zone=" + zone
 	}
-	return "--region=" + d.region, nil
+	return "--region=" + region
 }
 
 func bindFlags(d *deployer) *pflag.FlagSet {

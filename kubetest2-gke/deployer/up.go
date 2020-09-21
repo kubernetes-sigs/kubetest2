@@ -53,10 +53,7 @@ func (d *deployer) Up() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
-	loc, err := d.location()
-	if err != nil {
-		return err
-	}
+	loc := location(d.region, d.zone)
 	for i := range d.projects {
 		project := d.projects[i]
 		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
@@ -115,7 +112,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 
 	for _, project := range d.projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := d.getClusterCredentials(project, cluster); err != nil {
+			if err := getClusterCredentials(project, location(d.region, d.zone), cluster); err != nil {
 				return false, err
 			}
 
@@ -151,14 +148,8 @@ func (d *deployer) testSetup() error {
 	if err := d.getInstanceGroups(); err != nil {
 		return err
 	}
-
-	hostProject := d.projects[0]
-	for _, project := range d.projects {
-		for _, cluster := range d.projectClustersLayout[project] {
-			if err := d.ensureFirewall(hostProject, project, cluster, d.network); err != nil {
-				return err
-			}
-		}
+	if err := d.ensureFirewallRules(); err != nil {
+		return err
 	}
 	d.testPrepared = true
 	return nil
@@ -184,7 +175,7 @@ func (d *deployer) Kubeconfig() (string, error) {
 			if err := os.Setenv("KUBECONFIG", filename); err != nil {
 				return "", err
 			}
-			if err := d.getClusterCredentials(project, cluster); err != nil {
+			if err := getClusterCredentials(project, location(d.region, d.zone), cluster); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)
