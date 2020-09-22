@@ -38,6 +38,16 @@ func (d *deployer) Up() error {
 		return err
 	}
 
+	defer func() {
+		if d.RepoRoot == "" {
+			klog.Warningf("repo-root not supplied, skip dumping cluster logs")
+			return
+		}
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
+		}
+	}()
+
 	// Only run prepare once for the first GCP project.
 	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
 		return err

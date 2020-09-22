@@ -77,12 +77,14 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 			dumpCmd += " " + d.gcsLogsDir
 		}
 
-		if err := runWithOutput(exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
+		cmd := exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
 			project,
 			d.zone,
 			os.Getenv("NODE_OS_DISTRIBUTION"),
 			strings.Join(filters, " OR "),
-			dumpCmd))); err != nil {
+			dumpCmd))
+		cmd.SetDir(d.RepoRoot)
+		if err := runWithOutput(cmd); err != nil {
 			return err
 		}
 	}
