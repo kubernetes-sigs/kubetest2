@@ -27,53 +27,88 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) ensureFirewall(hostProject, curtProject, cluster, network string) error {
-	klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", cluster, curtProject)
-	if network == "default" {
+func (d *deployer) ensureFirewallRules() error {
+	// Do not modify the firewall rules for the default network
+	if d.network == "default" {
 		return nil
 	}
-	firewall := d.getClusterFirewall(curtProject, cluster)
-	if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
-		"--project="+hostProject,
-		"--format=value(name)")) == nil {
-		// Assume that if this unique firewall exists, it's good to go.
-		return nil
-	}
-	klog.V(1).Infof("Couldn't describe firewall '%s', assuming it doesn't exist and creating it", firewall)
 
-	tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
-		"--project="+curtProject,
-		"--filter=metadata.created-by:*"+d.instanceGroups[curtProject][cluster][0].path,
-		"--limit=1",
-		"--format=get(tags.items)"))
-	if err != nil {
-		return fmt.Errorf("instances list failed: %s", execError(err))
-	}
-	tag := strings.TrimSpace(string(tagOut))
-	if tag == "" {
-		return fmt.Errorf("instances list returned no instances (or instance has no tags)")
+	if len(d.projects) == 1 {
+		project := d.projects[0]
+		return ensureFirewallRulesForSingleProject(project, d.network, d.projectClustersLayout[project], d.instanceGroups)
 	}
 
-	if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
-		"--project="+hostProject,
-		"--network="+network,
-		"--allow="+e2eAllow,
-		"--target-tags="+tag)); err != nil {
-		return fmt.Errorf("error creating e2e firewall: %v", err)
+	return ensureFirewallRulesForMultiProjects(d.projects, d.network, d.subnetworkRanges)
+}
+
+// Ensure firewall rules for e2e testing for all clusters in one single project.
+func ensureFirewallRulesForSingleProject(project, network string, clusters []string, instanceGroups map[string]map[string][]*ig) error {
+	for _, cluster := range clusters {
+		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", cluster, project)
+		firewall := getClusterFirewall(project, cluster, instanceGroups)
+		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
+			"--project="+project,
+			"--format=value(name)")) == nil {
+			// Assume that if this unique firewall exists, it's good to go.
+			continue
+		}
+		klog.V(1).Infof("Couldn't describe firewall '%s', assuming it doesn't exist and creating it", firewall)
+
+		tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
+			"--project="+project,
+			"--filter=metadata.created-by:*"+instanceGroups[project][cluster][0].path,
+			"--limit=1",
+			"--format=get(tags.items)"))
+		if err != nil {
+			return fmt.Errorf("instances list failed: %s", execError(err))
+		}
+		tag := strings.TrimSpace(string(tagOut))
+		if tag == "" {
+			return fmt.Errorf("instances list returned no instances (or instance has no tags)")
+		}
+
+		if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
+			"--project="+project,
+			"--network="+network,
+			"--allow="+e2eAllow,
+			"--target-tags="+tag)); err != nil {
+			return fmt.Errorf("error creating e2e firewall rule: %v", err)
+		}
 	}
 	return nil
 }
 
-func (d *deployer) getClusterFirewall(project, cluster string) string {
+func getClusterFirewall(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
 	// We want to ensure that there's an e2e-ports-* firewall rule
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
 	// node pool instead.
-	return "e2e-ports-" + d.instanceGroups[project][cluster][0].uniq
+	return "e2e-ports-" + instanceGroups[project][cluster][0].uniq
 }
 
-// This function ensures that all firewall-rules are deleted from specific network.
-// We also want to keep in logs that there were some resources leaking.
+// Ensure firewall rules for multi-project profile.
+// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_additional_firewall_rules
+// Please note we are not including the firewall rule for SSH connection as it's not needed for testing.
+func ensureFirewallRulesForMultiProjects(projects []string, network string, subnetworkRanges []string) error {
+	hostProject := projects[0]
+	for i := 1; i < len(projects); i++ {
+		curtProject := projects[i]
+		firewall := fmt.Sprintf("%s-rule-%s", hostProject, curtProject)
+		// sourceRanges need to be separated with ",", while the provided subnetworkRanges are separated with space.
+		sourceRanges := strings.ReplaceAll(subnetworkRanges[i-1], " ", ",")
+		if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
+			"--project="+hostProject,
+			"--network="+network,
+			"--allow=tcp,udp,icmp",
+			"--direction=INGRESS",
+			"--source-ranges="+sourceRanges)); err != nil {
+			return fmt.Errorf("error creating firewall rule for project %q: %v", curtProject, err)
+		}
+	}
+	return nil
+}
+
+// Ensure that all firewall-rules are deleted from specific network.
 func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, error) {
 	// Do not delete firewall rules for the default network.
 	if network == "default" {
@@ -99,9 +134,9 @@ func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, er
 			return 0, fmt.Errorf("error deleting firewall: %v", errFirewall)
 		}
 		// It looks sometimes gcloud exits before the firewall rules are actually deleted,
-		// so sleep 10 seconds to wait for the firewall rules being deleted completely.
+		// so sleep 30 seconds to wait for the firewall rules being deleted completely.
 		// TODO(chizhg): change to a more reliable way to check if they are deleted or not.
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 	return len(fws), nil
 }
@@ -115,16 +150,13 @@ func (d *deployer) getInstanceGroups() error {
 	// Initialize project instance groups structure
 	d.instanceGroups = map[string]map[string][]*ig{}
 
-	location, err := d.location()
-	if err != nil {
-		return err
-	}
+	location := location(d.region, d.zone)
 
 	for _, project := range d.projects {
 		d.instanceGroups[project] = map[string][]*ig{}
 
 		for _, cluster := range d.projectClustersLayout[project] {
-			igs, err := exec.Output(exec.Command("gcloud", d.containerArgs("clusters", "describe", cluster,
+			igs, err := exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", cluster,
 				"--format=value(instanceGroupUrls)",
 				"--project="+project,
 				location)...))
@@ -137,7 +169,7 @@ func (d *deployer) getInstanceGroups() error {
 			}
 			sort.Strings(igURLs)
 
-			// Inialize cluster instance groups
+			// Initialize cluster instance groups
 			d.instanceGroups[project][cluster] = make([]*ig, 0)
 
 			for _, igURL := range igURLs {

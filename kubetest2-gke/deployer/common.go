@@ -113,7 +113,7 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 	return nil
 }
 
-func (d *deployer) containerArgs(args ...string) []string {
+func containerArgs(args ...string) []string {
 	return append(append([]string{}, "container"), args...)
 }
 
