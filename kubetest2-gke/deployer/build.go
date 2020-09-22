@@ -24,7 +24,7 @@ import (
 )
 
 func (d *deployer) Build() error {
-	if err := d.BuildOptions.Validate(); err != nil {
+	if err := d.verifyBuildFlags(); err != nil {
 		return err
 	}
 	version, err := d.BuildOptions.Build()
@@ -40,4 +40,12 @@ func (d *deployer) Build() error {
 	}
 	d.Version = version
 	return nil
+}
+
+func (d *deployer) verifyBuildFlags() error {
+	if d.RepoRoot == "" {
+		return fmt.Errorf("required repo-root when building from source")
+	}
+	d.BuildOptions.RepoRoot = d.RepoRoot
+	return d.BuildOptions.Validate()
 }

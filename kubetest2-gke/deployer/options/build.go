@@ -9,16 +9,12 @@ import (
 type BuildOptions struct {
 	Strategy      string `flag:"~strategy" desc:"Determines the build strategy to use either make or bazel."`
 	StageLocation string `flag:"~stage" desc:"Upload binaries to gs://bucket/ci/job-suffix if set"`
-	RepoRoot      string `flag:"~repo-root" desc:"Path to root of the kubernetes repo. Used with --build."`
-
+	RepoRoot      string `flag:"-"`
 	build.Builder
 	build.Stager
 }
 
 func (bo *BuildOptions) Validate() error {
-	if bo.RepoRoot == "" {
-		return fmt.Errorf("required repo-root when building from source")
-	}
 	return bo.implementationFromStrategy()
 }
 
