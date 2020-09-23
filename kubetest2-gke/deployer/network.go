@@ -368,7 +368,7 @@ func privateClusterArgs(network, cluster, accessLevel, masterIPRange string) []s
 
 	subnetName := network + "-" + cluster
 	common := []string{
-		"--create-subnetwork name=" + subnetName,
+		"--create-subnetwork=name=" + subnetName,
 		"--enable-ip-alias",
 		"--enable-private-nodes",
 		"--no-enable-basic-auth",
