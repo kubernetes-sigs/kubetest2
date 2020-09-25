@@ -47,7 +47,8 @@ func (bo *BuildOptions) implementationFromStrategy() error {
 	case "make":
 		bo.Builder = &build.MakeBuilder{}
 		bo.Stager = &build.ReleasePushBuild{
-			Location: bo.StageLocation,
+			Location:      bo.StageLocation,
+			ImageLocation: "",
 		}
 	default:
 		return fmt.Errorf("unknown build strategy: %v", bo.Strategy)

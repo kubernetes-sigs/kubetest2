@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"regexp"
 
-	"sigs.k8s.io/kubetest2/pkg/exec"
+	"github.com/pkg/errors"
+	rbuild "k8s.io/release/pkg/build"
 )
 
 type ReleasePushBuild struct {
-	Location string
+	Location      string
+	ImageLocation string
 }
 
 var _ Stager = &ReleasePushBuild{}
@@ -34,36 +36,20 @@ var _ Stager = &ReleasePushBuild{}
 func (rpb *ReleasePushBuild) Stage(version string) error {
 	re := regexp.MustCompile(`^gs://([\w-]+)/(devel|ci)(/.*)?`)
 	mat := re.FindStringSubmatch(rpb.Location)
-	if mat == nil {
+	if mat == nil || len(mat) < 4 {
 		return fmt.Errorf("invalid stage location: %v. Use gs://bucket/ci/optional-suffix", rpb.Location)
 	}
-	bucket := mat[1]
-	ci := mat[2] == "ci"
-	gcsSuffix := mat[3]
 
-	args := []string{
-		"--nomock",
-		"--verbose",
-		"--noupdatelatest",
-		fmt.Sprintf("--bucket=%v", bucket),
-	}
-	if len(gcsSuffix) > 0 {
-		args = append(args, fmt.Sprintf("--gcs-suffix=%v", gcsSuffix))
-	}
-	if ci {
-		args = append(args, "--ci")
-	}
-
-	name, err := K8sDir("release", "push-build.sh")
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(name, args...)
-	exec.InheritOutput(cmd)
-	cmdDir, err := K8sDir("kubernetes")
-	if err != nil {
-		return err
-	}
-	cmd.SetDir(cmdDir)
-	return cmd.Run()
+	return errors.Wrap(
+		rbuild.NewInstance(&rbuild.Options{
+			Bucket:         mat[1],
+			GCSSuffix:      mat[3],
+			AllowDup:       true,
+			CI:             mat[2] == "ci",
+			NoUpdateLatest: true,
+			Registry:       rpb.ImageLocation,
+			Version:        version,
+		}).Push(),
+		"stage via krel push",
+	)
 }
