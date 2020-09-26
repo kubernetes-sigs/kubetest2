@@ -23,11 +23,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"k8s.io/klog"
-
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
+
 	"sigs.k8s.io/kubetest2/pkg/app/shim"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/types"
@@ -160,6 +161,8 @@ func runE(
 		return parseError
 	}
 
+	opts.artifacts = filepath.Join(opts.artifacts, opts.uuid)
+
 	// run RealMain, which contains all of the logic beyond the CLI boilerplate
 	return RealMain(opts, deployer, tester)
 }
@@ -168,8 +171,7 @@ func runE(
 // constructed as an absolute path to help the ginkgo tester because
 // for some reason it needs an absolute path to the kubeconfig
 func defaultArtifactsDir() (string, error) {
-	path, set := os.LookupEnv("ARTIFACTS")
-	if set {
+	if path, set := os.LookupEnv("ARTIFACTS"); set {
 		absPath, err := filepath.Abs(path)
 		if err != nil {
 			return "", fmt.Errorf("failed to convert filepath from $ARTIFACTS (%s) to absolute path: %s", path, err)
@@ -208,6 +210,7 @@ type options struct {
 	down      bool
 	test      string
 	artifacts string
+	uuid      string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -218,11 +221,20 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
 
+	var defaultUUID string
+	// reuse uuid for CI use cases
+	if uid, exists := os.LookupEnv("PROW_JOB_ID"); exists && uid != "" {
+		defaultUUID = uid
+	} else {
+		defaultUUID = uuid.New().String()
+	}
+	flags.StringVar(&o.uuid, "uuid", defaultUUID, "unique identifier for a kubetest2 run")
+
 	defaultArtifacts, err := defaultArtifactsDir()
 	if err != nil {
 		klog.Fatalf("failed to get default artifacts directory: %s", err)
 	}
-	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `directory to put artifacts, defaulting to "${ARTIFACTS:-./_artifacts}". If using the ginkgo tester, this must be an absolute path.`)
+	flags.StringVar(&o.artifacts, "artifacts", defaultArtifacts, `top-level directory to put artifacts under for each kubetest2 run, defaulting to "${ARTIFACTS:-./_artifacts}". If using the ginkgo tester, this must be an absolute path.`)
 }
 
 // assert that options implements deployer options
@@ -250,6 +262,10 @@ func (o *options) ShouldTest() bool {
 
 func (o *options) ArtifactsDir() string {
 	return o.artifacts
+}
+
+func (o *options) UUID() string {
+	return o.uuid
 }
 
 // metadata used for CLI usage string
