@@ -19,8 +19,6 @@ package deployer
 import (
 	"fmt"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 func (d *deployer) Build() error {
@@ -32,7 +30,7 @@ func (d *deployer) Build() error {
 		return err
 	}
 	version = strings.TrimPrefix(version, "v")
-	version += ".0+" + uuid.New().String()
+	version += ".0+" + d.commonOptions.UUID()
 	if d.BuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
