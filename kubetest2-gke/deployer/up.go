@@ -81,10 +81,18 @@ func (d *deployer) Up() error {
 					"--image-type="+image,
 					"--num-nodes="+strconv.Itoa(d.nodes),
 					"--network="+transformNetworkName(d.projects, d.network),
-					"--cluster-version="+d.Version,
 				)
 				if d.workloadIdentityEnabled {
 					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
+				}
+				if d.ReleaseChannel != "" {
+					args = append(args, "--release-channel="+d.ReleaseChannel)
+					// --cluster-version must be a specific valid version if --release-channel is not empty.
+					if d.Version != "latest" {
+						args = append(args, "--cluster-version="+d.Version)
+					}
+				} else {
+					args = append(args, "--cluster-version="+d.Version)
 				}
 				args = append(args, subNetworkArgs...)
 				args = append(args, privateClusterArgs...)
