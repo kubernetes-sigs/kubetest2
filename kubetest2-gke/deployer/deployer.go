@@ -85,8 +85,9 @@ type deployer struct {
 
 	BuildOptions *options.BuildOptions
 
-	RepoRoot string `desc:"Path to root of the kubernetes repo. Used with --build and for dumping cluster logs."`
-	Version  string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400 or 'latest'. If --build is specified it will default to building kubernetes from source."`
+	RepoRoot       string `desc:"Path to root of the kubernetes repo. Used with --build and for dumping cluster logs."`
+	ReleaseChannel string `desc:"Use a GKE release channel, could be one of empty, rapid, regular and stable - https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels"`
+	Version        string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400 or 'latest'. If --build is specified it will default to building kubernetes from source."`
 
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
