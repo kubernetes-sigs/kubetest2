@@ -22,8 +22,9 @@ import (
 	"path/filepath"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/kubetest2/pkg/exec"
+	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
@@ -83,6 +84,8 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}()
 
+	klog.Infof("ID for this run: %q", opts.RunID())
+
 	// build if specified
 	if opts.ShouldBuild() {
 		if err := writer.WrapStep("Build", d.Build); err != nil {
@@ -118,6 +121,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 		envsForTester := os.Environ()
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.ArtifactsDir()))
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
 		// If the deployer provides a kubeconfig pass it to the tester
 		// else assumes that it is handled offline by default methods like
 		// ~/.kube/config
