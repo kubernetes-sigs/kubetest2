@@ -30,7 +30,7 @@ func (d *deployer) Build() error {
 		return err
 	}
 	version = strings.TrimPrefix(version, "v")
-	version += ".0+" + d.commonOptions.UUID()
+	version += ".0+" + d.commonOptions.RunID()
 	if d.BuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)

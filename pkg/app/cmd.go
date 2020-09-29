@@ -161,7 +161,7 @@ func runE(
 		return parseError
 	}
 
-	opts.artifacts = filepath.Join(opts.artifacts, opts.uuid)
+	opts.artifacts = filepath.Join(opts.artifacts, opts.runid)
 
 	// run RealMain, which contains all of the logic beyond the CLI boilerplate
 	return RealMain(opts, deployer, tester)
@@ -210,7 +210,7 @@ type options struct {
 	down      bool
 	test      string
 	artifacts string
-	uuid      string
+	runid     string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -221,14 +221,14 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
 
-	var defaultUUID string
-	// reuse uuid for CI use cases
+	var defaultRunID string
+	// reuse uid for CI use cases
 	if uid, exists := os.LookupEnv("PROW_JOB_ID"); exists && uid != "" {
-		defaultUUID = uid
+		defaultRunID = uid
 	} else {
-		defaultUUID = uuid.New().String()
+		defaultRunID = uuid.New().String()
 	}
-	flags.StringVar(&o.uuid, "uuid", defaultUUID, "unique identifier for a kubetest2 run")
+	flags.StringVar(&o.runid, "run-id", defaultRunID, "unique identifier for a kubetest2 run")
 
 	defaultArtifacts, err := defaultArtifactsDir()
 	if err != nil {
@@ -264,8 +264,8 @@ func (o *options) ArtifactsDir() string {
 	return o.artifacts
 }
 
-func (o *options) UUID() string {
-	return o.uuid
+func (o *options) RunID() string {
+	return o.runid
 }
 
 // metadata used for CLI usage string

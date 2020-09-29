@@ -57,8 +57,8 @@ type Options interface {
 	// returns the path to the directory where artifacts should be written
 	// (including metadata files like junit_runner.xml)
 	ArtifactsDir() string
-	// UUID returns a unique identifier for a kubetest2 run.
-	UUID() string
+	// RunID returns a unique identifier for a kubetest2 run.
+	RunID() string
 }
 
 // Deployer defines the interface between kubetest and a deployer
