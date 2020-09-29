@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -202,4 +203,77 @@ func (d *deployer) Kubeconfig() (string, error) {
 
 	d.kubecfgPath = strings.Join(kubecfgFiles, string(os.PathListSeparator))
 	return d.kubecfgPath, nil
+}
+
+// verifyCommonFlags validates flags for up phase.
+func (d *deployer) verifyUpFlags() error {
+	if len(d.projects) == 0 && d.boskosProjectsRequested <= 0 {
+		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
+	}
+	if err := d.verifyNetworkFlags(); err != nil {
+		return err
+	}
+	if len(d.clusters) == 0 {
+		if len(d.projects) > 1 || d.boskosProjectsRequested > 1 {
+			return fmt.Errorf("explicit --cluster-name must be set for multi-project profile")
+		}
+		if err := d.UpOptions.Validate(); err != nil {
+			return err
+		}
+		d.clusters = generateClusterNames(d.UpOptions.NumClusters, d.commonOptions.RunID())
+	} else {
+		klog.V(0).Infof("explicit --cluster-name specified, ignoring --num-clusters")
+	}
+	if err := d.verifyLocationFlags(); err != nil {
+		return err
+	}
+	if d.nodes <= 0 {
+		return fmt.Errorf("--num-nodes must be larger than 0")
+	}
+	if err := validateVersion(d.Version); err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateClusterNames(numClusters int, uid string) []string {
+	clusters := make([]string, numClusters)
+	for i := 1; i <= numClusters; i++ {
+		// Naming convention: https://cloud.google.com/sdk/gcloud/reference/container/clusters/create#POSITIONAL-ARGUMENTS
+		// must start with an alphabet, max length 40
+
+		// 4 characters for kt2- prefix
+		const fixedClusterNamePrefix = "kt2-"
+		// 3 characters -99 suffix
+		clusterNameSuffix := strconv.Itoa(i)
+		// trim the uid to only use the first 33 characters
+		var id string
+		if uid != "" {
+			const maxIDLength = 33
+			if len(uid) > maxIDLength {
+				id = uid[:maxIDLength]
+			} else {
+				id = uid
+			}
+			id += "-"
+		}
+		clusters[i-1] = fixedClusterNamePrefix + id + clusterNameSuffix
+	}
+	return clusters
+}
+
+func validateVersion(version string) error {
+	switch version {
+	case "latest":
+		return nil
+	default:
+		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(.*)`)
+		if err != nil {
+			return err
+		}
+		if !re.MatchString(version) {
+			return fmt.Errorf("unknown version %q", version)
+		}
+	}
+	return nil
 }
