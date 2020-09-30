@@ -242,7 +242,7 @@ func generateClusterNames(numClusters int, uid string) []string {
 		// Naming convention: https://cloud.google.com/sdk/gcloud/reference/container/clusters/create#POSITIONAL-ARGUMENTS
 		// must start with an alphabet, max length 40
 
-		// 4 characters for kt2- prefix
+		// 4 characters for kt2- prefix (short for kubetest2)
 		const fixedClusterNamePrefix = "kt2-"
 		// 3 characters -99 suffix
 		clusterNameSuffix := strconv.Itoa(i)
