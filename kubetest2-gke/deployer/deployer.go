@@ -84,6 +84,7 @@ type deployer struct {
 	commonOptions types.Options
 
 	BuildOptions *options.BuildOptions
+	UpOptions    *options.UpOptions
 
 	RepoRoot       string `desc:"Path to root of the kubernetes repo. Used with --build and for dumping cluster logs."`
 	ReleaseChannel string `desc:"Use a GKE release channel, could be one of empty, rapid, regular and stable - https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels"`
@@ -161,6 +162,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			Stager:   &build.NoopStager{},
 			Strategy: "bazel",
 		},
+		UpOptions: &options.UpOptions{
+			NumClusters: 1,
+		},
 		localLogsDir: filepath.Join(opts.ArtifactsDir(), "logs"),
 		Version:      "latest",
 	}
@@ -172,59 +176,6 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	klog.InitFlags(nil)
 	fs.AddGoFlagSet(flag.CommandLine)
 	return d, fs
-}
-
-// verifyCommonFlags validates flags for up phase.
-func (d *deployer) verifyUpFlags() error {
-	if len(d.projects) == 0 && d.boskosProjectsRequested <= 0 {
-		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
-	}
-	if err := d.verifyNetworkFlags(); err != nil {
-		return err
-	}
-	if len(d.clusters) == 0 {
-		return fmt.Errorf("--cluster-name must be set for GKE deployment")
-	}
-	if err := d.verifyLocationFlags(); err != nil {
-		return err
-	}
-	if d.nodes <= 0 {
-		return fmt.Errorf("--num-nodes must be larger than 0")
-	}
-	if err := validateVersion(d.Version); err != nil {
-		return err
-	}
-	return nil
-}
-
-func validateVersion(version string) error {
-	switch version {
-	case "latest":
-		return nil
-	default:
-		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(.*)`)
-		if err != nil {
-			return err
-		}
-		if !re.MatchString(version) {
-			return fmt.Errorf("unknown version %q", version)
-		}
-	}
-	return nil
-}
-
-// verifyDownFlags validates flags for down phase.
-func (d *deployer) verifyDownFlags() error {
-	if len(d.clusters) == 0 {
-		return fmt.Errorf("--cluster-name must be set for GKE deployment")
-	}
-	if len(d.projects) == 0 {
-		return fmt.Errorf("--project must be set for GKE deployment")
-	}
-	if err := d.verifyLocationFlags(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (d *deployer) verifyLocationFlags() error {
@@ -259,7 +210,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		"For multi-project profile, it is required and should be in the format of `10.0.4.0/22 10.0.32.0/20 10.4.0.0/14,172.16.4.0/22 172.16.16.0/20 172.16.4.0/22`, where the subnetworks configuration for different project"+
 		"are separated by comma, and the ranges of each subnetwork configuration is separated by space.")
 	flags.StringVar(&d.environment, "environment", "prod", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided")
-	flags.StringSliceVar(&d.projects, "project", []string{}, "Project to deploy to separated by comma.")
+	flags.StringSliceVar(&d.projects, "project", []string{}, "Comma separated list of GCP Project(s) to use for creating the cluster.")
 	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")

@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"fmt"
 	"sync"
 
 	"k8s.io/klog"
@@ -68,6 +69,20 @@ func (d *deployer) Down() error {
 		if err := d.deleteNetwork(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// verifyDownFlags validates flags for down phase.
+func (d *deployer) verifyDownFlags() error {
+	if len(d.clusters) == 0 {
+		return fmt.Errorf("--cluster-name must be set for GKE deployment")
+	}
+	if len(d.projects) == 0 {
+		return fmt.Errorf("--project must be set for GKE deployment")
+	}
+	if err := d.verifyLocationFlags(); err != nil {
+		return err
 	}
 	return nil
 }
