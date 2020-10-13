@@ -21,7 +21,7 @@ set -o pipefail
 
 # cd to the repo root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 
 # upstream shellcheck latest stable image as of January 10th, 2019
 SHELLCHECK_IMAGE='koalaman/shellcheck:v0.7.1'

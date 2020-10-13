@@ -19,7 +19,7 @@ set -o errexit -o nounset -o pipefail
 
 # cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 
 find . -name '*.go' -type f -print0 | xargs -0 gofmt -s -w

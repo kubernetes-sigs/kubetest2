@@ -18,13 +18,13 @@ set -o errexit -o nounset -o pipefail
 
 # cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 
 # build gotestsum
-cd "${REPO_ROOT}/hack/tools"
+cd "${REPO_ROOT}/hack/tools" &> /dev/null
 go build -o "${REPO_ROOT}/bin/gotestsum" gotest.tools/gotestsum
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 
 # run unit tests with coverage enabled and junit output
 "${REPO_ROOT}/bin/gotestsum" --junitfile="${REPO_ROOT}/bin/junit.xml" -- \

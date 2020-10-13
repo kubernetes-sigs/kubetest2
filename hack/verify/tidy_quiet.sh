@@ -17,7 +17,7 @@ set -o errexit -o nounset -o pipefail
 
 # cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 
 function cleanup {
@@ -32,7 +32,7 @@ function cleanup {
 tmp="$(mktemp -d)"
 trap 'cleanup' EXIT
 cp -r . "${tmp}"
-cd "${tmp}"
+cd "${tmp}" &> /dev/null
 git add .
 go mod tidy
 git diff --quiet -- go.mod go.sum
