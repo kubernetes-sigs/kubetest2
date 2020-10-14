@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"gopkg.in/yaml.v2"
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -115,4 +116,37 @@ func getClusterCredentials(project, loc, cluster string) error {
 	}
 
 	return nil
+}
+
+// Resolve the current latest version in the given release channel.
+func resolveLatestVersionInChannel(loc, channelName string) (string, error) {
+	// Get the server config for the current location.
+	out, err := exec.Output(exec.RawCommand(
+		fmt.Sprintf("gcloud container get-server-config --format=\"yaml(channels:format='yaml(channel,validVersions)')\" %s", loc)))
+	if err != nil {
+		return "", fmt.Errorf("failed to get the server config: %w", err)
+	}
+
+	type Channel struct {
+		Name          string   `yaml:"channel"`
+		ValidVersions []string `yaml:"validVersions"`
+	}
+	type Channels struct {
+		Channels []Channel `yaml:"channels"`
+	}
+	var cs Channels
+	if err = yaml.Unmarshal(out, &cs); err != nil {
+		return "", fmt.Errorf("failed to unmarshal the server config: %w", err)
+	}
+
+	for _, channel := range cs.Channels {
+		if strings.EqualFold(channel.Name, channelName) {
+			if len(channel.ValidVersions) == 0 {
+				return "", fmt.Errorf("no valid versions for channel %q", channelName)
+			}
+			return channel.ValidVersions[0], nil
+		}
+	}
+
+	return "", fmt.Errorf("channel %q does not exist in the server config", channelName)
 }

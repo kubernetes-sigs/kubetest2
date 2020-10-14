@@ -88,8 +88,15 @@ func (d *deployer) Up() error {
 				}
 				if d.ReleaseChannel != "" {
 					args = append(args, "--release-channel="+d.ReleaseChannel)
-					// --cluster-version must be a specific valid version if --release-channel is not empty.
-					if d.Version != "latest" {
+					if d.Version == "latest" {
+						// If latest is specified, get the latest version from server config for this channel.
+						actualVersion, err := resolveLatestVersionInChannel(loc, d.ReleaseChannel)
+						if err != nil {
+							return err
+						}
+						klog.V(0).Infof("Using the latest version %q in %q channel", actualVersion, d.ReleaseChannel)
+						args = append(args, "--cluster-version="+actualVersion)
+					} else {
 						args = append(args, "--cluster-version="+d.Version)
 					}
 				} else {
@@ -264,7 +271,7 @@ func generateClusterNames(numClusters int, uid string) []string {
 
 func validateVersion(version string) error {
 	switch version {
-	case "latest":
+	case "latest", "":
 		return nil
 	default:
 		re, err := regexp.Compile(`(\d)\.(\d)+\.(\d)*(.*)`)
