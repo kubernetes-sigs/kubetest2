@@ -21,7 +21,7 @@ set -o pipefail
 
 # cd to the repo root
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 
 # upstream shellcheck latest stable image as of January 10th, 2019
 SHELLCHECK_IMAGE='koalaman/shellcheck:v0.7.1'
@@ -34,7 +34,8 @@ SHELLCHECK_IMAGE='koalaman/shellcheck:v0.7.1'
 all_shell_scripts=()
 while IFS=$'\n' read -r script;
   do git check-ignore -q "$script" || all_shell_scripts+=("$script");
-done < <(grep -irl '#!.*sh' . | grep -Ev '^(\./\.git/)|(\./vendor/)|(\./bin/)')
+done < <(find . -not -path './.git/*' -not -path './vendor/*' -not -path './bin/*' -type f -exec \
+          awk -v pattern='#!.*sh' 'FNR==1{if ($0~pattern) print FILENAME;}' '{}' \;)
 
 # common arguments we'll pass to shellcheck
 SHELLCHECK_OPTIONS=(

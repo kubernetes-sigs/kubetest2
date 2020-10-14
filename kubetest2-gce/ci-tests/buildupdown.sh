@@ -20,7 +20,7 @@ set -o pipefail
 set -o xtrace
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
-cd "${REPO_ROOT}" || exit 1
+cd "${REPO_ROOT}" &> /dev/null || exit 1
 
 make install
 make install-deployer-gce

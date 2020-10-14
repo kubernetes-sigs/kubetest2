@@ -18,7 +18,7 @@ set -o errexit -o nounset -o pipefail
 
 # cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 
 # first for the repo in general

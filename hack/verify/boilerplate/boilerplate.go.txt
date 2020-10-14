@@ -1,7 +1,5 @@
-// +build tools
-
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright YEAR The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,17 +13,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-/*
-Package tools is used to track binary dependencies with go modules
-https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
-*/
-package tools
-
-import (
-	// linter(s)
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-
-	// test runner
-	_ "gotest.tools/gotestsum"
-)

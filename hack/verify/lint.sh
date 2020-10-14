@@ -18,23 +18,13 @@ set -o errexit -o nounset -o pipefail
 
 # cd to the repo root and setup go
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 
 # build golangci-lint
-cd "${REPO_ROOT}/hack/tools"
+cd "${REPO_ROOT}/hack/tools" &> /dev/null
 go build -o "${REPO_ROOT}/bin/golangci-lint" github.com/golangci/golangci-lint/cmd/golangci-lint
-cd "${REPO_ROOT}"
-
-# run golangci-lint
-LINTS=(
-  # default golangci-lint lints
-  deadcode errcheck gosimple govet ineffassign staticcheck \
-  structcheck typecheck unused varcheck \
-  # additional lints
-  golint gofmt misspell unparam scopelint
-)
-LINTS_JOINED="$(IFS=','; echo "${LINTS[*]}")"
+cd "${REPO_ROOT}" &> /dev/null
 
 # first for the repo in general
-"${REPO_ROOT}/bin/golangci-lint" --disable-all --enable="${LINTS_JOINED}" --timeout=5m run ./...
+"${REPO_ROOT}"/bin/golangci-lint --config "${REPO_ROOT}"/hack/tools/.golangci.yml run ./...

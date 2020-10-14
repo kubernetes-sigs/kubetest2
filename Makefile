@@ -1,3 +1,17 @@
+# Copyright 2020 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 # Common uses:
 # - installing kubetest2: `make install INSTALL_DIR=$HOME/go/bin`
 # installing a deployer: `make install-deployer-$(deployer-name) INSTALL_DIR=$HOME/go/bin`
@@ -69,6 +83,9 @@ fix:
 	./hack/update/gofmt.sh
 	./hack/update/tidy.sh
 
+boilerplate:
+	./hack/verify/boilerplate.py
+
 lint:
 	./hack/verify/lint.sh
 
@@ -82,6 +99,6 @@ unit:
 	./hack/ci/unit.sh
 
 verify:
-	$(MAKE) -j lint shellcheck unit tidy
+	$(MAKE) -j lint shellcheck unit tidy boilerplate
 
 .PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-output clean verify lint shellcheck
