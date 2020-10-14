@@ -69,6 +69,9 @@ fix:
 	./hack/update/gofmt.sh
 	./hack/update/tidy.sh
 
+boilerplate:
+	./hack/verify/boilerplate.py
+
 lint:
 	./hack/verify/lint.sh
 
@@ -82,6 +85,6 @@ unit:
 	./hack/ci/unit.sh
 
 verify:
-	$(MAKE) -j lint shellcheck unit tidy
+	$(MAKE) -j lint shellcheck unit tidy boilerplate
 
 .PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-output clean verify lint shellcheck
