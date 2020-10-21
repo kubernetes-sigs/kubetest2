@@ -18,6 +18,7 @@ package process
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"os/exec"
@@ -41,6 +42,15 @@ var _ metadata.JUnitError = &execJunitError{}
 func ExecJUnit(argv0 string, args []string, env []string) error {
 	// construct command from inputs
 	cmd := exec.Command(argv0, args...)
+	return execJUnit(cmd, env)
+}
+
+func ExecJUnitContext(ctx context.Context, argv0 string, args []string, env []string) error {
+	cmd := exec.CommandContext(ctx, argv0, args...)
+	return execJUnit(cmd, env)
+}
+
+func execJUnit(cmd *exec.Cmd, env []string) error {
 	cmd.Env = env
 
 	// inherit some standard file descriptors, as if `syscall.Exec`ed
