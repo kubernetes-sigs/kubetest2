@@ -60,6 +60,7 @@ type deployer struct {
 	buildType      string // --type flag to kind build node-image
 	configPath     string // --config flag for kind create cluster
 	kubeconfigPath string // --kubeconfig flag for kind create cluster
+	kubeRoot       string // --kube-root for kind build node-image
 	verbosity      int    // --verbosity for kind
 }
 
@@ -94,6 +95,9 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	)
 	flags.StringVar(
 		&d.kubeconfigPath, "kubeconfig", "", "--kubeconfig flag for kind create cluster",
+	)
+	flags.StringVar(
+		&d.kubeRoot, "kube-root", "", "--kube-root flag for kind build node-image",
 	)
 	flags.IntVar(
 		&d.verbosity, "verbosity", 0, "--verbosity flag for kind",
@@ -188,6 +192,9 @@ func (d *deployer) Build() error {
 	}
 	if d.buildType != "" {
 		args = append(args, "--type", d.buildType)
+	}
+	if d.kubeRoot != "" {
+		args = append(args, "--kube-root", d.kubeRoot)
 	}
 	// set the explicitly specified image name if set
 	if d.nodeImage != "" {
