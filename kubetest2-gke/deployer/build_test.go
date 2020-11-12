@@ -34,7 +34,7 @@ func TestNormalizeVersion(t *testing.T) {
 		{
 			name:            "only core version",
 			version:         "1.19.4",
-			expectedVersion: "1.19.4-gke.0",
+			expectedVersion: "1.19.4-gke.99.0",
 			expectError:     false,
 		},
 		{
@@ -46,7 +46,7 @@ func TestNormalizeVersion(t *testing.T) {
 		{
 			name:            "core version, pre-existing suffix",
 			version:         "1.17.12+foobar",
-			expectedVersion: "1.17.12-gke.0+foobar",
+			expectedVersion: "1.17.12-gke.99.0+foobar",
 			expectError:     false,
 		},
 		{
@@ -68,15 +68,15 @@ func TestNormalizeVersion(t *testing.T) {
 			expectError:     false,
 		},
 		{
-			name:            "alpha version",
+			name:            "alpha version with patch",
 			version:         "1.16.13-alpha.123",
-			expectedVersion: "1.16.13-gke.123",
+			expectedVersion: "1.16.13-gke.123+alpha",
 			expectError:     false,
 		},
 		{
-			name:            "beta version, no minor, pre-existing suffix",
+			name:            "beta version, no patch, pre-existing suffix",
 			version:         "1.20.0-beta+qwe123",
-			expectedVersion: "1.20.0-gke.0+qwe123",
+			expectedVersion: "1.20.0-gke.99.0+beta+qwe123",
 			expectError:     false,
 		},
 	}
