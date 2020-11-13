@@ -25,9 +25,20 @@ import (
 )
 
 var (
-	// (1.18.10)(-gke)(.601.123)(+existingSuffix)
-	// capture repeated occurrences of group 3 and don't capture just last
-	normalizeVersionRegex = regexp.MustCompile(`(?P<core>\d\.\d+\.\d*)(?P<release>-\w+)?(?P<patch>(?:\.\d+)*)(?P<suffix>\+.*)*`)
+	// (1.18.10-gke.12.34)(...)
+	// $1 == prefix
+	// $2 == suffix
+	gkeCIBuildPrefix = regexp.MustCompile(`^(\d\.\d+\.\d+-gke\.\d+\.\d+)([+-].*)?$`)
+
+	// (1.18.10-gke.1234)(...)
+	// $1 == prefix
+	// $2 == suffix
+	gkeBuildPrefix = regexp.MustCompile(`^(\d\.\d+\.\d+-gke\.\d+)([+-].*)?$`)
+
+	// (1.18.10)(...)
+	// $1 == prefix
+	// $2 == suffix
+	buildPrefix = regexp.MustCompile(`^(\d\.\d+\.\d+)([+-].*)?$`)
 )
 
 func (d *deployer) Build() error {
@@ -63,35 +74,32 @@ func (d *deployer) verifyBuildFlags() error {
 
 // ensure that the version is a valid gke version
 func normalizeVersion(version string) (string, error) {
-	matches := normalizeVersionRegex.FindStringSubmatch(version)
-	if matches == nil || len(matches) != 5 {
-		return "", fmt.Errorf("%q is not a valid gke version: %#v", version, matches)
-	}
-	namedMatch := make(map[string]string)
-	for i, name := range normalizeVersionRegex.SubexpNames() {
-		if i != 0 && name != "" {
-			namedMatch[name] = matches[i]
+
+	finalVersion := ""
+	if matches := gkeCIBuildPrefix.FindStringSubmatch(version); matches != nil {
+		// prefix is usable as-is
+		finalVersion = matches[1]
+		// preserve suffix if present
+		if suffix := strings.TrimLeft(matches[2], "+-"); len(suffix) > 0 {
+			finalVersion += "+" + suffix
 		}
-	}
-	// get the core version as is
-	finalVersion := namedMatch["core"]
-
-	// force append -gke, append alpha,beta as a suffix later
-	var suffix string
-	if namedMatch["release"] != "-gke" && namedMatch["release"] != "" {
-		suffix += "+" + strings.TrimPrefix(namedMatch["release"], "-")
-	}
-	finalVersion += "-gke"
-
-	// add the patch number or .99.0
-	if namedMatch["patch"] == "" {
-		finalVersion += ".99.0"
+	} else if matches := gkeBuildPrefix.FindStringSubmatch(version); matches != nil {
+		// prefix needs .0 appended
+		finalVersion = matches[1] + ".0"
+		// preserve suffix if present
+		if suffix := strings.TrimLeft(matches[2], "+-"); len(suffix) > 0 {
+			finalVersion += "+" + suffix
+		}
+	} else if matches := buildPrefix.FindStringSubmatch(version); matches != nil {
+		// prefix needs -gke.99.0 appended
+		finalVersion = matches[1] + "-gke.99.0"
+		// preserve suffix if present
+		if suffix := strings.TrimLeft(matches[2], "+-"); len(suffix) > 0 {
+			finalVersion += "+" + suffix
+		}
 	} else {
-		finalVersion += namedMatch["patch"]
+		return "", fmt.Errorf("could not construct version from %s", version)
 	}
-
-	// append the optional suffixes
-	finalVersion += suffix + namedMatch["suffix"]
 
 	if finalVersion != version {
 		klog.V(2).Infof("modified version %q to %q", version, finalVersion)
