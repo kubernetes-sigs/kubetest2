@@ -38,9 +38,51 @@ func TestNormalizeVersion(t *testing.T) {
 			expectError:     false,
 		},
 		{
-			name:            "full version",
+			name:            "oss rc tag",
+			version:         "1.19.4-rc.0",
+			expectedVersion: "1.19.4-gke.99.0+rc.0",
+			expectError:     false,
+		},
+		{
+			name:            "oss rc tag + change",
+			version:         "1.19.4-rc.0-1-g37677a1347a",
+			expectedVersion: "1.19.4-gke.99.0+rc.0-1-g37677a1347a",
+			expectError:     false,
+		},
+		{
+			name:            "oss beta tag",
+			version:         "1.19.4-beta.0",
+			expectedVersion: "1.19.4-gke.99.0+beta.0",
+			expectError:     false,
+		},
+		{
+			name:            "oss beta tag + change",
+			version:         "1.19.4-beta.0-1-g37677a1347a",
+			expectedVersion: "1.19.4-gke.99.0+beta.0-1-g37677a1347a",
+			expectError:     false,
+		},
+		{
+			name:            "oss alpha tag",
+			version:         "1.19.4-alpha.0",
+			expectedVersion: "1.19.4-gke.99.0+alpha.0",
+			expectError:     false,
+		},
+		{
+			name:            "oss alpha tag + change",
+			version:         "1.19.4-alpha.0-1-g37677a1347a",
+			expectedVersion: "1.19.4-gke.99.0+alpha.0-1-g37677a1347a",
+			expectError:     false,
+		},
+		{
+			name:            "gke build",
 			version:         "1.18.10-gke.601",
-			expectedVersion: "1.18.10-gke.601",
+			expectedVersion: "1.18.10-gke.601.0",
+			expectError:     false,
+		},
+		{
+			name:            "gke build + change",
+			version:         "1.18.10-gke.601-1-geebff6c215c",
+			expectedVersion: "1.18.10-gke.601.0+1-geebff6c215c",
 			expectError:     false,
 		},
 		{
@@ -52,13 +94,13 @@ func TestNormalizeVersion(t *testing.T) {
 		{
 			name:            "full version, pre-existing suffix",
 			version:         "1.16.13-gke.401+qwerty",
-			expectedVersion: "1.16.13-gke.401+qwerty",
+			expectedVersion: "1.16.13-gke.401.0+qwerty",
 			expectError:     false,
 		},
 		{
 			name:            "full version, multiple pre-existing suffix",
 			version:         "1.16.13-gke.401+qwerty+foobar",
-			expectedVersion: "1.16.13-gke.401+qwerty+foobar",
+			expectedVersion: "1.16.13-gke.401.0+qwerty+foobar",
 			expectError:     false,
 		},
 		{
@@ -70,7 +112,7 @@ func TestNormalizeVersion(t *testing.T) {
 		{
 			name:            "alpha version with patch",
 			version:         "1.16.13-alpha.123",
-			expectedVersion: "1.16.13-gke.123+alpha",
+			expectedVersion: "1.16.13-gke.99.0+alpha.123",
 			expectError:     false,
 		},
 		{
