@@ -3,14 +3,15 @@ module sigs.k8s.io/kubetest2
 go 1.14
 
 require (
-	github.com/google/uuid v1.1.1
+	github.com/google/uuid v1.1.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/octago/sflags v0.2.0
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/cobra v1.0.0
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	gopkg.in/yaml.v2 v2.2.8
+	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/klog v1.0.0
+	k8s.io/release v0.5.1-0.20201115132504-b4ca2f60c7b4
 	sigs.k8s.io/boskos v0.0.0-20200710214748-f5935686c7fc
 )

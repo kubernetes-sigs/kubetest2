@@ -31,7 +31,7 @@ type MakeBuilder struct{}
 var _ Builder = &MakeBuilder{}
 
 const (
-	target = "bazel-release"
+	target = "quick-release"
 )
 
 var (
@@ -80,7 +80,7 @@ func K8sDir(topdir string, parts ...string) (string, error) {
 // TODO(RonWeber): This whole untarring and cd-ing logic is out of
 // scope for Build().  It needs a better home.
 func extractBuiltTars() error {
-	allBuilds, err := K8sDir("kubernetes", "_output", "gcs-stage")
+	allBuilds, err := K8sDir("kubernetes", "_output", "release-tars")
 	if err != nil {
 		return err
 	}
