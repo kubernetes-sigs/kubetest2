@@ -42,10 +42,11 @@ func (d *deployer) ensureFirewallRules() error {
 }
 
 // Ensure firewall rules for e2e testing for all clusters in one single project.
-func ensureFirewallRulesForSingleProject(project, network string, clusters []string, instanceGroups map[string]map[string][]*ig) error {
+func ensureFirewallRulesForSingleProject(project, network string, clusters []cluster, instanceGroups map[string]map[string][]*ig) error {
 	for _, cluster := range clusters {
-		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", cluster, project)
-		firewall := getClusterFirewall(project, cluster, instanceGroups)
+		clusterName := cluster.name
+		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", clusterName, project)
+		firewall := getClusterFirewall(project, clusterName, instanceGroups)
 		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
 			"--project="+project,
 			"--format=value(name)")) == nil {
@@ -56,7 +57,7 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []str
 
 		tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
 			"--project="+project,
-			"--filter=metadata.created-by:*"+instanceGroups[project][cluster][0].path,
+			"--filter=metadata.created-by:*"+instanceGroups[project][clusterName][0].path,
 			"--limit=1",
 			"--format=get(tags.items)"))
 		if err != nil {
@@ -156,7 +157,9 @@ func (d *deployer) getInstanceGroups() error {
 		d.instanceGroups[project] = map[string][]*ig{}
 
 		for _, cluster := range d.projectClustersLayout[project] {
-			igs, err := exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", cluster,
+			clusterName := cluster.name
+
+			igs, err := exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", clusterName,
 				"--format=value(instanceGroupUrls)",
 				"--project="+project,
 				location)...))
@@ -170,14 +173,14 @@ func (d *deployer) getInstanceGroups() error {
 			sort.Strings(igURLs)
 
 			// Initialize cluster instance groups
-			d.instanceGroups[project][cluster] = make([]*ig, 0)
+			d.instanceGroups[project][clusterName] = make([]*ig, 0)
 
 			for _, igURL := range igURLs {
 				m := poolRe.FindStringSubmatch(igURL)
 				if len(m) == 0 {
 					return fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
 				}
-				d.instanceGroups[project][cluster] = append(d.instanceGroups[project][cluster], &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
+				d.instanceGroups[project][clusterName] = append(d.instanceGroups[project][clusterName], &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
 			}
 		}
 	}

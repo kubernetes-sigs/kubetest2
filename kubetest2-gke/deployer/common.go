@@ -44,7 +44,7 @@ func (d *deployer) init() error {
 func (d *deployer) initialize() error {
 	if d.commonOptions.ShouldUp() {
 		if err := d.verifyUpFlags(); err != nil {
-			return fmt.Errorf("init failed to verify flags for up: %s", err)
+			return fmt.Errorf("init failed to verify flags for up: %w", err)
 		}
 
 		if len(d.projects) == 0 {
@@ -52,7 +52,7 @@ func (d *deployer) initialize() error {
 
 			boskosClient, err := boskos.NewClient(d.boskosLocation)
 			if err != nil {
-				return fmt.Errorf("failed to make boskos client: %s", err)
+				return fmt.Errorf("failed to make boskos client: %w", err)
 			}
 			d.boskos = boskosClient
 
@@ -65,7 +65,7 @@ func (d *deployer) initialize() error {
 				)
 
 				if err != nil {
-					return fmt.Errorf("init failed to get project from boskos: %s", err)
+					return fmt.Errorf("init failed to get project from boskos: %w", err)
 				}
 				d.projects = append(d.projects, resource.Name)
 				klog.V(1).Infof("Got project %s from boskos", resource.Name)
@@ -74,20 +74,24 @@ func (d *deployer) initialize() error {
 
 		// Multi-cluster name adjustment
 		numProjects := len(d.projects)
-		d.projectClustersLayout = make(map[string][]string, numProjects)
+		d.projectClustersLayout = make(map[string][]cluster, numProjects)
 		if numProjects > 1 {
 			if err := buildProjectClustersLayout(d.projects, d.clusters, d.projectClustersLayout); err != nil {
 				return fmt.Errorf("failed to build the project clusters layout: %v", err)
 			}
 		} else {
 			// Backwards compatible construction
-			d.projectClustersLayout[d.projects[0]] = d.clusters
+			clusters := make([]cluster, len(d.clusters))
+			for i, clusterName := range d.clusters {
+				clusters[i] = cluster{i, clusterName}
+			}
+			d.projectClustersLayout[d.projects[0]] = clusters
 		}
 	}
 
 	if d.commonOptions.ShouldDown() {
 		if err := d.verifyDownFlags(); err != nil {
-			return fmt.Errorf("init failed to verify flags for down: %s", err)
+			return fmt.Errorf("init failed to verify flags for down: %w", err)
 		}
 	}
 
@@ -95,8 +99,8 @@ func (d *deployer) initialize() error {
 }
 
 // buildProjectClustersLayout builds the projects and real cluster names mapping based on the provided --cluster-name flag.
-func buildProjectClustersLayout(projects, clusters []string, projectClustersLayout map[string][]string) error {
-	for _, clusterName := range clusters {
+func buildProjectClustersLayout(projects, clusters []string, projectClustersLayout map[string][]cluster) error {
+	for i, clusterName := range clusters {
 		parts := strings.Split(clusterName, ":")
 		if len(parts) != 2 {
 			return fmt.Errorf("cluster name does not follow expected format (name:projectIndex): %s", clusterName)
@@ -108,7 +112,7 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 		if projectIndex >= len(projects) {
 			return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
 		}
-		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], parts[0])
+		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], cluster{i, parts[0]})
 	}
 	return nil
 }
