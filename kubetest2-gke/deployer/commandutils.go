@@ -56,7 +56,7 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 	}
 
 	if err := runWithOutput(exec.RawCommand("gcloud config set project " + projectID)); err != nil {
-		return fmt.Errorf("failed to set project %s : err %v", projectID, err)
+		return fmt.Errorf("failed to set project %s: %w", projectID, err)
 	}
 
 	// gcloud creds may have changed

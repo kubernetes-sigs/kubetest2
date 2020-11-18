@@ -38,7 +38,16 @@ etag: %s
 `
 
 func (d *deployer) verifyNetworkFlags() error {
-	// For single project, no verification is needed.
+	// Verify private cluster args.
+	if d.privateClusterAccessLevel != "" && d.privateClusterAccessLevel != string(no) &&
+		d.privateClusterAccessLevel != string(limited) && d.privateClusterAccessLevel != string(unrestricted) {
+		return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
+	}
+	if d.privateClusterAccessLevel != "" && len(d.clusters) != len(d.privateClusterMasterIPRanges) {
+		return fmt.Errorf("--private-cluster-master-ip-range must have the same length as the number of clusters when requesting private cluster(s)")
+	}
+
+	// For single project, no other verification is needed.
 	numProjects := len(d.projects)
 	if numProjects == 0 {
 		numProjects = d.boskosProjectsRequested
@@ -62,14 +71,6 @@ func (d *deployer) verifyNetworkFlags() error {
 			return fmt.Errorf("the provided subnetwork range %s is not in the right format, should be like "+
 				"10.0.4.0/22 10.0.32.0/20 10.4.0.0/14", sr)
 		}
-	}
-
-	if d.privateClusterAccessLevel != "" && d.privateClusterAccessLevel != string(no) &&
-		d.privateClusterAccessLevel != string(limited) && d.privateClusterAccessLevel != string(unrestricted) {
-		return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
-	}
-	if d.privateClusterAccessLevel != "" && d.privateClusterMasterIPRange == "" {
-		return fmt.Errorf("--private-cluster-master-ip-range must not be empty when requesting a private cluster")
 	}
 
 	return nil

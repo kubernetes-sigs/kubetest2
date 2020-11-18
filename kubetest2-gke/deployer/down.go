@@ -46,7 +46,7 @@ func (d *deployer) Down() error {
 					defer wg.Done()
 					// We best-effort try all of these and report errors as appropriate.
 					if err := runWithOutput(exec.Command(
-						"gcloud", containerArgs("clusters", "delete", "-q", cluster,
+						"gcloud", containerArgs("clusters", "delete", "-q", cluster.name,
 							"--project="+project,
 							loc)...)); err != nil {
 						klog.Errorf("Error deleting cluster: %v", err)

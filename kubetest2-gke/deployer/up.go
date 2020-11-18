@@ -70,7 +70,7 @@ func (d *deployer) Up() error {
 		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
-			privateClusterArgs := privateClusterArgs(d.network, cluster, d.privateClusterAccessLevel, d.privateClusterMasterIPRange)
+			privateClusterArgs := privateClusterArgs(d.network, cluster.name, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges[cluster.index])
 			eg.Go(func() error {
 				// Create the cluster
 				args := make([]string, len(d.createCommand()))
@@ -104,7 +104,7 @@ func (d *deployer) Up() error {
 				}
 				args = append(args, subNetworkArgs...)
 				args = append(args, privateClusterArgs...)
-				args = append(args, cluster)
+				args = append(args, cluster.name)
 				klog.V(1).Infof("Gcloud command: gcloud %+v\n", args)
 				if err := runWithOutput(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
 					// Cancel the context to kill other cluster creation processes if any error happens.
@@ -138,7 +138,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 
 	for _, project := range d.projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := getClusterCredentials(project, location(d.region, d.zone), cluster); err != nil {
+			if err := getClusterCredentials(project, location(d.region, d.zone), cluster.name); err != nil {
 				return false, err
 			}
 
@@ -197,11 +197,11 @@ func (d *deployer) Kubeconfig() (string, error) {
 	kubecfgFiles := make([]string, 0)
 	for _, project := range d.projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster))
+			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster.name))
 			if err := os.Setenv("KUBECONFIG", filename); err != nil {
 				return "", err
 			}
-			if err := getClusterCredentials(project, location(d.region, d.zone), cluster); err != nil {
+			if err := getClusterCredentials(project, location(d.region, d.zone), cluster.name); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)
@@ -217,9 +217,7 @@ func (d *deployer) verifyUpFlags() error {
 	if len(d.projects) == 0 && d.boskosProjectsRequested <= 0 {
 		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
 	}
-	if err := d.verifyNetworkFlags(); err != nil {
-		return err
-	}
+
 	if len(d.clusters) == 0 {
 		if len(d.projects) > 1 || d.boskosProjectsRequested > 1 {
 			return fmt.Errorf("explicit --cluster-name must be set for multi-project profile")
@@ -230,6 +228,9 @@ func (d *deployer) verifyUpFlags() error {
 		d.clusters = generateClusterNames(d.UpOptions.NumClusters, d.commonOptions.RunID())
 	} else {
 		klog.V(0).Infof("explicit --cluster-name specified, ignoring --num-clusters")
+	}
+	if err := d.verifyNetworkFlags(); err != nil {
+		return err
 	}
 	if err := d.verifyLocationFlags(); err != nil {
 		return err

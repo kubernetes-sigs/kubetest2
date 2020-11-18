@@ -79,6 +79,12 @@ type ig struct {
 	uniq string
 }
 
+type cluster struct {
+	// index is the index of the cluster in the list provided via the --cluster-name flag
+	index int
+	name  string
+}
+
 type deployer struct {
 	// generic parts
 	commonOptions types.Options
@@ -98,7 +104,7 @@ type deployer struct {
 	region   string
 	clusters []string
 	// only used for multi-project multi-cluster profile to save the project-clusters mapping
-	projectClustersLayout map[string][]string
+	projectClustersLayout map[string][]cluster
 	nodes                 int
 	machineType           string
 	network               string
@@ -124,8 +130,8 @@ type deployer struct {
 
 	// Private cluster access level, must be one of "no", "limited" and "unrestricted".
 	// See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters
-	privateClusterAccessLevel   string
-	privateClusterMasterIPRange string
+	privateClusterAccessLevel    string
+	privateClusterMasterIPRanges []string
 
 	boskosLocation              string
 	boskosResourceType          string
@@ -219,7 +225,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
 	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
 	flags.StringVar(&d.privateClusterAccessLevel, "private-cluster-access-level", "", "Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'")
-	flags.StringVar(&d.privateClusterMasterIPRange, "private-cluster-master-ip-range", "172.16.0.32/28", "Private cluster master IP range. It should be an IPv4 CIDR, and must not be empty if private cluster is requested.")
+	flags.StringSliceVar(&d.privateClusterMasterIPRanges, "private-cluster-master-ip-range", []string{"172.16.0.32/28"}, "Private cluster master IP ranges. It should be IPv4 CIDR(s), and its length must be the same as the number of clusters if private cluster is requested.")
 	flags.StringVar(&d.boskosLocation, "boskos-location", defaultBoskosLocation, "If set, manually specifies the location of the Boskos server")
 	flags.StringVar(&d.boskosResourceType, "boskos-resource-type", defaultGKEProjectResourceType, "If set, manually specifies the resource type of GCP projects to acquire from Boskos")
 	flags.IntVar(&d.boskosAcquireTimeoutSeconds, "boskos-acquire-timeout-seconds", 300, "How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring")
