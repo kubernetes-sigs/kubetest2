@@ -362,18 +362,18 @@ func removeHostServiceAgentUserRole(projects []string) error {
 
 // This function returns the args required for creating a private cluster.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters#top_of_page
-func privateClusterArgs(network, cluster, accessLevel, masterIPRange string) []string {
+func privateClusterArgs(network, accessLevel string, masterIPRanges []string, clusterInfo cluster) []string {
 	if accessLevel == "" {
 		return []string{}
 	}
 
-	subnetName := network + "-" + cluster
+	subnetName := network + "-" + clusterInfo.name
 	common := []string{
 		"--create-subnetwork=name=" + subnetName,
 		"--enable-ip-alias",
 		"--enable-private-nodes",
 		"--no-enable-basic-auth",
-		"--master-ipv4-cidr=" + masterIPRange,
+		"--master-ipv4-cidr=" + masterIPRanges[clusterInfo.index],
 		"--no-issue-client-certificate",
 	}
 
