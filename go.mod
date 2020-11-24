@@ -3,6 +3,7 @@ module sigs.k8s.io/kubetest2
 go 1.14
 
 require (
+	github.com/google/go-cmp v0.5.2
 	github.com/google/uuid v1.1.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/octago/sflags v0.2.0
