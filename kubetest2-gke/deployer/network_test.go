@@ -40,6 +40,14 @@ func TestPrivateClusterArgs(t *testing.T) {
 			expected:       []string{},
 		},
 		{
+			desc:           "--private-cluster-master-ip-range can be empty for non-private clusters",
+			network:        "whatever-network",
+			accessLevel:    "",
+			masterIPRanges: []string{},
+			clusterInfo:    cluster{index: 0, name: "whatever-cluster-name"},
+			expected:       []string{},
+		},
+		{
 			desc:           "test private cluster args for private cluster with no limit",
 			network:        "test-network1",
 			accessLevel:    string(no),
