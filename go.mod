@@ -13,6 +13,6 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/klog v1.0.0
-	k8s.io/release v0.5.1-0.20201115132504-b4ca2f60c7b4
+	k8s.io/release v0.6.0
 	sigs.k8s.io/boskos v0.0.0-20200710214748-f5935686c7fc
 )
