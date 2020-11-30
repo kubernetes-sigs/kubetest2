@@ -43,7 +43,7 @@ func (rpb *ReleasePushBuild) Stage(version string) error {
 	return errors.Wrap(
 		rbuild.NewInstance(&rbuild.Options{
 			Bucket:         mat[1],
-			GCSSuffix:      mat[3],
+			GCSRoot:        mat[3],
 			AllowDup:       true,
 			CI:             mat[2] == "ci",
 			NoUpdateLatest: true,
