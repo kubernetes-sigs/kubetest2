@@ -163,6 +163,11 @@ func (d *deployer) buildEnv() []string {
 	if d.CreateCustomNetwork {
 		env = append(env, "CREATE_CUSTOM_NETWORK=true")
 	}
+
+	// KUBECTL_PATH points to the kubectl existing in $PATH
+	// used by the cluster/ scripts
+	env = append(env, fmt.Sprintf("KUBECTL_PATH=%s", d.kubectlPath))
+
 	return env
 }
 
