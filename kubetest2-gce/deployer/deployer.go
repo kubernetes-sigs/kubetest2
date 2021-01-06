@@ -31,7 +31,6 @@ import (
 
 	"sigs.k8s.io/boskos/client"
 
-	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
@@ -114,33 +113,6 @@ var _ types.Deployer = &deployer{}
 
 func (d *deployer) Provider() string {
 	return Name
-}
-
-func (d *deployer) IsUp() (up bool, err error) {
-	klog.V(1).Info("GCE deployer starting IsUp()")
-
-	if d.GCPProject == "" {
-		return false, fmt.Errorf("isup requires a GCP project")
-	}
-
-	env := d.buildEnv()
-	// naive assumption: nodes reported = cluster up
-	// similar to other deployers' implementations
-	args := []string{
-		d.kubectlPath,
-		"get",
-		"nodes",
-		"-o=name",
-	}
-	cmd := exec.Command(args[0], args[1:]...)
-	cmd.SetEnv(env...)
-	cmd.SetStderr(os.Stderr)
-	lines, err := exec.OutputLines(cmd)
-	if err != nil {
-		return false, fmt.Errorf("is up failed to get nodes: %s", err)
-	}
-
-	return len(lines) > 0, nil
 }
 
 func (d *deployer) Kubeconfig() (string, error) {

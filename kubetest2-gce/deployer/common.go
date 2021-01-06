@@ -19,6 +19,7 @@ package deployer
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"time"
 
 	"k8s.io/klog"
@@ -41,6 +42,14 @@ func (d *deployer) initialize() error {
 		if err := d.verifyBuildFlags(); err != nil {
 			return fmt.Errorf("init failed to check build flags: %s", err)
 		}
+	}
+
+	if d.commonOptions.ShouldUp() || d.commonOptions.ShouldDown() {
+		path, err := verifyKubectl()
+		if err != nil {
+			return err
+		}
+		d.kubectlPath = path
 	}
 
 	if d.commonOptions.ShouldUp() {
@@ -155,6 +164,10 @@ func (d *deployer) buildEnv() []string {
 		env = append(env, "CREATE_CUSTOM_NETWORK=true")
 	}
 
+	// KUBECTL_PATH points to the kubectl existing in $PATH
+	// used by the cluster/ scripts
+	env = append(env, fmt.Sprintf("KUBECTL_PATH=%s", d.kubectlPath))
+
 	return env
 }
 
@@ -173,4 +186,17 @@ func getClusterIPRange(numNodes int) string {
 		suggestedRange = "10.64.0.0/11"
 	}
 	return suggestedRange
+}
+
+// verifyKubectl checks if kubectl exists in PATH
+// returns the path to the binary, error if it doesn't exist
+// kubectl detection using legacy verify-get-kube-binaries is unreliable
+// https://github.com/kubernetes/kubernetes/blob/b10d82b93bad7a4e39b9d3f5c5e81defa3af68f0/cluster/kubectl.sh#L25-L26
+func verifyKubectl() (string, error) {
+	klog.V(2).Infof("checking existence of kubectl in $PATH ...")
+	kubectlPath, err := exec.LookPath("kubectl")
+	if err != nil {
+		return "", fmt.Errorf("could not find kubectl in $PATH, please ensure your environment has the kubectl binary")
+	}
+	return kubectlPath, nil
 }

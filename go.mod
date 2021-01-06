@@ -11,6 +11,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/klog v1.0.0
 	k8s.io/release v0.6.0
