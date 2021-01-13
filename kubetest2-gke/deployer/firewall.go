@@ -94,13 +94,13 @@ func ensureFirewallRulesForMultiProjects(projects []string, network string, subn
 	hostProject := projects[0]
 	hostProjectNumber, err := getProjectNumber(hostProject)
 	if err != nil {
-		return fmt.Errorf("error looking up project number for id %v. Original error: %v", hostProject, err)
+		return fmt.Errorf("error looking up project number for id %q: %w", hostProject, err)
 	}
 	for i := 1; i < len(projects); i++ {
 		curtProject := projects[i]
 		curtProjectNumber, err := getProjectNumber(curtProject)
 		if err != nil {
-			return fmt.Errorf("error looking up project number for id %v. Original error: %v", curtProject, err)
+			return fmt.Errorf("error looking up project number for id %q: %w", curtProject, err)
 		}
 		firewall := fmt.Sprintf("rule-%s-%s", hostProjectNumber, curtProjectNumber)
 		// sourceRanges need to be separated with ",", while the provided subnetworkRanges are separated with space.
