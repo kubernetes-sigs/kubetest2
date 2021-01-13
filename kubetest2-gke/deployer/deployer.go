@@ -165,10 +165,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
 			CommonBuildOptions: &build.Options{
-				Builder:       &build.NoopBuilder{},
-				Stager:        &build.NoopStager{},
-				Strategy:      "bazel",
-				ImageLocation: "gke.gcr.io",
+				Builder:  &build.NoopBuilder{},
+				Stager:   &build.NoopStager{},
+				Strategy: "bazel",
 			},
 		},
 		UpOptions: &options.UpOptions{

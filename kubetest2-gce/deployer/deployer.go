@@ -87,10 +87,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
 			CommonBuildOptions: &build.Options{
-				Builder:       &build.NoopBuilder{},
-				Stager:        &build.NoopStager{},
-				Strategy:      "make",
-				ImageLocation: "k8s.gcr.io",
+				Builder:  &build.NoopBuilder{},
+				Stager:   &build.NoopStager{},
+				Strategy: "make",
 			},
 		},
 		kubeconfigPath:              filepath.Join(opts.ArtifactsDir(), "kubetest2-kubeconfig"),

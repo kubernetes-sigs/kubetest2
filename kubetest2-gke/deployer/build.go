@@ -18,6 +18,7 @@ package deployer
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -39,9 +40,20 @@ var (
 	// $1 == prefix
 	// $2 == suffix
 	buildPrefix = regexp.MustCompile(`^(\d\.\d+\.\d+)([+-].*)?$`)
+
+	defaultImageTag = "gke.gcr.io"
 )
 
 func (d *deployer) Build() error {
+	imageTag := defaultImageTag
+	if d.BuildOptions.CommonBuildOptions.ImageLocation != "" {
+		imageTag = d.BuildOptions.CommonBuildOptions.ImageLocation
+	}
+
+	klog.V(2).Infof("setting KUBE_DOCKER_REGISTRY to %s for tagging images", imageTag)
+	if err := os.Setenv("KUBE_DOCKER_REGISTRY", imageTag); err != nil {
+		return err
+	}
 	if err := d.verifyBuildFlags(); err != nil {
 		return err
 	}
