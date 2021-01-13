@@ -92,9 +92,17 @@ func getClusterFirewall(project, cluster string, instanceGroups map[string]map[s
 // Please note we are not including the firewall rule for SSH connection as it's not needed for testing.
 func ensureFirewallRulesForMultiProjects(projects []string, network string, subnetworkRanges []string) error {
 	hostProject := projects[0]
+	hostProjectNumber, err := getProjectNumber(hostProject)
+	if err != nil {
+		return fmt.Errorf("error looking up project number for id %q: %w", hostProject, err)
+	}
 	for i := 1; i < len(projects); i++ {
 		curtProject := projects[i]
-		firewall := fmt.Sprintf("%s-rule-%s", hostProject, curtProject)
+		curtProjectNumber, err := getProjectNumber(curtProject)
+		if err != nil {
+			return fmt.Errorf("error looking up project number for id %q: %w", curtProject, err)
+		}
+		firewall := fmt.Sprintf("rule-%s-%s", hostProjectNumber, curtProjectNumber)
 		// sourceRanges need to be separated with ",", while the provided subnetworkRanges are separated with space.
 		sourceRanges := strings.ReplaceAll(subnetworkRanges[i-1], " ", ",")
 		if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
