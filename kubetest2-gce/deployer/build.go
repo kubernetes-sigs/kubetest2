@@ -34,14 +34,17 @@ func (d *deployer) Build() error {
 
 	if d.LegacyMode {
 		// this supports the kubernetes/kubernetes build
-		klog.V(2).Info("starting the legacy build")
-
-		cmd := exec.Command("make", "bazel-release")
-		exec.InheritOutput(cmd)
-		cmd.SetDir(d.RepoRoot)
-		err := cmd.Run()
+		klog.V(2).Info("starting the legacy k/k build")
+		version, err := d.BuildOptions.Build()
 		if err != nil {
-			return fmt.Errorf("error during make step of build: %s", err)
+			return err
+		}
+		// append the kubetest2 run id
+		version += "+" + d.commonOptions.RunID()
+		if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
+			if err := d.BuildOptions.Stage(version); err != nil {
+				return fmt.Errorf("error staging build: %v", err)
+			}
 		}
 	} else {
 		// this code path supports the kubernetes/cloud-provider-gcp build
@@ -81,5 +84,9 @@ func (d *deployer) setRepoPathIfNotSet() error {
 
 // verifyBuildFlags only checks flags that are needed for Build
 func (d *deployer) verifyBuildFlags() error {
-	return d.setRepoPathIfNotSet()
+	if err := d.setRepoPathIfNotSet(); err != nil {
+		return err
+	}
+	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
+	return d.BuildOptions.Validate()
 }

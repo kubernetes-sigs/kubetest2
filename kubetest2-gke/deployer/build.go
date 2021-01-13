@@ -60,7 +60,7 @@ func (d *deployer) Build() error {
 	} else {
 		version += "+" + d.commonOptions.RunID()
 	}
-	if d.BuildOptions.StageLocation != "" {
+	if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
 		}
@@ -73,7 +73,7 @@ func (d *deployer) verifyBuildFlags() error {
 	if d.RepoRoot == "" {
 		return fmt.Errorf("required repo-root when building from source")
 	}
-	d.BuildOptions.RepoRoot = d.RepoRoot
+	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
 	return d.BuildOptions.Validate()
 }
 
