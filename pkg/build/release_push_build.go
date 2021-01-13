@@ -18,15 +18,18 @@ package build
 
 import (
 	"fmt"
+	"os"
 	"regexp"
+	"strings"
 
 	"github.com/pkg/errors"
 	rbuild "k8s.io/release/pkg/build"
 )
 
 type ReleasePushBuild struct {
-	Location      string
+	StageLocation string
 	ImageLocation string
+	RepoRoot      string
 }
 
 var _ Stager = &ReleasePushBuild{}
@@ -34,12 +37,19 @@ var _ Stager = &ReleasePushBuild{}
 // Stage stages the build to GCS using
 // essentially release/push-build.sh --bucket=B --ci --gcs-suffix=S --noupdatelatest
 func (rpb *ReleasePushBuild) Stage(version string) error {
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
 	re := regexp.MustCompile(`^gs://([\w-]+)/(devel|ci)(/.*)?`)
-	mat := re.FindStringSubmatch(rpb.Location)
+	mat := re.FindStringSubmatch(rpb.StageLocation)
 	if mat == nil || len(mat) < 4 {
-		return fmt.Errorf("invalid stage location: %v. Use gs://bucket/ci/optional-suffix", rpb.Location)
+		return fmt.Errorf("invalid stage location: %v. Use gs://bucket/ci/optional-suffix", rpb.StageLocation)
 	}
 
+	// currently krel requires to be run from kubernetes root
+	if err := os.Chdir(rpb.RepoRoot); err != nil {
+		return err
+	}
 	return errors.Wrap(
 		rbuild.NewInstance(&rbuild.Options{
 			Bucket:         mat[1],
