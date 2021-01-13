@@ -31,6 +31,8 @@ import (
 
 	"sigs.k8s.io/boskos/client"
 
+	"sigs.k8s.io/kubetest2/kubetest2-gce/deployer/options"
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
@@ -40,6 +42,8 @@ const Name = "gce"
 type deployer struct {
 	// generic parts
 	commonOptions types.Options
+
+	BuildOptions *options.BuildOptions
 
 	doInit sync.Once
 
@@ -80,7 +84,15 @@ type deployer struct {
 // New implements deployer.New for gce
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	d := &deployer{
-		commonOptions:               opts,
+		commonOptions: opts,
+		BuildOptions: &options.BuildOptions{
+			CommonBuildOptions: &build.Options{
+				Builder:       &build.NoopBuilder{},
+				Stager:        &build.NoopStager{},
+				Strategy:      "make",
+				ImageLocation: "k8s.gcr.io",
+			},
+		},
 		kubeconfigPath:              filepath.Join(opts.ArtifactsDir(), "kubetest2-kubeconfig"),
 		logsDir:                     filepath.Join(opts.ArtifactsDir(), "cluster-logs"),
 		boskosHeartbeatClose:        make(chan struct{}),
