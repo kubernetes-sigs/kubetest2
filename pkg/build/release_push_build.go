@@ -19,11 +19,13 @@ package build
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
 	rbuild "k8s.io/release/pkg/build"
+	"k8s.io/release/pkg/release"
 )
 
 type ReleasePushBuild struct {
@@ -44,6 +46,13 @@ func (rpb *ReleasePushBuild) Stage(version string) error {
 	mat := re.FindStringSubmatch(rpb.StageLocation)
 	if mat == nil || len(mat) < 4 {
 		return fmt.Errorf("invalid stage location: %v. Use gs://bucket/ci/optional-suffix", rpb.StageLocation)
+	}
+
+	// force indicate staging of extra gce configuration files
+	// currently krel requires the "extra" directory to exist as an indicator
+	// TODO(amwat): remove workaround after https://github.com/kubernetes/release/issues/1840 is fixed
+	if err := os.MkdirAll(filepath.Join(rpb.RepoRoot, release.BuildDir, release.ReleaseTarsPath, "extra"), os.ModePerm); err != nil {
+		return err
 	}
 
 	// currently krel requires to be run from kubernetes root
