@@ -34,13 +34,14 @@ func (d *deployer) Build() error {
 
 	if d.LegacyMode {
 		// this supports the kubernetes/kubernetes build
-		klog.V(2).Info("starting the legacy k/k build")
+		klog.V(2).Info("starting the legacy kubernetes/kubernetes build")
 		version, err := d.BuildOptions.Build()
 		if err != nil {
 			return err
 		}
 		// append the kubetest2 run id
 		version += "+" + d.commonOptions.RunID()
+		// stage build if requested
 		if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
 			if err := d.BuildOptions.Stage(version); err != nil {
 				return fmt.Errorf("error staging build: %v", err)

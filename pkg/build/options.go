@@ -21,10 +21,11 @@ import (
 )
 
 type Options struct {
-	Strategy      string `flag:"~strategy" desc:"Determines the build strategy to use either make or bazel."`
-	StageLocation string `flag:"~stage" desc:"Upload binaries to gs://bucket/ci/job-suffix if set"`
-	RepoRoot      string `flag:"-"`
-	ImageLocation string `flag:"~image-location" desc:"Image registry where built images are stored."`
+	Strategy           string `flag:"~strategy" desc:"Determines the build strategy to use either make or bazel."`
+	StageLocation      string `flag:"~stage" desc:"Upload binaries to gs://bucket/ci/job-suffix if set"`
+	RepoRoot           string `flag:"-"`
+	ImageLocation      string `flag:"~image-location" desc:"Image registry where built images are stored."`
+	StageExtraGCPFiles bool   `flag:"-"`
 	Builder
 	Stager
 }
@@ -48,9 +49,10 @@ func (o *Options) implementationFromStrategy() error {
 			RepoRoot: o.RepoRoot,
 		}
 		o.Stager = &ReleasePushBuild{
-			RepoRoot:      o.RepoRoot,
-			StageLocation: o.StageLocation,
-			ImageLocation: o.ImageLocation,
+			RepoRoot:        o.RepoRoot,
+			StageLocation:   o.StageLocation,
+			ImageLocation:   o.ImageLocation,
+			StageExtraFiles: o.StageExtraGCPFiles,
 		}
 	default:
 		return fmt.Errorf("unknown build strategy: %v", o.Strategy)
