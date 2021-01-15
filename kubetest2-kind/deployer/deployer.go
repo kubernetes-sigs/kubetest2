@@ -88,7 +88,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		&d.nodeImage, "image-name", "", "the image name to use for build and up",
 	)
 	flags.StringVar(
-		&d.nodeImage, "build-type", "", "--type for kind build node-image",
+		&d.buildType, "build-type", "", "--type for kind build node-image",
 	)
 	flags.StringVar(
 		&d.configPath, "config", "", "--config for kind create cluster",
