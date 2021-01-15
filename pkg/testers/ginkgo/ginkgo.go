@@ -43,6 +43,7 @@ type Tester struct {
 	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to GCS. Defaults to latest. Use \"gsutil ls gs://kubernetes-release/release/\" to find release names. Example: v1.20.0-alpha.0"`
 	TestPackageBucket  string `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
 	TestPackageDir     string `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
+	TestPackageMarker  string `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
 	TestArgs           string `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
 
 	kubeconfigPath string
@@ -136,6 +137,7 @@ func NewDefaultTester() *Tester {
 		Parallel:          1,
 		TestPackageBucket: "kubernetes-release",
 		TestPackageDir:    "release",
+		TestPackageMarker: "latest.txt",
 	}
 }
 
