@@ -41,7 +41,7 @@ func (t *Tester) AcquireTestPackage() error {
 		cmd := exec.Command(
 			"gsutil",
 			"cat",
-			fmt.Sprintf("gs://%s/%s/latest.txt", t.TestPackageBucket, t.TestPackageDir),
+			fmt.Sprintf("gs://%s/%s/%s", t.TestPackageBucket, t.TestPackageDir, t.TestPackageMarker),
 		)
 		lines, err := exec.OutputLines(cmd)
 		if err != nil {
@@ -52,7 +52,7 @@ func (t *Tester) AcquireTestPackage() error {
 		}
 		t.TestPackageVersion = lines[0]
 
-		klog.V(1).Infof("Test package version was not specified. Defaulting to latest: %s", t.TestPackageVersion)
+		klog.V(1).Infof("Test package version was not specified. Defaulting to version from %s: %s", t.TestPackageMarker, t.TestPackageVersion)
 	}
 
 	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
