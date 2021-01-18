@@ -39,7 +39,7 @@ func (d *deployer) Down() error {
 			project := d.projects[i]
 			for j := range d.projectClustersLayout[project] {
 				cluster := d.projectClustersLayout[project][j]
-				loc := location(d.region, d.zone)
+				loc := locationFlag(d.region, d.zone)
 
 				wg.Add(1)
 				go func() {

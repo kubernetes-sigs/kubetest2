@@ -113,7 +113,7 @@ func (d *deployer) createNetwork() error {
 		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "create",
 			subnetName,
 			"--project="+hostProject,
-			"--region="+d.region,
+			locationFlag(d.region, d.zone),
 			"--network="+d.network,
 			"--range="+parts[0],
 			"--secondary-range",
@@ -142,7 +142,7 @@ func (d *deployer) deleteNetwork() error {
 			if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "delete",
 				subnetName,
 				"--project="+hostProject,
-				"--region="+d.region,
+				locationFlag(d.region, d.zone),
 				"--quiet",
 			)); err != nil {
 				return err
@@ -169,7 +169,7 @@ func transformNetworkName(projects []string, network string) string {
 
 // Returns the sub network args needed for the cluster creation command.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_cluster_in_your_first_service_project
-func subNetworkArgs(projects []string, region, network string, projectIndex int) []string {
+func subNetworkArgs(projects []string, region, zone, network string, projectIndex int) []string {
 	// No sub network args need to be added for creating clusters in the host project.
 	if projectIndex == 0 {
 		return []string{}
@@ -181,14 +181,14 @@ func subNetworkArgs(projects []string, region, network string, projectIndex int)
 	subnetName := network + "-" + curtProject
 	return []string{
 		"--enable-ip-alias",
-		fmt.Sprintf("--subnetwork=projects/%s/regions/%s/subnetworks/%s", hostProject, region, subnetName),
+		fmt.Sprintf("--subnetwork=projects/%s/%s/subnetworks/%s", hostProject, locationPath(region, zone), subnetName),
 		fmt.Sprintf("--cluster-secondary-range-name=%s-pods", subnetName),
 		fmt.Sprintf("--services-secondary-range-name=%s-services", subnetName),
 	}
 }
 
 func (d *deployer) setupNetwork() error {
-	if err := enableSharedVPCAndGrantRoles(d.projects, d.region, d.network); err != nil {
+	if err := enableSharedVPCAndGrantRoles(d.projects, d.region, d.zone, d.network); err != nil {
 		return err
 	}
 	if err := grantHostServiceAgentUserRole(d.projects); err != nil {
@@ -199,7 +199,7 @@ func (d *deployer) setupNetwork() error {
 
 // This function implements https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#enabling_and_granting_roles
 // to enable shared VPC and grant required roles for the multi-project multi-cluster profile.
-func enableSharedVPCAndGrantRoles(projects []string, region, network string) error {
+func enableSharedVPCAndGrantRoles(projects []string, region, zone, network string) error {
 	// Nothing needs to be done for single project.
 	if len(projects) == 1 {
 		return nil
@@ -237,14 +237,14 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 		subnetName := network + "-" + serviceProject
 		// Get the subnet etag.
 		subnetETag, err := exec.Output(exec.Command("gcloud", "compute", "networks", "subnets",
-			"get-iam-policy", subnetName, "--project="+networkHostProject, "--region="+region, "--format=value(etag)"))
+			"get-iam-policy", subnetName, "--project="+networkHostProject, locationFlag(region, zone), "--format=value(etag)"))
 		if err != nil {
-			return fmt.Errorf("failed to get the etag for the subnet: %s %s %v", network, region, err)
+			return fmt.Errorf("failed to get the etag for the subnet: %s %w", network, err)
 		}
 		// Get the service project number.
 		serviceProjectNum, err := getProjectNumber(serviceProject)
 		if err != nil {
-			return fmt.Errorf("failed to get the project number for %s: %v", serviceProject, err)
+			return fmt.Errorf("failed to get the project number for %s: %w", serviceProject, err)
 		}
 		gkeServiceAccount := fmt.Sprintf("service-%s@container-engine-robot.iam.gserviceaccount.com", serviceProjectNum)
 		googleAPIServiceAccount := serviceProjectNum + "@cloudservices.gserviceaccount.com"
@@ -252,15 +252,15 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 		// Grant the required IAM roles to service accounts that belong to the service project.
 		tempFile, err := ioutil.TempFile("", "*.yaml")
 		if err != nil {
-			return fmt.Errorf("failed to create a temporary yaml file: %v", err)
+			return fmt.Errorf("failed to create a temporary yaml file: %w", err)
 		}
 		policyStr := fmt.Sprintf(networkUserPolicyTemplate, googleAPIServiceAccount, gkeServiceAccount, strings.TrimSpace(string(subnetETag)))
 		if err = ioutil.WriteFile(tempFile.Name(), []byte(policyStr), os.ModePerm); err != nil {
-			return fmt.Errorf("failed to write the content into %s: %v", tempFile.Name(), err)
+			return fmt.Errorf("failed to write the content into %s: %w", tempFile.Name(), err)
 		}
 		if err = runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "set-iam-policy", subnetName,
-			tempFile.Name(), "--project="+networkHostProject, "--region="+region)); err != nil {
-			return fmt.Errorf("failed to set IAM policy: %v", err)
+			tempFile.Name(), "--project="+networkHostProject, locationFlag(region, zone))); err != nil {
+			return fmt.Errorf("failed to set IAM policy: %w", err)
 		}
 	}
 

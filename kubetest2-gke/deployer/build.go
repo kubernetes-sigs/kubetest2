@@ -57,7 +57,7 @@ func (d *deployer) Build() error {
 	version += "+" + d.commonOptions.RunID()
 	if d.BuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
-			return fmt.Errorf("error staging build: %v", err)
+			return fmt.Errorf("error staging build: %w", err)
 		}
 	}
 	d.Version = version

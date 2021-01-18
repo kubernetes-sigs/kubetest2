@@ -18,6 +18,7 @@ package deployer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,6 +33,17 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 )
+
+// If one of the error patterns below is matched, it would be recommended to
+// retry creating the cluster in a different region.
+// - stockout
+// - nodes fail to start
+// - component is unhealthy
+var retryableCreationErrors = []*regexp.Regexp{
+	regexp.MustCompile(`.*does not have enough resources available to fulfill.*`),
+	regexp.MustCompile(`.*only \d+ nodes out of \d+ have registered; this is likely due to Nodes failing to start correctly.*`),
+	regexp.MustCompile(`.*All cluster resources were brought up, but: component .+ from endpoint .+ is unhealthy.*`),
+}
 
 // Deployer implementation methods below
 func (d *deployer) Up() error {
@@ -53,6 +65,53 @@ func (d *deployer) Up() error {
 	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
 		return err
 	}
+
+	var err error
+	if d.region != "" {
+		for i, r := range append([]string{d.region}, d.backupRegions...) {
+			if i != 0 {
+				klog.V(2).Infof("Retrying creating the clusters in the backup region %q", r)
+			}
+			d.region = r
+
+			if err = d.createClusters(); err == nil || !isRetryableError(err) {
+				break
+			}
+		}
+	} else {
+		for i, z := range append([]string{d.zone}, d.backupZones...) {
+			if i != 0 {
+				klog.V(2).Infof("Retrying creating the clusters in the backup zone %q", z)
+			}
+			d.zone = z
+
+			if err = d.createClusters(); err == nil || !isRetryableError(err) {
+				break
+			}
+		}
+	}
+	if err != nil {
+		return err
+	}
+
+	if err = d.testSetup(); err != nil {
+		return fmt.Errorf("error running setup for the tests: %w", err)
+	}
+
+	return nil
+}
+
+// isRetryableError checks if the error happens during cluster creation can be potentially solved by retrying or not.
+func isRetryableError(err error) bool {
+	for _, regx := range retryableCreationErrors {
+		if regx.MatchString(err.Error()) {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *deployer) createClusters() error {
 	if err := d.createNetwork(); err != nil {
 		return err
 	}
@@ -61,13 +120,14 @@ func (d *deployer) Up() error {
 	}
 
 	klog.V(2).Infof("Environment: %v", os.Environ())
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	eg, ctx := errgroup.WithContext(ctx)
-	loc := location(d.region, d.zone)
+	loc := locationFlag(d.region, d.zone)
 	for i := range d.projects {
 		project := d.projects[i]
-		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
+		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.zone, d.network, i)
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
 			privateClusterArgs := privateClusterArgs(d.network, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges, cluster)
@@ -105,10 +165,10 @@ func (d *deployer) Up() error {
 				args = append(args, subNetworkArgs...)
 				args = append(args, privateClusterArgs...)
 				args = append(args, cluster.name)
-				if err := runWithOutput(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
+				if out, err := runWithOutputAndBuffer(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
 					// Cancel the context to kill other cluster creation processes if any error happens.
 					cancel()
-					return fmt.Errorf("error creating cluster: %v", err)
+					return fmt.Errorf("error creating cluster %q: %w", cluster.name, errors.New(out))
 				}
 				return nil
 			})
@@ -116,11 +176,7 @@ func (d *deployer) Up() error {
 	}
 
 	if err := eg.Wait(); err != nil {
-		return fmt.Errorf("error creating clusters: %v", err)
-	}
-
-	if err := d.testSetup(); err != nil {
-		return fmt.Errorf("error running setup for the tests: %v", err)
+		return fmt.Errorf("error creating clusters: %w", err)
 	}
 
 	return nil
@@ -137,7 +193,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 
 	for _, project := range d.projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := getClusterCredentials(project, location(d.region, d.zone), cluster.name); err != nil {
+			if err := getClusterCredentials(project, locationFlag(d.region, d.zone), cluster.name); err != nil {
 				return false, err
 			}
 
@@ -200,7 +256,7 @@ func (d *deployer) Kubeconfig() (string, error) {
 			if err := os.Setenv("KUBECONFIG", filename); err != nil {
 				return "", err
 			}
-			if err := getClusterCredentials(project, location(d.region, d.zone), cluster.name); err != nil {
+			if err := getClusterCredentials(project, locationFlag(d.region, d.zone), cluster.name); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)

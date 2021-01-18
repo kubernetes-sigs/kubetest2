@@ -73,7 +73,7 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []clu
 			"--network="+network,
 			"--allow="+e2eAllow,
 			"--target-tags="+tag)); err != nil {
-			return fmt.Errorf("error creating e2e firewall rule: %v", err)
+			return fmt.Errorf("error creating e2e firewall rule: %w", err)
 		}
 	}
 	return nil
@@ -111,7 +111,7 @@ func ensureFirewallRulesForMultiProjects(projects []string, network string, subn
 			"--allow=tcp,udp,icmp",
 			"--direction=INGRESS",
 			"--source-ranges="+sourceRanges)); err != nil {
-			return fmt.Errorf("error creating firewall rule for project %q: %v", curtProject, err)
+			return fmt.Errorf("error creating firewall rule for project %q: %w", curtProject, err)
 		}
 	}
 	return nil
@@ -140,7 +140,7 @@ func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, er
 		commandArgs = append(commandArgs, "--project="+hostProject)
 		errFirewall := runWithOutput(exec.Command("gcloud", commandArgs...))
 		if errFirewall != nil {
-			return 0, fmt.Errorf("error deleting firewall: %v", errFirewall)
+			return 0, fmt.Errorf("error deleting firewall: %w", errFirewall)
 		}
 		// It looks sometimes gcloud exits before the firewall rules are actually deleted,
 		// so sleep 30 seconds to wait for the firewall rules being deleted completely.
@@ -159,7 +159,7 @@ func (d *deployer) getInstanceGroups() error {
 	// Initialize project instance groups structure
 	d.instanceGroups = map[string]map[string][]*ig{}
 
-	location := location(d.region, d.zone)
+	location := locationFlag(d.region, d.zone)
 
 	for _, project := range d.projects {
 		d.instanceGroups[project] = map[string][]*ig{}

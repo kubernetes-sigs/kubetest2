@@ -51,7 +51,7 @@ func (bo *BuildOptions) implementationFromStrategy() error {
 			ImageLocation: "",
 		}
 	default:
-		return fmt.Errorf("unknown build strategy: %v", bo.Strategy)
+		return fmt.Errorf("unknown build strategy: %q", bo.Strategy)
 	}
 	return nil
 }

@@ -116,6 +116,12 @@ func CombinedOutputLines(cmd Cmd) (lines []string, err error) {
 	return lines, err
 }
 
+// SetOutput sets cmd's output to write to the given Writer.
+func SetOutput(cmd Cmd, stdoutWriter, stderrWriter io.Writer) {
+	cmd.SetStdout(stdoutWriter)
+	cmd.SetStderr(stderrWriter)
+}
+
 // InheritOutput sets cmd's output to write to the current process's stdout and stderr
 func InheritOutput(cmd Cmd) {
 	cmd.SetStderr(os.Stderr)

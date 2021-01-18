@@ -99,10 +99,12 @@ type deployer struct {
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// gke specific details
-	projects []string
-	zone     string
-	region   string
-	clusters []string
+	projects      []string
+	zone          string
+	backupZones   []string
+	region        string
+	backupRegions []string
+	clusters      []string
 	// only used for multi-project multi-cluster profile to save the project-clusters mapping
 	projectClustersLayout map[string][]cluster
 	nodes                 int
@@ -191,15 +193,15 @@ func (d *deployer) verifyLocationFlags() error {
 	} else if d.zone != "" && d.region != "" {
 		return fmt.Errorf("--zone and --region cannot both be set")
 	}
-	return nil
-}
 
-// location returns the location flags for gcloud commands.
-func location(region, zone string) string {
-	if zone != "" {
-		return "--zone=" + zone
+	if d.zone != "" && len(d.backupRegions) != 0 {
+		return fmt.Errorf("--zone and --backup-regions cannot both be set")
 	}
-	return "--region=" + region
+	if d.region != "" && len(d.backupZones) != 0 {
+		return fmt.Errorf("--region and --backup-zones cannot both be set")
+	}
+
+	return nil
 }
 
 func bindFlags(d *deployer) *pflag.FlagSet {
@@ -219,7 +221,9 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.environment, "environment", "prod", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided")
 	flags.StringSliceVar(&d.projects, "project", []string{}, "Comma separated list of GCP Project(s) to use for creating the cluster.")
 	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
+	flags.StringSliceVar(&d.backupRegions, "backup-regions", []string{}, "The backup regions to retry the cluster creation when there are unrecoverable errors.")
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
+	flags.StringSliceVar(&d.backupZones, "backup-zones", []string{}, "The backup zones to retry the cluster creation when there are unrecoverable errors.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")

@@ -18,7 +18,6 @@ package deployer
 
 import (
 	"fmt"
-	realexec "os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +25,6 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/boskos"
-	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 const (
@@ -71,28 +69,28 @@ func (d *deployer) initialize() error {
 				klog.V(1).Infof("Got project %s from boskos", resource.Name)
 			}
 		}
-
-		// Multi-cluster name adjustment
-		numProjects := len(d.projects)
-		d.projectClustersLayout = make(map[string][]cluster, numProjects)
-		if numProjects > 1 {
-			if err := buildProjectClustersLayout(d.projects, d.clusters, d.projectClustersLayout); err != nil {
-				return fmt.Errorf("failed to build the project clusters layout: %v", err)
-			}
-		} else {
-			// Backwards compatible construction
-			clusters := make([]cluster, len(d.clusters))
-			for i, clusterName := range d.clusters {
-				clusters[i] = cluster{i, clusterName}
-			}
-			d.projectClustersLayout[d.projects[0]] = clusters
-		}
 	}
 
 	if d.commonOptions.ShouldDown() {
 		if err := d.verifyDownFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for down: %w", err)
 		}
+	}
+
+	// Multi-cluster name adjustment
+	numProjects := len(d.projects)
+	d.projectClustersLayout = make(map[string][]cluster, numProjects)
+	if numProjects > 1 {
+		if err := buildProjectClustersLayout(d.projects, d.clusters, d.projectClustersLayout); err != nil {
+			return fmt.Errorf("failed to build the project clusters layout: %w", err)
+		}
+	} else {
+		// Backwards compatible construction
+		clusters := make([]cluster, len(d.clusters))
+		for i, clusterName := range d.clusters {
+			clusters[i] = cluster{i, clusterName}
+		}
+		d.projectClustersLayout[d.projects[0]] = clusters
 	}
 
 	return nil
@@ -107,7 +105,7 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 		}
 		projectIndex, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return fmt.Errorf("cluster name does not follow contain a valid project index (name:projectIndex. E.g: cluster:0): %v", err)
+			return fmt.Errorf("cluster name does not follow contain a valid project index (name:projectIndex. E.g: cluster:0): %w", err)
 		}
 		if projectIndex >= len(projects) {
 			return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
@@ -117,25 +115,18 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 	return nil
 }
 
-func containerArgs(args ...string) []string {
-	return append(append([]string{}, "container"), args...)
-}
-
-func runWithNoOutput(cmd exec.Cmd) error {
-	exec.NoOutput(cmd)
-	return cmd.Run()
-}
-
-func runWithOutput(cmd exec.Cmd) error {
-	exec.InheritOutput(cmd)
-	return cmd.Run()
-}
-
-// execError returns a string format of err including stderr if the
-// err is an ExitError, useful for errors from e.g. exec.Cmd.Output().
-func execError(err error) string {
-	if ee, ok := err.(*realexec.ExitError); ok {
-		return fmt.Sprintf("%v (output: %q)", err, string(ee.Stderr))
+// locationFlag returns the location flags for gcloud commands.
+func locationFlag(region, zone string) string {
+	if zone != "" {
+		return "--zone=" + zone
 	}
-	return err.Error()
+	return "--region=" + region
+}
+
+// locationPath returns the location paths in the gcloud service requests.
+func locationPath(region, zone string) string {
+	if zone != "" {
+		return "zones/" + zone
+	}
+	return "regions/" + region
 }
