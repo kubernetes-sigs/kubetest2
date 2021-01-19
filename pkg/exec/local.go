@@ -20,6 +20,9 @@ import (
 	"context"
 	"io"
 	osexec "os/exec"
+	"strings"
+
+	"k8s.io/klog"
 )
 
 // LocalCmd wraps os/exec.Cmd, implementing the exec.Cmd interface
@@ -36,6 +39,7 @@ var _ Cmder = &LocalCmder{}
 
 // Command returns a new exec.Cmd backed by Cmd
 func (c *LocalCmder) Command(name string, arg ...string) Cmd {
+	klog.V(2).Infof("⚙️ %s %s", name, strings.Join(arg, " "))
 	return &LocalCmd{
 		Cmd: osexec.Command(name, arg...),
 	}
@@ -43,6 +47,7 @@ func (c *LocalCmder) Command(name string, arg ...string) Cmd {
 
 // CommandContext returns a new exec.Cmd with the context, backed by Cmd
 func (c *LocalCmder) CommandContext(ctx context.Context, name string, arg ...string) Cmd {
+	klog.V(2).Infof("⚙️ %s %s", name, strings.Join(arg, " "))
 	return &LocalCmd{
 		Cmd: osexec.CommandContext(ctx, name, arg...),
 	}

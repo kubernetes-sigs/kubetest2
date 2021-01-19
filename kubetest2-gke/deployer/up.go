@@ -105,7 +105,6 @@ func (d *deployer) Up() error {
 				args = append(args, subNetworkArgs...)
 				args = append(args, privateClusterArgs...)
 				args = append(args, cluster.name)
-				klog.V(1).Infof("Gcloud command: gcloud %+v\n", args)
 				if err := runWithOutput(exec.CommandContext(ctx, "gcloud", args...)); err != nil {
 					// Cancel the context to kill other cluster creation processes if any error happens.
 					cancel()
