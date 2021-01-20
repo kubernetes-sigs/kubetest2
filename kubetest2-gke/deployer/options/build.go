@@ -28,8 +28,6 @@ var _ build.Builder = &BuildOptions{}
 var _ build.Stager = &BuildOptions{}
 
 func (bo *BuildOptions) Validate() error {
-	// force extra GCP files to be staged
-	bo.CommonBuildOptions.StageExtraGCPFiles = true
 	return bo.CommonBuildOptions.Validate()
 }
 

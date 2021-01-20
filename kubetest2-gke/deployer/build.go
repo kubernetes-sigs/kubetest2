@@ -87,6 +87,11 @@ func (d *deployer) verifyBuildFlags() error {
 		return fmt.Errorf("required repo-root when building from source")
 	}
 	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
+	if d.commonOptions.ShouldBuild() && d.commonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
+		return fmt.Errorf("creating a gke cluster from built sources requires staging them to a specific GCS bucket, use --stage=gs://<bucket>")
+	}
+	// force extra GCP files to be staged
+	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
 	return d.BuildOptions.Validate()
 }
 
