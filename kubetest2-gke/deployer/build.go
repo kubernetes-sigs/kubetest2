@@ -54,7 +54,12 @@ func (d *deployer) Build() error {
 		return err
 	}
 	// append the kubetest2 run id
-	version += "+" + d.commonOptions.RunID()
+	// avoid double + in the version
+	if strings.Contains(version, "+") {
+		version += "-" + d.commonOptions.RunID()
+	} else {
+		version += "+" + d.commonOptions.RunID()
+	}
 	if d.BuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
