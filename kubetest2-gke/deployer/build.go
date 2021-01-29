@@ -18,6 +18,7 @@ package deployer
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -39,9 +40,20 @@ var (
 	// $1 == prefix
 	// $2 == suffix
 	buildPrefix = regexp.MustCompile(`^(\d\.\d+\.\d+)([+-].*)?$`)
+
+	defaultImageTag = "gke.gcr.io"
 )
 
 func (d *deployer) Build() error {
+	imageTag := defaultImageTag
+	if d.BuildOptions.CommonBuildOptions.ImageLocation != "" {
+		imageTag = d.BuildOptions.CommonBuildOptions.ImageLocation
+	}
+
+	klog.V(2).Infof("setting KUBE_DOCKER_REGISTRY to %s for tagging images", imageTag)
+	if err := os.Setenv("KUBE_DOCKER_REGISTRY", imageTag); err != nil {
+		return err
+	}
 	if err := d.verifyBuildFlags(); err != nil {
 		return err
 	}
@@ -60,7 +72,8 @@ func (d *deployer) Build() error {
 	} else {
 		version += "+" + d.commonOptions.RunID()
 	}
-	if d.BuildOptions.StageLocation != "" {
+	// stage build if requested
+	if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {
 			return fmt.Errorf("error staging build: %v", err)
 		}
@@ -73,7 +86,12 @@ func (d *deployer) verifyBuildFlags() error {
 	if d.RepoRoot == "" {
 		return fmt.Errorf("required repo-root when building from source")
 	}
-	d.BuildOptions.RepoRoot = d.RepoRoot
+	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
+	if d.commonOptions.ShouldBuild() && d.commonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
+		return fmt.Errorf("creating a gke cluster from built sources requires staging them to a specific GCS bucket, use --stage=gs://<bucket>")
+	}
+	// force extra GCP files to be staged
+	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
 	return d.BuildOptions.Validate()
 }
 

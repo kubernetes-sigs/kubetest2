@@ -18,7 +18,6 @@ package build
 
 import (
 	"fmt"
-	"os"
 
 	"k8s.io/klog"
 
@@ -34,21 +33,10 @@ type Bazel struct {
 var _ Builder = &Bazel{}
 var _ Stager = &Bazel{}
 
-const (
-	defaultImageRegistry = "k8s.gcr.io"
-)
-
 func (b *Bazel) Stage(version string) error {
-	if b.ImageLocation == "" {
-		b.ImageLocation = defaultImageRegistry
-	}
 	location := b.StageLocation + "/v" + version
 	klog.V(0).Infof("Staging builds to %s ...", location)
 	cmd := exec.Command("bazel", "run", "//:push-build", "--", location)
-	env := os.Environ()
-	env = append(env, "KUBE_DOCKER_REGISTRY="+b.ImageLocation)
-	cmd.SetDir(b.RepoRoot)
-	cmd.SetEnv(env...)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }

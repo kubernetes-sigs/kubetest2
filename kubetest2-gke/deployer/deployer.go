@@ -164,9 +164,11 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	d := &deployer{
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
-			Builder:  &build.NoopBuilder{},
-			Stager:   &build.NoopStager{},
-			Strategy: "bazel",
+			CommonBuildOptions: &build.Options{
+				Builder:  &build.NoopBuilder{},
+				Stager:   &build.NoopStager{},
+				Strategy: "bazel",
+			},
 		},
 		UpOptions: &options.UpOptions{
 			NumClusters: 1,
