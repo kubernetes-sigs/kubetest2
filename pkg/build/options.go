@@ -20,6 +20,15 @@ import (
 	"fmt"
 )
 
+type buildStrategy string
+
+const (
+	// bazelStrategy builds and (optionally) stages using bazel
+	bazelStrategy buildStrategy = "bazel"
+	// makeStrategy builds using make and (optionally) stages using krel
+	makeStrategy buildStrategy = "make"
+)
+
 type Options struct {
 	Strategy           string `flag:"~strategy" desc:"Determines the build strategy to use either make or bazel."`
 	StageLocation      string `flag:"~stage" desc:"Upload binaries to gs://bucket/ci/job-suffix if set"`
@@ -36,7 +45,7 @@ func (o *Options) Validate() error {
 
 func (o *Options) implementationFromStrategy() error {
 	switch o.Strategy {
-	case "bazel":
+	case string(bazelStrategy):
 		bazel := &Bazel{
 			RepoRoot:      o.RepoRoot,
 			StageLocation: o.StageLocation,
@@ -44,7 +53,7 @@ func (o *Options) implementationFromStrategy() error {
 		}
 		o.Builder = bazel
 		o.Stager = bazel
-	case "make":
+	case string(makeStrategy):
 		o.Builder = &MakeBuilder{
 			RepoRoot: o.RepoRoot,
 		}
