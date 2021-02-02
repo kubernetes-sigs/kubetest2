@@ -48,6 +48,7 @@ func (rpb *ReleasePushBuild) Stage(version string) error {
 	}
 
 	// currently krel requires to be run from kubernetes root
+	// should support passing working directory
 	if err := os.Chdir(rpb.RepoRoot); err != nil {
 		return err
 	}

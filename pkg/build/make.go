@@ -38,7 +38,8 @@ func (m *MakeBuilder) Build() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get version: %v", err)
 	}
-	cmd := exec.Command("make", "-C", m.RepoRoot, target)
+	cmd := exec.Command("make", target)
+	cmd.SetDir(m.RepoRoot)
 	exec.InheritOutput(cmd)
 	if err = cmd.Run(); err != nil {
 		return "", err
