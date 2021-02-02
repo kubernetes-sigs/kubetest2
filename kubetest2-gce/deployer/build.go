@@ -19,6 +19,7 @@ package deployer
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"k8s.io/klog"
 
@@ -39,8 +40,16 @@ func (d *deployer) Build() error {
 		if err != nil {
 			return err
 		}
+
 		// append the kubetest2 run id
-		version += "+" + d.commonOptions.RunID()
+		// avoid double + in the version
+		// so they are valid docker tags
+		if strings.Contains(version, "+") {
+			version += "-" + d.commonOptions.RunID()
+		} else {
+			version += "+" + d.commonOptions.RunID()
+		}
+
 		// stage build if requested
 		if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
 			if err := d.BuildOptions.Stage(version); err != nil {
