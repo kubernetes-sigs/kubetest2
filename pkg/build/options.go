@@ -48,7 +48,7 @@ func (o *Options) implementationFromStrategy() error {
 		o.Builder = &MakeBuilder{
 			RepoRoot: o.RepoRoot,
 		}
-		o.Stager = &ReleasePushBuild{
+		o.Stager = &Krel{
 			RepoRoot:        o.RepoRoot,
 			StageLocation:   o.StageLocation,
 			ImageLocation:   o.ImageLocation,
