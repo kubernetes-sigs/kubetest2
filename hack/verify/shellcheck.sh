@@ -23,7 +23,12 @@ set -o pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}" &> /dev/null
 
-# upstream shellcheck latest stable image as of January 10th, 2019
+if ! docker info >/dev/null 2>&1;  then
+  echo -e "\033[1;33mWARN\033[0m: shellcheck requires docker to be running"
+  exit 0
+fi
+
+# upstream shellcheck latest stable image as of February 2nd, 2021
 SHELLCHECK_IMAGE='koalaman/shellcheck:v0.7.1'
 
 # Find all shell scripts excluding:

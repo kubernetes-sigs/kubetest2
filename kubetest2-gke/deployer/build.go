@@ -65,13 +65,16 @@ func (d *deployer) Build() error {
 	if version, err = normalizeVersion(version); err != nil {
 		return err
 	}
+
 	// append the kubetest2 run id
 	// avoid double + in the version
+	// so they are valid docker tags
 	if strings.Contains(version, "+") {
 		version += "-" + d.commonOptions.RunID()
 	} else {
 		version += "+" + d.commonOptions.RunID()
 	}
+
 	// stage build if requested
 	if d.BuildOptions.CommonBuildOptions.StageLocation != "" {
 		if err := d.BuildOptions.Stage(version); err != nil {

@@ -26,18 +26,18 @@ import (
 	rbuild "k8s.io/release/pkg/build"
 )
 
-type ReleasePushBuild struct {
+type Krel struct {
 	StageLocation   string
 	ImageLocation   string
 	RepoRoot        string
 	StageExtraFiles bool
 }
 
-var _ Stager = &ReleasePushBuild{}
+var _ Stager = &Krel{}
 
 // Stage stages the build to GCS using
 // essentially release/push-build.sh --bucket=B --ci --gcs-suffix=S --noupdatelatest
-func (rpb *ReleasePushBuild) Stage(version string) error {
+func (rpb *Krel) Stage(version string) error {
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
 	}
@@ -48,6 +48,7 @@ func (rpb *ReleasePushBuild) Stage(version string) error {
 	}
 
 	// currently krel requires to be run from kubernetes root
+	// should support passing working directory
 	if err := os.Chdir(rpb.RepoRoot); err != nil {
 		return err
 	}

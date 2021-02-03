@@ -37,6 +37,7 @@ func (b *Bazel) Stage(version string) error {
 	location := b.StageLocation + "/v" + version
 	klog.V(0).Infof("Staging builds to %s ...", location)
 	cmd := exec.Command("bazel", "run", "//:push-build", "--", location)
+	cmd.SetDir(b.RepoRoot)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }
