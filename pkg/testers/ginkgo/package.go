@@ -82,18 +82,21 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %s", err)
 	}
+	defer gzf.Close()
+
 	tarReader := tar.NewReader(gzf)
-	// this is the expected path of the package inside the tar
-	// it will be extracted to e2eTestPath in the loop
-	testPackagePath := "kubernetes/test/bin/e2e.test"
-	foundTestPackage := false
-	// likewise for the actual ginkgo binary
-	binaryPath := "kubernetes/test/bin/ginkgo"
-	foundBinary := false
+
+	// Map of paths in archive to destination paths
+	extract := map[string]string{
+		"kubernetes/test/bin/e2e.test": e2eTestPath,
+		"kubernetes/test/bin/ginkgo":   binary,
+	}
+	extracted := map[string]bool{}
+
 	for {
 		// Put this check before any break condition so we don't
 		// accidentally incorrectly error
-		if foundTestPackage && foundBinary {
+		if len(extracted) == len(extract) {
 			return nil
 		}
 
@@ -105,47 +108,30 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 			return fmt.Errorf("error during tar read: %s", err)
 		}
 
-		if header.Name == testPackagePath {
-			outFile, err := os.Create(e2eTestPath)
+		if dest := extract[header.Name]; dest != "" {
+			outFile, err := os.Create(dest)
 			if err != nil {
-				return fmt.Errorf("error creating file at %s: %s", e2eTestPath, err)
+				return fmt.Errorf("error creating file at %s: %s", dest, err)
 			}
 			defer outFile.Close()
 
 			if err := outFile.Chmod(0700); err != nil {
-				return fmt.Errorf("failed to make %s executable: %s", e2eTestPath, err)
+				return fmt.Errorf("failed to make %s executable: %s", dest, err)
 			}
 
 			if _, err := io.Copy(outFile, tarReader); err != nil {
 				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
 			}
 
-			foundTestPackage = true
-		} else if header.Name == binaryPath {
-			outFile, err := os.Create(binary)
-			if err != nil {
-				return fmt.Errorf("error creating file at %s: %s", binary, err)
-			}
-			defer outFile.Close()
-
-			if err := outFile.Chmod(0700); err != nil {
-				return fmt.Errorf("failed to make %s executable: %s", binary, err)
-			}
-
-			if _, err := io.Copy(outFile, tarReader); err != nil {
-				return fmt.Errorf("error reading data from tar with header name %s: %s", header.Name, err)
-			}
-
-			foundBinary = true
+			extracted[header.Name] = true
 		}
 	}
-	if !foundBinary && !foundTestPackage {
-		return fmt.Errorf("failed to find %s or %s in %s", binaryPath, testPackagePath, downloadPath)
+	for k := range extract {
+		if !extracted[k] {
+			return fmt.Errorf("failed to find %s in %s", k, downloadPath)
+		}
 	}
-	if !foundBinary {
-		return fmt.Errorf("failed to find %s in %s", binaryPath, downloadPath)
-	}
-	return fmt.Errorf("failed to find %s in %s", testPackagePath, downloadPath)
+	return nil
 }
 
 // ensureReleaseTar checks if the kubernetes test tarball already exists
