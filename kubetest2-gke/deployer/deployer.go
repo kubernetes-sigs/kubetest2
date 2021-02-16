@@ -173,7 +173,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		UpOptions: &options.UpOptions{
 			NumClusters: 1,
 		},
-		localLogsDir: filepath.Join(opts.ArtifactsDir(), "logs"),
+		localLogsDir: filepath.Join(opts.RunDir(), "logs"),
 		// Leave Version as empty to use the default cluster version.
 		Version: "",
 	}

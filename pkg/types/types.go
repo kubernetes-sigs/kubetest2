@@ -54,11 +54,10 @@ type Options interface {
 	ShouldDown() bool
 	// if this is true, kubetest2 will be calling tester.Test
 	ShouldTest() bool
-	// returns the path to the directory where artifacts should be written
-	// (including metadata files like junit_runner.xml)
-	ArtifactsDir() string
 	// RunID returns a unique identifier for a kubetest2 run.
 	RunID() string
+	// RunDir returns the directory to put run-specific output files.
+	RunDir() string
 }
 
 // Deployer defines the interface between kubetest and a deployer
