@@ -37,6 +37,7 @@ var (
 
 type Tester struct {
 	FlakeAttempts      int    `desc:"Make up to this many attempts to run each spec."`
+	GinkgoArgs         string `desc:"Additional arguments supported by the ginkgo binary."`
 	Parallel           int    `desc:"Run this many tests in parallel at once."`
 	SkipRegex          string `desc:"Regular expression of jobs to skip."`
 	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
@@ -62,15 +63,22 @@ func (t *Tester) Test() error {
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + os.Getenv("ARTIFACTS"),
 	}
-	extraArgs, err := shellquote.Split(t.TestArgs)
+	extraE2EArgs, err := shellquote.Split(t.TestArgs)
 	if err != nil {
 		return fmt.Errorf("error parsing --test-args: %v", err)
 	}
-	e2eTestArgs = append(e2eTestArgs, extraArgs...)
-	ginkgoArgs := append([]string{
-		"--nodes=" + strconv.Itoa(t.Parallel),
+	e2eTestArgs = append(e2eTestArgs, extraE2EArgs...)
+
+	extraGingkoArgs, err := shellquote.Split(t.GinkgoArgs)
+	if err != nil {
+		return fmt.Errorf("error parsing --gingko-args: %v", err)
+	}
+
+	ginkgoArgs := append(extraGingkoArgs,
+		"--nodes="+strconv.Itoa(t.Parallel),
 		e2eTestPath,
-		"--"}, e2eTestArgs...)
+		"--")
+	ginkgoArgs = append(ginkgoArgs, e2eTestArgs...)
 
 	klog.V(0).Infof("Running ginkgo test as %s %+v", binary, ginkgoArgs)
 	cmd := exec.Command(binary, ginkgoArgs...)
