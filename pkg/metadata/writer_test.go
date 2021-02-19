@@ -72,7 +72,7 @@ func TestWriter(t *testing.T) {
 			},
 			expectedOutput: strings.TrimPrefix(
 				`
-<?xml version="1.0" encoding="UTF-8"?><testsuite failures="0" tests="1" time="3">
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="0" tests="1" time="3">
     <testcase name="noop" time="1"></testcase>
 </testsuite>`,
 				"\n",
@@ -89,7 +89,7 @@ func TestWriter(t *testing.T) {
 			},
 			expectedOutput: strings.TrimPrefix(
 				`
-<?xml version="1.0" encoding="UTF-8"?><testsuite failures="1" tests="1" time="3">
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="1" time="3">
     <testcase name="always fails" time="1">
         <failure>oh noes</failure>
     </testcase>
@@ -113,7 +113,7 @@ func TestWriter(t *testing.T) {
 			},
 			expectedOutput: strings.TrimPrefix(
 				`
-<?xml version="1.0" encoding="UTF-8"?><testsuite failures="1" tests="1" time="3">
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="1" time="3">
     <testcase name="always fails (junitError)" time="1">
         <failure>on noes</failure>
         <system-out>uh oh</system-out>
@@ -146,7 +146,7 @@ func TestWriter(t *testing.T) {
 			},
 			expectedOutput: strings.TrimPrefix(
 				`
-<?xml version="1.0" encoding="UTF-8"?><testsuite failures="1" tests="3" time="7">
+<?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="3" time="7">
     <testcase name="noop" time="1"></testcase>
     <testcase name="noop2" time="1"></testcase>
     <testcase name="always fails (junitError)" time="1">
@@ -166,7 +166,7 @@ func TestWriter(t *testing.T) {
 			// fake output io.WriteCloser
 			runnerOut := bytes.NewBuffer([]byte{})
 			// create a new writer and fake out the time
-			w := NewWriter(runnerOut)
+			w := NewWriter("kubetest2", runnerOut)
 			w.timeNow = makeFakeNow()
 			w.start = w.timeNow()
 			// run all the steps
