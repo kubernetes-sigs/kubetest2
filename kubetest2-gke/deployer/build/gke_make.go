@@ -34,7 +34,6 @@ type gkeBuildAction string
 const (
 	compile      gkeBuildAction = "compile"
 	pack         gkeBuildAction = "package"
-	validate     gkeBuildAction = "validate"
 	stage        gkeBuildAction = "push-gcs"
 	printVersion gkeBuildAction = "print-version"
 )
@@ -76,26 +75,31 @@ func (gmb *GKEMake) runWithActions(stdout, stderr io.Writer, actions []gkeBuildA
 
 func (gmb *GKEMake) Build() (string, error) {
 	klog.V(2).Infof("starting gke build ...")
-	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, validate}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
+	// Skip validation for faster builds
+	// TODO: add support for a separate validate mode
+	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, pack}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
 		return "", err
 	}
 	version := &bytes.Buffer{}
-	if err := gmb.runWithActions(version, ioutil.Discard, []gkeBuildAction{printVersion}); err != nil {
+	if err := gmb.runWithActions(version, ioutil.Discard, []gkeBuildAction{printVersion}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
 		return "", err
 	}
-	return version.String(), nil
+	return strings.TrimSuffix(version.String(), "\n"), nil
 }
 
 var _ build.Builder = &GKEMake{}
 
 func (gmb *GKEMake) Stage(version string) error {
 	klog.V(2).Infof("staging gke builds ...")
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
 	args := []string{arg("VERSION", version)}
 	if gmb.StageLocation != "" {
 		args = append(args, arg("GCS_BUCKET", gmb.StageLocation))
 	}
 
-	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{pack, stage}, args...); err != nil {
+	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{stage}, args...); err != nil {
 		return err
 	}
 	return nil

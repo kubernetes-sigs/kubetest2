@@ -20,7 +20,8 @@ import (
 	"fmt"
 )
 
-type BuildAndStageStrategy string //nolint:golint ignore package name stutter
+//  ignore package name stutter
+type BuildAndStageStrategy string //nolint:golint
 
 const (
 	// bazelStrategy builds and (optionally) stages using bazel
