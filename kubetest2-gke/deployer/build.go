@@ -71,7 +71,7 @@ func (d *deployer) Build() error {
 	// append the kubetest2 run id
 	// avoid double + in the version
 	// so they are valid docker tags
-	if strings.Contains(version, "+") {
+	if !strings.HasSuffix(version, d.commonOptions.RunID()) && strings.Contains(version, "+") {
 		version += "-" + d.commonOptions.RunID()
 	} else {
 		version += "+" + d.commonOptions.RunID()
@@ -98,6 +98,8 @@ func (d *deployer) verifyBuildFlags() error {
 	}
 	// force extra GCP files to be staged
 	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
+	// add kubetest2 runid as the version suffix
+	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.commonOptions.RunID()
 	return d.BuildOptions.Validate()
 }
 

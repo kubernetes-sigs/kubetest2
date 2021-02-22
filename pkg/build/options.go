@@ -20,13 +20,13 @@ import (
 	"fmt"
 )
 
-type buildStrategy string
+type BuildAndStageStrategy string //nolint:golint ignore package name stutter
 
 const (
 	// bazelStrategy builds and (optionally) stages using bazel
-	bazelStrategy buildStrategy = "bazel"
-	// makeStrategy builds using make and (optionally) stages using krel
-	makeStrategy buildStrategy = "make"
+	bazelStrategy BuildAndStageStrategy = "bazel"
+	// MakeStrategy builds using make and (optionally) stages using krel
+	MakeStrategy BuildAndStageStrategy = "make"
 )
 
 type Options struct {
@@ -35,6 +35,7 @@ type Options struct {
 	RepoRoot           string `flag:"-"`
 	ImageLocation      string `flag:"~image-location" desc:"Image registry where built images are stored."`
 	StageExtraGCPFiles bool   `flag:"-"`
+	VersionSuffix      string `flag:"-"`
 	Builder
 	Stager
 }
@@ -44,8 +45,8 @@ func (o *Options) Validate() error {
 }
 
 func (o *Options) implementationFromStrategy() error {
-	switch o.Strategy {
-	case string(bazelStrategy):
+	switch BuildAndStageStrategy(o.Strategy) {
+	case bazelStrategy:
 		bazel := &Bazel{
 			RepoRoot:      o.RepoRoot,
 			StageLocation: o.StageLocation,
@@ -53,7 +54,7 @@ func (o *Options) implementationFromStrategy() error {
 		}
 		o.Builder = bazel
 		o.Stager = bazel
-	case string(makeStrategy):
+	case MakeStrategy:
 		o.Builder = &MakeBuilder{
 			RepoRoot: o.RepoRoot,
 		}

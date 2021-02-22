@@ -1,3 +1,18 @@
+/*
+Copyright 2021 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package build
 
 import (
@@ -10,6 +25,7 @@ import (
 
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -17,10 +33,15 @@ type gkeBuildAction string
 
 const (
 	compile      gkeBuildAction = "compile"
-	pack                        = "package"
-	validate                    = "validate"
-	stage                       = "push-gcs"
-	printVersion                = "print-version"
+	pack         gkeBuildAction = "package"
+	validate     gkeBuildAction = "validate"
+	stage        gkeBuildAction = "push-gcs"
+	printVersion gkeBuildAction = "print-version"
+)
+
+const (
+	// GKEMakeStrategy builds and stages using the gke_make build
+	GKEMakeStrategy build.BuildAndStageStrategy = "gke_make"
 )
 
 type GKEMake struct {
@@ -65,7 +86,7 @@ func (gmb *GKEMake) Build() (string, error) {
 	return version.String(), nil
 }
 
-var _ Builder = &GKEMake{}
+var _ build.Builder = &GKEMake{}
 
 func (gmb *GKEMake) Stage(version string) error {
 	klog.V(2).Infof("staging gke builds ...")
@@ -80,4 +101,4 @@ func (gmb *GKEMake) Stage(version string) error {
 	return nil
 }
 
-var _ Stager = &GKEMake{}
+var _ build.Stager = &GKEMake{}
