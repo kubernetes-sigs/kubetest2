@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -75,16 +74,27 @@ func (gmb *GKEMake) runWithActions(stdout, stderr io.Writer, actions []gkeBuildA
 
 func (gmb *GKEMake) Build() (string, error) {
 	klog.V(2).Infof("starting gke build ...")
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	if err := gmb.runWithActions(stdout, stderr, []gkeBuildAction{printVersion}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
+		klog.Errorf("failed to get version: %s\n%v", stderr.String(), err)
+		return "", err
+	}
+
+	version := strings.TrimSpace(stdout.String())
+	if version == "" {
+		klog.Error(stderr.String())
+		return "", fmt.Errorf("failed to get version: got empty version")
+	}
+
 	// Skip validation for faster builds
 	// TODO: add support for a separate validate mode
-	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, pack}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
+	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, pack}, arg("VERSION", version)); err != nil {
 		return "", err
 	}
-	version := &bytes.Buffer{}
-	if err := gmb.runWithActions(version, ioutil.Discard, []gkeBuildAction{printVersion}, arg("VERSION_SUFFIX", gmb.VersionSuffix)); err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(version.String(), "\n"), nil
+
+	return version, nil
 }
 
 var _ build.Builder = &GKEMake{}
