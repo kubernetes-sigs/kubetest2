@@ -56,6 +56,7 @@ func NewJUnitError(inner error, systemOut string) error {
 // A build (column in testgrid) is composed of one or more TestSuites.
 type testSuite struct {
 	XMLName  xml.Name `xml:"testsuite"`
+	Name     string   `xml:"name,attr"`
 	Failures int      `xml:"failures,attr"`
 	Tests    int      `xml:"tests,attr"`
 	Time     float64  `xml:"time,attr"`
