@@ -167,7 +167,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			CommonBuildOptions: &build.Options{
 				Builder:  &build.NoopBuilder{},
 				Stager:   &build.NoopStager{},
-				Strategy: "bazel",
+				Strategy: "make",
 			},
 		},
 		UpOptions: &options.UpOptions{
