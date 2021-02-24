@@ -29,6 +29,7 @@ import (
 	"strings"
 
 	"k8s.io/klog"
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -72,7 +73,12 @@ func (t *Tester) AcquireTestPackage() error {
 }
 
 func (t *Tester) extractBinaries(downloadPath string) error {
-	// finally, search for the test package and extract it
+	// ensure the artifacts dir
+	if err := os.MkdirAll(artifacts.BaseDir(), os.ModePerm); err != nil {
+		return err
+	}
+
+	// Extract files from the test package
 	f, err := os.Open(downloadPath)
 	if err != nil {
 		return fmt.Errorf("failed to open downloaded tar at %s: %s", downloadPath, err)
@@ -87,17 +93,17 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 	tarReader := tar.NewReader(gzf)
 
 	// Map of paths in archive to destination paths
+	t.e2eTestPath = filepath.Join(artifacts.BaseDir(), "e2e.test")
+	t.ginkgoPath = filepath.Join(artifacts.BaseDir(), "ginkgo")
 	extract := map[string]string{
-		"kubernetes/test/bin/e2e.test": e2eTestPath,
-		"kubernetes/test/bin/ginkgo":   binary,
+		"kubernetes/test/bin/e2e.test": t.e2eTestPath,
+		"kubernetes/test/bin/ginkgo":   t.ginkgoPath,
 	}
 	extracted := map[string]bool{}
 
 	for {
-		// Put this check before any break condition so we don't
-		// accidentally incorrectly error
 		if len(extracted) == len(extract) {
-			return nil
+			break
 		}
 
 		header, err := tarReader.Next()

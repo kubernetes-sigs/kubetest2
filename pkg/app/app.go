@@ -56,13 +56,16 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 	*/
 	// TODO(bentheelder): signal handling & timeout
 
-	// ensure the artifacts dir
-	if err := os.MkdirAll(opts.ArtifactsDir(), os.ModePerm); err != nil {
+	klog.Infof("RunDir for this run: %q", opts.RunDir())
+
+	// ensure the run dir
+	if err := os.MkdirAll(opts.RunDir(), os.ModePerm); err != nil {
 		return err
 	}
+
 	// setup the metadata writer
 	junitRunner, err := os.Create(
-		filepath.Join(opts.ArtifactsDir(), "junit_runner.xml"),
+		filepath.Join(opts.RunDir(), "junit_runner.xml"),
 	)
 	if err != nil {
 		return errors.Wrap(err, "could not create runner output")
@@ -120,7 +123,9 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		exec.InheritOutput(test)
 
 		envsForTester := os.Environ()
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.ArtifactsDir()))
+		// We expose both ARIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.RunDir()))
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_DIR", opts.RunDir()))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
 		// If the deployer provides a kubeconfig pass it to the tester
 		// else assumes that it is handled offline by default methods like

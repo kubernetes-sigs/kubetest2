@@ -26,13 +26,8 @@ import (
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/exec"
-)
-
-var (
-	// These paths are set up by AcquireTestPackage()
-	e2eTestPath = filepath.Join(os.Getenv("ARTIFACTS"), "e2e.test")
-	binary      = filepath.Join(os.Getenv("ARTIFACTS"), "ginkgo")
 )
 
 type Tester struct {
@@ -48,6 +43,10 @@ type Tester struct {
 	TestArgs           string `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
 
 	kubeconfigPath string
+
+	// These paths are set up by AcquireTestPackage()
+	e2eTestPath string
+	ginkgoPath  string
 }
 
 // Test runs the test
@@ -61,7 +60,7 @@ func (t *Tester) Test() error {
 		"--ginkgo.flakeAttempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
-		"--report-dir=" + os.Getenv("ARTIFACTS"),
+		"--report-dir=" + artifacts.BaseDir(),
 	}
 	extraE2EArgs, err := shellquote.Split(t.TestArgs)
 	if err != nil {
@@ -76,12 +75,12 @@ func (t *Tester) Test() error {
 
 	ginkgoArgs := append(extraGingkoArgs,
 		"--nodes="+strconv.Itoa(t.Parallel),
-		e2eTestPath,
+		t.e2eTestPath,
 		"--")
 	ginkgoArgs = append(ginkgoArgs, e2eTestArgs...)
 
-	klog.V(0).Infof("Running ginkgo test as %s %+v", binary, ginkgoArgs)
-	cmd := exec.Command(binary, ginkgoArgs...)
+	klog.V(0).Infof("Running ginkgo test as %s %+v", t.ginkgoPath, ginkgoArgs)
+	cmd := exec.Command(t.ginkgoPath, ginkgoArgs...)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }

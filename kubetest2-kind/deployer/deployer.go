@@ -39,7 +39,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
 	d := &deployer{
 		commonOptions: opts,
-		logsDir:       filepath.Join(opts.ArtifactsDir(), "logs"),
+		logsDir:       filepath.Join(opts.RunDir(), "logs"),
 	}
 	// register flags and return
 	return d, bindFlags(d)
