@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -56,6 +57,7 @@ func (d *deployer) Build() error {
 				return fmt.Errorf("error staging build: %v", err)
 			}
 		}
+		build.StoreCommonBinaries(d.RepoRoot, d.commonOptions.RunDir())
 	} else {
 		// this code path supports the kubernetes/cloud-provider-gcp build
 		klog.V(2).Info("starting the build")

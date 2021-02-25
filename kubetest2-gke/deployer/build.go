@@ -23,6 +23,8 @@ import (
 	"strings"
 
 	"k8s.io/klog"
+
+	"sigs.k8s.io/kubetest2/pkg/build"
 )
 
 var (
@@ -82,6 +84,7 @@ func (d *deployer) Build() error {
 		}
 	}
 	d.Version = version
+	build.StoreCommonBinaries(d.RepoRoot, d.commonOptions.RunDir())
 	return nil
 }
 

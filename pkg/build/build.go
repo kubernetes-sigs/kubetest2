@@ -19,9 +19,14 @@ package build
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/fs"
 )
 
 type Builder interface {
@@ -66,4 +71,31 @@ func sourceVersion(kubeRoot string) (string, error) {
 
 	}
 	return "", fmt.Errorf("could not find kubernetes version in output: %q", strings.Join(output, "\n"))
+}
+
+var (
+	CommonTestBinaries = []string{
+		"kubectl",
+		"e2e.test",
+		"ginkgo",
+	}
+)
+
+// StoreCommonBinaries will best effort try to store commonly built binaries
+// to the output directory
+func StoreCommonBinaries(kuberoot string, outroot string) {
+	const dockerizedOutput = "_output/dockerized"
+	root := filepath.Join(kuberoot, dockerizedOutput, "bin", runtime.GOOS, runtime.GOARCH)
+	for _, binary := range CommonTestBinaries {
+		source := filepath.Join(root, binary)
+		dest := filepath.Join(outroot, binary)
+		if _, err := os.Stat(source); err == nil {
+			klog.V(2).Infof("copying %s to %s ...", source, dest)
+			if err := fs.CopyFile(source, dest); err != nil {
+				klog.Warningf("failed to copy %s to %s: %v", source, dest, err)
+			}
+		} else {
+			klog.Warningf("could not find %s: %v", source, err)
+		}
+	}
 }
