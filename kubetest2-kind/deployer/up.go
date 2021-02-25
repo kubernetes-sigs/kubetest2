@@ -19,6 +19,7 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/process"
@@ -57,7 +58,7 @@ func (d *deployer) Up() error {
 		args = append(args, "--kubeconfig", d.KubeconfigPath)
 	}
 
-	println("Up(): creating kind cluster...\n")
+	klog.V(0).Infof("Up(): creating kind cluster...\n")
 	// we want to see the output so use process.ExecJUnit
 	return process.ExecJUnit("kind", args, os.Environ())
 }

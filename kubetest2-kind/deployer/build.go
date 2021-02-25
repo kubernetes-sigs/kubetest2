@@ -18,6 +18,8 @@ package deployer
 import (
 	"os"
 
+	"k8s.io/klog"
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
@@ -39,7 +41,11 @@ func (d *deployer) Build() error {
 		args = append(args, "--image", kindDefaultBuiltImageName)
 	}
 
-	println("Build(): building kind node image...\n")
+	klog.V(0).Infof("Build(): building kind node image...\n")
 	// we want to see the output so use process.ExecJUnit
-	return process.ExecJUnit("kind", args, os.Environ())
+	if err := process.ExecJUnit("kind", args, os.Environ()); err != nil {
+		return err
+	}
+	build.StoreCommonBinaries(d.KubeRoot, d.commonOptions.RunDir())
+	return nil
 }

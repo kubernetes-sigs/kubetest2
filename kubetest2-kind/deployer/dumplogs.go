@@ -18,6 +18,7 @@ package deployer
 import (
 	"os"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
@@ -28,7 +29,7 @@ func (d *deployer) DumpClusterLogs() error {
 		d.logsDir,
 	}
 
-	println("DumpClusterLogs(): exporting kind cluster logs...\n")
+	klog.V(0).Infof("DumpClusterLogs(): exporting kind cluster logs...\n")
 	// we want to see the output so use process.ExecJUnit
 	return process.ExecJUnit("kind", args, os.Environ())
 }

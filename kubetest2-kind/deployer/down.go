@@ -18,6 +18,7 @@ package deployer
 import (
 	"os"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
@@ -27,7 +28,7 @@ func (d *deployer) Down() error {
 		"--name", d.ClusterName,
 	}
 
-	println("Down(): deleting kind cluster...\n")
+	klog.V(0).Infof("Down(): deleting kind cluster...\n")
 	// we want to see the output so use process.ExecJUnit
 	return process.ExecJUnit("kind", args, os.Environ())
 }
