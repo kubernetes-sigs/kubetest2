@@ -24,11 +24,8 @@ import (
 func (d *deployer) DumpClusterLogs() error {
 	args := []string{
 		"export", "logs",
-		"--name", d.clusterName,
+		"--name", d.ClusterName,
 		d.logsDir,
-	}
-	if d.logLevel != "" {
-		args = append(args, "--loglevel", d.logLevel)
 	}
 
 	println("DumpClusterLogs(): exporting kind cluster logs...\n")

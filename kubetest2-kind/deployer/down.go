@@ -24,10 +24,7 @@ import (
 func (d *deployer) Down() error {
 	args := []string{
 		"delete", "cluster",
-		"--name", d.clusterName,
-	}
-	if d.logLevel != "" {
-		args = append(args, "--loglevel", d.logLevel)
+		"--name", d.ClusterName,
 	}
 
 	println("Down(): deleting kind cluster...\n")

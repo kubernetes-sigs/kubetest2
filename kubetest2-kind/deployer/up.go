@@ -17,7 +17,6 @@ package deployer
 
 import (
 	"os"
-	"strconv"
 	"strings"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -39,28 +38,23 @@ func (d *deployer) IsUp() (up bool, err error) {
 func (d *deployer) Up() error {
 	args := []string{
 		"create", "cluster",
-		"--name", d.clusterName,
+		"--name", d.ClusterName,
 	}
-	if d.logLevel != "" {
-		args = append(args, "--loglevel", d.logLevel)
-	}
+
 	// set the explicitly specified image name if set
-	if d.nodeImage != "" {
-		args = append(args, "--image", d.nodeImage)
+	if d.NodeImage != "" {
+		args = append(args, "--image", d.NodeImage)
 	} else if d.commonOptions.ShouldBuild() {
 		// otherwise if we just built an image, use that
 		// NOTE: this is safe in the face of upstream changes, because
 		// we use the same logic / constant for Build()
 		args = append(args, "--image", kindDefaultBuiltImageName)
 	}
-	if d.configPath != "" {
-		args = append(args, "--config", d.configPath)
+	if d.ConfigPath != "" {
+		args = append(args, "--config", d.ConfigPath)
 	}
-	if d.kubeconfigPath != "" {
-		args = append(args, "--kubeconfig", d.kubeconfigPath)
-	}
-	if d.verbosity > 0 {
-		args = append(args, "--verbosity", strconv.Itoa(d.verbosity))
+	if d.KubeconfigPath != "" {
+		args = append(args, "--kubeconfig", d.KubeconfigPath)
 	}
 
 	println("Up(): creating kind cluster...\n")

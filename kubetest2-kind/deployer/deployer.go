@@ -18,10 +18,13 @@ limitations under the License.
 package deployer
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 
+	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
@@ -47,20 +50,19 @@ type deployer struct {
 	// generic parts
 	commonOptions types.Options
 	// kind specific details
-	nodeImage      string // name of the node image built / deployed
-	clusterName    string // --name flag value for kind
-	logLevel       string // log level for kind commands
-	logsDir        string // dir to export logs to
-	buildType      string // --type flag to kind build node-image
-	configPath     string // --config flag for kind create cluster
-	kubeconfigPath string // --kubeconfig flag for kind create cluster
-	kubeRoot       string // --kube-root for kind build node-image
-	verbosity      int    // --verbosity for kind
+	NodeImage      string `flag:"image-name" desc:"the image name to use for build and up"`
+	ClusterName    string `flag:"cluster-name" desc:"the kind cluster --name"`
+	BuildType      string `desc:"--type for kind build node-image"`
+	ConfigPath     string `flag:"config" desc:"--config for kind create cluster"`
+	KubeconfigPath string `flag:"kubeconfig" desc:"--kubeconfig flag for kind create cluster"`
+	KubeRoot       string `desc:"--kube-root for kind build node-image"`
+
+	logsDir string
 }
 
 func (d *deployer) Kubeconfig() (string, error) {
-	if d.kubeconfigPath != "" {
-		return d.kubeconfigPath, nil
+	if d.KubeconfigPath != "" {
+		return d.KubeconfigPath, nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -71,31 +73,15 @@ func (d *deployer) Kubeconfig() (string, error) {
 
 // helper used to create & bind a flagset to the deployer
 func bindFlags(d *deployer) *pflag.FlagSet {
-	flags := pflag.NewFlagSet(Name, pflag.ContinueOnError)
-	flags.StringVar(
-		&d.clusterName, "cluster-name", "kind-kubetest2", "the kind cluster --name",
-	)
-	flags.StringVar(
-		&d.logLevel, "loglevel", "", "--loglevel for kind commands",
-	)
-	flags.StringVar(
-		&d.nodeImage, "image-name", "", "the image name to use for build and up",
-	)
-	flags.StringVar(
-		&d.buildType, "build-type", "", "--type for kind build node-image",
-	)
-	flags.StringVar(
-		&d.configPath, "config", "", "--config for kind create cluster",
-	)
-	flags.StringVar(
-		&d.kubeconfigPath, "kubeconfig", "", "--kubeconfig flag for kind create cluster",
-	)
-	flags.StringVar(
-		&d.kubeRoot, "kube-root", "", "--kube-root flag for kind build node-image",
-	)
-	flags.IntVar(
-		&d.verbosity, "verbosity", 0, "--verbosity flag for kind",
-	)
+	flags, err := gpflag.Parse(d)
+	if err != nil {
+		klog.Fatalf("unable to generate flags from deployer")
+		return nil
+	}
+
+	klog.InitFlags(nil)
+	flags.AddGoFlagSet(flag.CommandLine)
+
 	return flags
 }
 

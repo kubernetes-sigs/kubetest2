@@ -22,22 +22,18 @@ import (
 )
 
 func (d *deployer) Build() error {
-	// TODO(bentheelder): build type should be configurable
 	args := []string{
 		"build", "node-image",
 	}
-	if d.logLevel != "" {
-		args = append(args, "--loglevel", d.logLevel)
+	if d.BuildType != "" {
+		args = append(args, "--type", d.BuildType)
 	}
-	if d.buildType != "" {
-		args = append(args, "--type", d.buildType)
-	}
-	if d.kubeRoot != "" {
-		args = append(args, "--kube-root", d.kubeRoot)
+	if d.KubeRoot != "" {
+		args = append(args, "--kube-root", d.KubeRoot)
 	}
 	// set the explicitly specified image name if set
-	if d.nodeImage != "" {
-		args = append(args, "--image", d.nodeImage)
+	if d.NodeImage != "" {
+		args = append(args, "--image", d.NodeImage)
 	} else if d.commonOptions.ShouldBuild() {
 		// otherwise if we just built an image, use that
 		args = append(args, "--image", kindDefaultBuiltImageName)
