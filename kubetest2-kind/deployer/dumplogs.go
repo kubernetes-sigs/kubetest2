@@ -19,6 +19,7 @@ import (
 	"os"
 
 	"k8s.io/klog"
+
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 

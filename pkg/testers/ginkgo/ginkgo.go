@@ -25,9 +25,9 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
-	"sigs.k8s.io/kubetest2/pkg/build"
 
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -159,13 +159,25 @@ func (t *Tester) Execute() error {
 		return nil
 	}
 
-	t.initKubetest2Info()
+	if err := t.initKubetest2Info(); err != nil {
+		return err
+	}
 	return t.Test()
 }
 
 // initializes relevant information from the well defined kubetest2 environment variables.
-func (t *Tester) initKubetest2Info() {
-	t.runDir = os.Getenv("KUBETEST2_RUN_DIR")
+func (t *Tester) initKubetest2Info() error {
+	if dir, ok := os.LookupEnv("KUBETEST2_RUN_DIR"); ok {
+		t.runDir = dir
+		return nil
+	}
+	// default to current working directory if for some reason the env is not set
+	dir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to set run dir: %v", err)
+	}
+	t.runDir = dir
+	return nil
 }
 
 func NewDefaultTester() *Tester {

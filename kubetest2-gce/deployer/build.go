@@ -22,8 +22,8 @@ import (
 	"strings"
 
 	"k8s.io/klog"
-	"sigs.k8s.io/kubetest2/pkg/build"
 
+	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 

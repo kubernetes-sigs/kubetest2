@@ -37,7 +37,13 @@ func copyFile(src, dst string, info os.FileInfo) error {
 	if err != nil {
 		return err
 	}
-	defer in.Close()
+	defer func() {
+		closeErr := in.Close()
+		// if we weren't returning an error
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	// create dst file
 	// this is like f, err := os.Create(dst); os.Chmod(f.Name(), src.Mode())
 	out, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode())

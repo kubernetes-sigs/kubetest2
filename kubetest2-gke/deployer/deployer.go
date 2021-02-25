@@ -31,7 +31,6 @@ import (
 
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
 	"sigs.k8s.io/kubetest2/pkg/build"
-
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
 

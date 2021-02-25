@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"k8s.io/klog"
+
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/process"
