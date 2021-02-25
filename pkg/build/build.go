@@ -73,17 +73,20 @@ func sourceVersion(kubeRoot string) (string, error) {
 	return "", fmt.Errorf("could not find kubernetes version in output: %q", strings.Join(output, "\n"))
 }
 
+var (
+	CommonTestBinaries = []string{
+		"kubectl",
+		"e2e.test",
+		"ginkgo",
+	}
+)
+
 // StoreCommonBinaries will best effort try to store commonly built binaries
 // to the output directory
 func StoreCommonBinaries(kuberoot string, outroot string) {
 	const dockerizedOutput = "_output/dockerized"
 	root := filepath.Join(kuberoot, dockerizedOutput, "bin", runtime.GOOS, runtime.GOARCH)
-	commonTestBinaries := []string{
-		"kubectl",
-		"e2e.test",
-		"ginkgo",
-	}
-	for _, binary := range commonTestBinaries {
+	for _, binary := range CommonTestBinaries {
 		source := filepath.Join(root, binary)
 		dest := filepath.Join(outroot, binary)
 		if _, err := os.Stat(source); err == nil {

@@ -25,6 +25,7 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
+	"sigs.k8s.io/kubetest2/pkg/build"
 
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -41,8 +42,10 @@ type Tester struct {
 	TestPackageDir     string `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
 	TestPackageMarker  string `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
 	TestArgs           string `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
+	UseBuiltBinaries   bool   `desc:"determines whether to use binaries built by the deployer instead of extracting the test tars from GCS."`
 
 	kubeconfigPath string
+	runDir         string
 
 	// These paths are set up by AcquireTestPackage()
 	e2eTestPath string
@@ -111,10 +114,31 @@ func (t *Tester) pretestSetup() error {
 	}
 	klog.V(0).Infof("Using kubeconfig at %s", t.kubeconfigPath)
 
+	if t.UseBuiltBinaries {
+		if err := t.validateLocalBinaries(); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := t.AcquireTestPackage(); err != nil {
 		return fmt.Errorf("failed to get ginkgo test package from published releases: %s", err)
 	}
 
+	return nil
+}
+
+func (t *Tester) validateLocalBinaries() error {
+	klog.V(2).Infof("checking existing test binaries ...")
+	for _, binary := range build.CommonTestBinaries {
+		path := filepath.Join(t.runDir, binary)
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("failed to validate %s:%v", binary, err)
+		}
+		klog.V(2).Infof("found existing %s at %s", binary, path)
+	}
+	t.e2eTestPath = filepath.Join(t.runDir, "e2e.test")
+	t.ginkgoPath = filepath.Join(t.runDir, "ginkgo")
 	return nil
 }
 
@@ -135,7 +159,13 @@ func (t *Tester) Execute() error {
 		return nil
 	}
 
+	t.initKubetest2Info()
 	return t.Test()
+}
+
+// initializes relevant information from the well defined kubetest2 environment variables.
+func (t *Tester) initKubetest2Info() {
+	t.runDir = os.Getenv("KUBETEST2_RUN_DIR")
 }
 
 func NewDefaultTester() *Tester {

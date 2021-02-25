@@ -124,6 +124,9 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 		envsForTester := os.Environ()
 		// We expose both ARIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
+		// also add run_dir to $PATH for locally built binaries
+		dollarPath := opts.RunDir() + string(filepath.ListSeparator) + os.Getenv("PATH")
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "PATH", dollarPath))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.RunDir()))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_DIR", opts.RunDir()))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
