@@ -63,6 +63,12 @@ func (d *deployer) Up() error {
 		return fmt.Errorf("up failed to init: %s", err)
 	}
 
+	path, err := d.verifyKubectl()
+	if err != nil {
+		return err
+	}
+	d.kubectlPath = path
+
 	if d.EnableComputeAPI {
 		klog.V(2).Info("enabling compute API for project")
 		if err := enableComputeAPI(d.GCPProject); err != nil {
@@ -83,13 +89,12 @@ func (d *deployer) Up() error {
 	cmd := exec.Command(script)
 	cmd.SetEnv(env...)
 	exec.InheritOutput(cmd)
-	err := cmd.Run()
-	if err != nil {
+
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error encountered during %s: %s", script, err)
 	}
 
-	isUp, err := d.IsUp()
-	if err != nil {
+	if isUp, err := d.IsUp(); err != nil {
 		klog.Warningf("failed to check if cluster is up: %s", err)
 	} else if isUp {
 		klog.V(1).Infof("cluster reported as up")
