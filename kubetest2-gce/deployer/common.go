@@ -46,14 +46,6 @@ func (d *deployer) initialize() error {
 		}
 	}
 
-	if d.commonOptions.ShouldUp() || d.commonOptions.ShouldDown() {
-		path, err := d.verifyKubectl()
-		if err != nil {
-			return err
-		}
-		d.kubectlPath = path
-	}
-
 	if d.commonOptions.ShouldUp() {
 		if err := d.verifyUpFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for up: %s", err)
@@ -169,6 +161,16 @@ func (d *deployer) buildEnv() []string {
 	// KUBECTL_PATH points to the kubectl existing in $PATH
 	// used by the cluster/ scripts
 	env = append(env, fmt.Sprintf("KUBECTL_PATH=%s", d.kubectlPath))
+
+	// KUBE_CONFIG_FILE determines the file to use for setting up configuration for the cluster
+	// https://github.com/kubernetes/kubernetes/blob/3cde6b199900ebc6d6dc415a6036d6fa8fcc1ae0/cluster/gce/util.sh#L19
+	// usually one of
+	// config-default.sh (https://github.com/kubernetes/kubernetes/blob/3cde6b199900ebc6d6dc415a6036d6fa8fcc1ae0/cluster/gce/config-default.sh)
+	// or
+	// config-test.sh (https://github.com/kubernetes/kubernetes/blob/3cde6b199900ebc6d6dc415a6036d6fa8fcc1ae0/cluster/gce/config-test.sh)
+	// here we fix it to config-test.sh since some of the configuration flags are specific to the end-to-end testing scenario
+	// e.g. https://github.com/kubernetes/kubernetes/issues/99480
+	env = append(env, "KUBE_CONFIG_FILE=config-test.sh")
 
 	return env
 }
