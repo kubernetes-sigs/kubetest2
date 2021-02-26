@@ -18,7 +18,6 @@ package build
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 
@@ -47,11 +46,6 @@ func (rpb *Krel) Stage(version string) error {
 		return fmt.Errorf("invalid stage location: %v. Use gs://<bucket>/<ci|devel>/<optional-suffix>", rpb.StageLocation)
 	}
 
-	// currently krel requires to be run from kubernetes root
-	// should support passing working directory
-	if err := os.Chdir(rpb.RepoRoot); err != nil {
-		return err
-	}
 	return errors.Wrap(
 		rbuild.NewInstance(&rbuild.Options{
 			Bucket:          mat[1],
@@ -62,6 +56,7 @@ func (rpb *Krel) Stage(version string) error {
 			Registry:        rpb.ImageLocation,
 			Version:         version,
 			StageExtraFiles: rpb.StageExtraFiles,
+			RepoRoot:        rpb.RepoRoot,
 		}).Push(),
 		"stage via krel push",
 	)

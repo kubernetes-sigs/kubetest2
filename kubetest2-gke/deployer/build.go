@@ -63,6 +63,7 @@ func (d *deployer) Build() error {
 	if err != nil {
 		return err
 	}
+	klog.V(2).Infof("got build version: %s", version)
 	version = strings.TrimPrefix(version, "v")
 	if version, err = normalizeVersion(version); err != nil {
 		return err
@@ -71,10 +72,12 @@ func (d *deployer) Build() error {
 	// append the kubetest2 run id
 	// avoid double + in the version
 	// so they are valid docker tags
-	if strings.Contains(version, "+") {
-		version += "-" + d.commonOptions.RunID()
-	} else {
-		version += "+" + d.commonOptions.RunID()
+	if !strings.HasSuffix(version, d.commonOptions.RunID()) {
+		if strings.Contains(version, "+") {
+			version += "-" + d.commonOptions.RunID()
+		} else {
+			version += "+" + d.commonOptions.RunID()
+		}
 	}
 
 	// stage build if requested
@@ -98,6 +101,8 @@ func (d *deployer) verifyBuildFlags() error {
 	}
 	// force extra GCP files to be staged
 	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
+	// add kubetest2 runid as the version suffix
+	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.commonOptions.RunID()
 	return d.BuildOptions.Validate()
 }
 
