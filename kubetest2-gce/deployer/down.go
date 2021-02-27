@@ -32,6 +32,12 @@ func (d *deployer) Down() error {
 		return fmt.Errorf("down failed to init: %s", err)
 	}
 
+	path, err := d.verifyKubectl()
+	if err != nil {
+		return err
+	}
+	d.kubectlPath = path
+
 	env := d.buildEnv()
 	script := filepath.Join(d.RepoRoot, "cluster", "kube-down.sh")
 	klog.V(2).Infof("About to run script at: %s", script)
@@ -39,8 +45,8 @@ func (d *deployer) Down() error {
 	cmd := exec.Command(script)
 	cmd.SetEnv(env...)
 	exec.InheritOutput(cmd)
-	err := cmd.Run()
-	if err != nil {
+
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error encountered during %s: %s", script, err)
 	}
 
