@@ -81,6 +81,27 @@ type deployer struct {
 	CreateCustomNetwork         bool   `desc:"Sets the environment variable CREATE_CUSTOM_NETWORK=true during deployment."`
 }
 
+// pseudoUniqueSubstring returns a substring of a UUID
+// that can be reasonably used in resource names
+// where length is constrained
+// e.g https://cloud.google.com/compute/docs/naming-resources
+// but still retain as much uniqueness as possible
+// also easily lets us tie it back to a run
+func pseudoUniqueSubstring(uuid string) string {
+	// both KUBETEST2_RUN_ID and PROW_JOB_ID uuids are generated
+	// following RFC 4122 https://tools.ietf.org/html/rfc4122
+	// e.g. 09a2565a-7ac6-11eb-a603-2218f636630c
+	// extract the first 13 characters (09a2565a-7ac6) as they are the ones that depend on
+	// timestamp and has the best avalanche effect (https://en.wikipedia.org/wiki/Avalanche_effect)
+	// as compared to the other bytes
+	// 13 characters is also <= the no. of character being used previously
+	const maxResourceNamePrefixLength = 13
+	if len(uuid) <= maxResourceNamePrefixLength {
+		return uuid
+	}
+	return uuid[:maxResourceNamePrefixLength]
+}
+
 // New implements deployer.New for gce
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	d := &deployer{
@@ -92,11 +113,12 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 				Strategy: "make",
 			},
 		},
-		kubeconfigPath:              filepath.Join(opts.RunDir(), "kubetest2-kubeconfig"),
-		logsDir:                     filepath.Join(opts.RunDir(), "cluster-logs"),
-		boskosHeartbeatClose:        make(chan struct{}),
-		instancePrefix:              "kubetest2",
-		network:                     "default",
+		kubeconfigPath:       filepath.Join(opts.RunDir(), "kubetest2-kubeconfig"),
+		logsDir:              filepath.Join(opts.RunDir(), "cluster-logs"),
+		boskosHeartbeatClose: make(chan struct{}),
+		// names need to start with an alphabet
+		instancePrefix:              "kt2-" + pseudoUniqueSubstring(opts.RunID()),
+		network:                     "kt2-" + pseudoUniqueSubstring(opts.RunID()),
 		BoskosAcquireTimeoutSeconds: 5 * 60,
 		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
 		NumNodes:                    3,
