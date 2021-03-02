@@ -19,6 +19,7 @@ package deployer
 import (
 	"fmt"
 
+	"k8s.io/klog"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -50,7 +51,7 @@ func (d *deployer) createFirewallRuleNodePort() error {
 	return nil
 }
 
-func (d *deployer) deleteFirewallRuleNodePort() error {
+func (d *deployer) deleteFirewallRuleNodePort() {
 	cmd := exec.Command(
 		"gcloud", "compute", "firewall-rules", "delete",
 		"--project", d.GCPProject,
@@ -58,8 +59,6 @@ func (d *deployer) deleteFirewallRuleNodePort() error {
 	)
 	exec.InheritOutput(cmd)
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to delete nodeports firewall rules: %s", err)
+		klog.Warning("failed to delete nodeports firewall rules: might be deleted already?")
 	}
-
-	return nil
 }
