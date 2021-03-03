@@ -51,9 +51,9 @@ func (d *deployer) Down() error {
 	}
 
 	klog.V(2).Info("about to delete nodeport firewall rule")
-	if err := d.deleteFirewallRuleNodePort(); err != nil {
-		return fmt.Errorf("failed to delete firewall rule: %s", err)
-	}
+	// best-effort try to delete the explicitly created firewall rules
+	// ideally these should already be deleted by kube-down
+	d.deleteFirewallRuleNodePort()
 
 	if d.boskos != nil {
 		klog.V(2).Info("releasing boskos project")
