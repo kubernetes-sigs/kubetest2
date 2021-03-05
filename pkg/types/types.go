@@ -103,6 +103,16 @@ type DeployerWithProvider interface {
 	Provider() string
 }
 
+// DeployerWithPostTester adds the ability to define after-test behavior
+// based on the results of the test.
+type DeployerWithPostTester interface {
+	Deployer
+
+	// PostTest runs after the tester completes.
+	// testErr is the error returned from the tester's Run()
+	PostTest(testErr error) error
+}
+
 // Tester defines the "interface" between kubetest2 and a tester
 // The tester is executed as a separate binary during the Test() phase
 type Tester struct {
