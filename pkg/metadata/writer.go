@@ -44,15 +44,16 @@ func NewWriter(suiteName string, runnerOut io.Writer) *Writer {
 }
 
 // WrapStep executes doStep and captures the output to be written to the
-// kubetest2 runner metadta. if doStep returns a JUnitError this metadata
+// kubetest2 runner metadata. If doStep returns a JUnitError this metadata
 // will be captured
 func (w *Writer) WrapStep(name string, doStep func() error) error {
 	start := w.timeNow()
 	err := doStep()
 	finish := w.timeNow()
 	tc := testCase{
-		Name: name,
-		Time: finish.Sub(start).Seconds(),
+		Name:      name,
+		ClassName: w.suite.Name,
+		Time:      finish.Sub(start).Seconds(),
 	}
 	if err != nil {
 		tc.Failure = err.Error()

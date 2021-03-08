@@ -86,6 +86,7 @@ func (t *testSuite) AddTestCase(tc testCase) {
 type testCase struct {
 	XMLName   xml.Name `xml:"testcase"`
 	Name      string   `xml:"name,attr"`
+	ClassName string   `xml:"classname,attr"`
 	Time      float64  `xml:"time,attr"`
 	Failure   string   `xml:"failure,omitempty"`
 	Skipped   string   `xml:"skipped,omitempty"`

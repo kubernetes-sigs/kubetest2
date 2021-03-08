@@ -54,6 +54,8 @@ type Options interface {
 	ShouldDown() bool
 	// if this is true, kubetest2 will be calling tester.Test
 	ShouldTest() bool
+	// if this is true, kubetest2 will be skipping reporting the test result as a JUnit test case.
+	SkipTestJUnitReport() bool
 	// RunID returns a unique identifier for a kubetest2 run.
 	RunID() string
 	// RunDir returns the directory to put run-specific output files.
