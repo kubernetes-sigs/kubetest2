@@ -140,9 +140,10 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 		}
 		test.SetEnv(envsForTester...)
-		if err := writer.WrapStep("Test", test.Run); err != nil {
-			return err
+		if !opts.SkipTestJUnitReport() {
+			return writer.WrapStep("Test", test.Run)
 		}
+		return test.Run()
 	}
 
 	return nil

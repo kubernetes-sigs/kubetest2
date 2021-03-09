@@ -73,7 +73,7 @@ func TestWriter(t *testing.T) {
 			expectedOutput: strings.TrimPrefix(
 				`
 <?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="0" tests="1" time="3">
-    <testcase name="noop" time="1"></testcase>
+    <testcase name="noop" classname="kubetest2" time="1"></testcase>
 </testsuite>`,
 				"\n",
 			),
@@ -90,7 +90,7 @@ func TestWriter(t *testing.T) {
 			expectedOutput: strings.TrimPrefix(
 				`
 <?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="1" time="3">
-    <testcase name="always fails" time="1">
+    <testcase name="always fails" classname="kubetest2" time="1">
         <failure>oh noes</failure>
     </testcase>
 </testsuite>`,
@@ -114,7 +114,7 @@ func TestWriter(t *testing.T) {
 			expectedOutput: strings.TrimPrefix(
 				`
 <?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="1" time="3">
-    <testcase name="always fails (junitError)" time="1">
+    <testcase name="always fails (junitError)" classname="kubetest2" time="1">
         <failure>on noes</failure>
         <system-out>uh oh</system-out>
     </testcase>
@@ -147,9 +147,9 @@ func TestWriter(t *testing.T) {
 			expectedOutput: strings.TrimPrefix(
 				`
 <?xml version="1.0" encoding="UTF-8"?><testsuite name="kubetest2" failures="1" tests="3" time="7">
-    <testcase name="noop" time="1"></testcase>
-    <testcase name="noop2" time="1"></testcase>
-    <testcase name="always fails (junitError)" time="1">
+    <testcase name="noop" classname="kubetest2" time="1"></testcase>
+    <testcase name="noop2" classname="kubetest2" time="1"></testcase>
+    <testcase name="always fails (junitError)" classname="kubetest2" time="1">
         <failure>on noes</failure>
         <system-out>uh oh</system-out>
     </testcase>

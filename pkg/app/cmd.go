@@ -184,12 +184,13 @@ func splitArgs(args []string) ([]string, []string) {
 
 // options holds flag values and implements deployer.Options
 type options struct {
-	help  bool
-	build bool
-	up    bool
-	down  bool
-	test  string
-	runid string
+	help                bool
+	build               bool
+	up                  bool
+	down                bool
+	test                string
+	skipTestJUnitReport bool
+	runid               string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -199,6 +200,8 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.up, "up", false, "provision the test cluster")
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
+	flags.BoolVar(&o.skipTestJUnitReport, "skip-test-junit-report", false, "skip reporting the test step as a JUnit test case, "+
+		"should be set to true when solely relying on the tester binary to generate it's own junit.")
 
 	var defaultRunID string
 	// reuse uid for CI use cases
@@ -231,6 +234,10 @@ func (o *options) ShouldDown() bool {
 
 func (o *options) ShouldTest() bool {
 	return o.test != ""
+}
+
+func (o *options) SkipTestJUnitReport() bool {
+	return o.skipTestJUnitReport
 }
 
 func (o *options) RunID() string {
