@@ -140,11 +140,22 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 		}
 		test.SetEnv(envsForTester...)
-		if !opts.SkipTestJUnitReport() {
-			return writer.WrapStep("Test", test.Run)
-		}
-		return test.Run()
-	}
 
+		var testErr error
+		if !opts.SkipTestJUnitReport() {
+			testErr = writer.WrapStep("Test", test.Run)
+		} else {
+			testErr = test.Run()
+		}
+
+		if dWithPostTester, ok := d.(types.DeployerWithPostTester); ok {
+			if err := dWithPostTester.PostTest(testErr); err != nil {
+				return err
+			}
+		}
+		if testErr != nil {
+			return testErr
+		}
+	}
 	return nil
 }
