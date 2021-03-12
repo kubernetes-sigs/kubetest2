@@ -19,6 +19,7 @@ package exec
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
@@ -64,8 +65,23 @@ func (t *Tester) Execute() error {
 	return t.Test()
 }
 
+func expandEnv(args []string) []string {
+	expandedArgs := make([]string, len(args))
+	for i, arg := range args {
+		// best effort handle literal dollar for backward compatibility
+		// this is not an all-purpose shell special character handler
+		if strings.Contains(arg, `\$`) {
+			expandedArgs[i] = strings.ReplaceAll(arg, `\$`, `$`)
+		} else {
+			expandedArgs[i] = os.ExpandEnv(arg)
+		}
+	}
+	return expandedArgs
+}
+
 func (t *Tester) Test() error {
-	return process.ExecJUnit(t.argv[0], t.argv[1:], os.Environ())
+	expandedArgs := expandEnv(t.argv)
+	return process.ExecJUnit(expandedArgs[0], expandedArgs[1:], os.Environ())
 }
 
 func NewDefaultTester() *Tester {
