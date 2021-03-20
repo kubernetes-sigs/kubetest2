@@ -70,7 +70,7 @@ func (d *deployer) Up() error {
 		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
-			privateClusterArgs := privateClusterArgs(d.network, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges, cluster)
+			privateClusterArgs := privateClusterArgs(d.projects, d.network, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges, cluster)
 			eg.Go(func() error {
 				// Create the cluster
 				args := make([]string, len(d.createCommand()))

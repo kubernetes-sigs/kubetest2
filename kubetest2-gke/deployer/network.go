@@ -362,19 +362,24 @@ func removeHostServiceAgentUserRole(projects []string) error {
 
 // This function returns the args required for creating a private cluster.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters#top_of_page
-func privateClusterArgs(network, accessLevel string, masterIPRanges []string, clusterInfo cluster) []string {
+func privateClusterArgs(projects []string, network, accessLevel string, masterIPRanges []string, clusterInfo cluster) []string {
 	if accessLevel == "" {
 		return []string{}
 	}
 
-	subnetName := network + "-" + clusterInfo.name
 	common := []string{
-		"--create-subnetwork=name=" + subnetName,
 		"--enable-ip-alias",
 		"--enable-private-nodes",
 		"--no-enable-basic-auth",
 		"--master-ipv4-cidr=" + masterIPRanges[clusterInfo.index],
 		"--no-issue-client-certificate",
+	}
+
+	// For multi-project profile, it'll be using the shared vpc, which creates subnets before cluster creation.
+	// So only create subnetworks if it's single-project profile.
+	if len(projects) == 1 {
+		subnetName := network + "-" + clusterInfo.name
+		common = append(common, "--create-subnetwork=name="+subnetName)
 	}
 
 	switch accessLevel {

@@ -25,6 +25,7 @@ import (
 func TestPrivateClusterArgs(t *testing.T) {
 	testCases := []struct {
 		desc           string
+		projects       []string
 		network        string
 		accessLevel    string
 		masterIPRanges []string
@@ -33,6 +34,7 @@ func TestPrivateClusterArgs(t *testing.T) {
 	}{
 		{
 			desc:           "no private cluster args are needed for non-private clusters",
+			projects:       []string{"project1"},
 			network:        "whatever-network",
 			accessLevel:    "",
 			masterIPRanges: []string{"whatever-master-IP-range"},
@@ -41,6 +43,7 @@ func TestPrivateClusterArgs(t *testing.T) {
 		},
 		{
 			desc:           "--private-cluster-master-ip-range can be empty for non-private clusters",
+			projects:       []string{"project1"},
 			network:        "whatever-network",
 			accessLevel:    "",
 			masterIPRanges: []string{},
@@ -49,45 +52,64 @@ func TestPrivateClusterArgs(t *testing.T) {
 		},
 		{
 			desc:           "test private cluster args for private cluster with no limit",
+			projects:       []string{"project1"},
 			network:        "test-network1",
 			accessLevel:    string(no),
 			masterIPRanges: []string{"172.16.0.32/28"},
 			clusterInfo:    cluster{index: 0, name: "cluster1"},
 			expected: []string{
-				"--create-subnetwork=name=test-network1-cluster1",
 				"--enable-ip-alias",
 				"--enable-private-nodes",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=172.16.0.32/28",
 				"--no-issue-client-certificate",
+				"--create-subnetwork=name=test-network1-cluster1",
 				"--enable-master-authorized-networks",
 				"--enable-private-endpoint",
 			},
 		},
 		{
 			desc:           "test private cluster args for private cluster with limited network access",
+			projects:       []string{"project1"},
 			network:        "test-network2",
 			accessLevel:    string(limited),
 			masterIPRanges: []string{"173.16.0.32/28"},
 			clusterInfo:    cluster{index: 0, name: "cluster2"},
 			expected: []string{
-				"--create-subnetwork=name=test-network2-cluster2",
 				"--enable-ip-alias",
 				"--enable-private-nodes",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=173.16.0.32/28",
 				"--no-issue-client-certificate",
+				"--create-subnetwork=name=test-network2-cluster2",
 				"--enable-master-authorized-networks",
 			},
 		},
 		{
 			desc:           "test private cluster args for private cluster with unrestricted network access",
+			projects:       []string{"project1"},
 			network:        "test-network3",
 			accessLevel:    string(unrestricted),
 			masterIPRanges: []string{"173.16.0.32/28", "175.16.0.32/22"},
 			clusterInfo:    cluster{index: 1, name: "cluster3"},
 			expected: []string{
+				"--enable-ip-alias",
+				"--enable-private-nodes",
+				"--no-enable-basic-auth",
+				"--master-ipv4-cidr=175.16.0.32/22",
+				"--no-issue-client-certificate",
 				"--create-subnetwork=name=test-network3-cluster3",
+				"--no-enable-master-authorized-networks",
+			},
+		},
+		{
+			desc:           "--create-submnetwork is not needed for private clusters with multi-project profile",
+			projects:       []string{"project1", "project2"},
+			network:        "test-network4",
+			accessLevel:    string(unrestricted),
+			masterIPRanges: []string{"173.16.0.32/28", "175.16.0.32/22"},
+			clusterInfo:    cluster{index: 1, name: "cluster3"},
+			expected: []string{
 				"--enable-ip-alias",
 				"--enable-private-nodes",
 				"--no-enable-basic-auth",
@@ -102,7 +124,7 @@ func TestPrivateClusterArgs(t *testing.T) {
 		tc := tc
 		t.Run(tc.desc, func(st *testing.T) {
 			st.Parallel()
-			actual := privateClusterArgs(tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo)
+			actual := privateClusterArgs(tc.projects, tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo)
 			if diff := cmp.Diff(actual, tc.expected); diff != "" {
 				st.Error("Got private cluster args (-want, +got) =", diff)
 			}
