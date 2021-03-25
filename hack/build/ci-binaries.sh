@@ -33,6 +33,7 @@ build_os_arch() {
   os="$(echo "$1" | cut -d '_' -f 1)"
   arch="$(echo "$1" | cut -d '_' -f 2)"
   make install-all GOOS="${os}" GOARCH="${arch}" OUT_DIR="${REPO_ROOT}/bin/${os}/${arch}"
+  tar -czvf "${REPO_ROOT}/bin/${os}-${arch}.tgz" "${REPO_ROOT}/bin/${os}/${arch}"
 }
 
 export -f build_os_arch
