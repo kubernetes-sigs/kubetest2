@@ -20,7 +20,7 @@
 # get the repo root and output path
 REPO_ROOT:=$(shell pwd)
 export REPO_ROOT
-OUT_DIR=$(REPO_ROOT)/bin
+OUT_DIR?=$(REPO_ROOT)/bin
 INSTALL?=install
 # make install will place binaries here
 # the default path attempts to mimic go install
@@ -71,8 +71,21 @@ install-tester-%:
 	$(INSTALL) -d $(INSTALL_DIR)
 	$(INSTALL) $(OUT_DIR)/$(BINARY_NAME) $(INSTALL_DIR)/$(BINARY_NAME)
 
+install-all: TESTERS := $(wildcard kubetest2-tester-*)
+install-all: DEPLOYERS := $(filter-out $(TESTERS), $(wildcard kubetest2-*))
+install-all: TESTER_TARGETS := $(subst kubetest2-tester-,install-tester-, $(TESTERS))
+install-all: DEPLOYER_TARGETS := $(subst kubetest2-,install-deployer-, $(DEPLOYERS))
+install-all: install
+	$(MAKE) -j $(DEPLOYER_TARGETS) $(TESTER_TARGETS)
+
 quick-verify: install install-deployer-kind install-tester-exec
 	kubetest2 kind --up --down --test=exec -- kubectl get all -A
+
+ci-binaries:
+	./hack/build/ci-binaries.sh
+
+push-ci-binaries:
+	./hack/ci/push-binaries/push-binaries.sh
 
 # cleans the output directory
 clean-output:
@@ -103,4 +116,4 @@ unit:
 verify:
 	$(MAKE) -j lint shellcheck unit tidy boilerplate
 
-.PHONY: build-all install install-deployer-% install-tester-% quick-verify clean-output clean verify lint shellcheck
+.PHONY: build-all install install-deployer-% install-tester-% install-all ci-binaries push-ci-binaries quick-verify clean-output clean verify lint shellcheck
