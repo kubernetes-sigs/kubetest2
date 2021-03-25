@@ -45,7 +45,9 @@ make ci-binaries
 
 gcs_upload_version() {
   echo "uploading CI binaries to gs://${BUCKET}/$1/ ..."
-  gsutil -m cp -P -r "${REPO_ROOT}/bin" "gs://${BUCKET}/$1/"
+#  gsutil -m cp -P -r "${REPO_ROOT}/bin" "gs://${BUCKET}/$1/"
+# only copy the tarballs
+  gsutil -m cp -P "${REPO_ROOT}/bin/*.tgz" "gs://${BUCKET}/$1/"
 }
 
 export -f gcs_upload_version
