@@ -18,9 +18,10 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# this script is invoked in GCB as the entrypoint
+# avoid prow potentially not being in the right working directory
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." &> /dev/null && pwd -P)"
 cd "${REPO_ROOT}" &> /dev/null
-
 
 # pass through git details from prow / image builder
 if [ -n "${PULL_BASE_SHA:-}" ]; then
