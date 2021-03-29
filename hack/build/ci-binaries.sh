@@ -20,7 +20,7 @@ set -o xtrace
 
 # this script is invoked in GCB as the entrypoint
 # avoid prow potentially not being in the right working directory
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd -P)"
+REPO_ROOT="${REPO_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd -P)"}"
 cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
 

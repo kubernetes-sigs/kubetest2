@@ -21,15 +21,20 @@ set -o xtrace
 # this script is invoked in GCB as the entrypoint
 # avoid prow potentially not being in the right working directory
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." &> /dev/null && pwd -P)"
+# export REPO_ROOT for gcs_upload_version to use in subshells
+export REPO_ROOT
 cd "${REPO_ROOT}" &> /dev/null
 
 # pass through git details from prow / image builder
 if [ -n "${PULL_BASE_SHA:-}" ]; then
   export COMMIT="${PULL_BASE_SHA:?}"
 else
-  COMMIT="$(git rev-parse --short HEAD 2>/dev/null)"
+  COMMIT="$(git rev-parse HEAD 2>/dev/null)"
   export COMMIT
 fi
+
+# short commit is currently 8 characters
+SHORT_COMMIT="${COMMIT:0:8}"
 
 # we upload here
 BUCKET="${BUCKET:-k8s-staging-kubetest2}"
@@ -38,7 +43,7 @@ export BUCKET
 # under each of these
 VERSIONS=(
   latest
-  "${COMMIT}"
+  "${SHORT_COMMIT}"
 )
 
 # build the ci binaries
