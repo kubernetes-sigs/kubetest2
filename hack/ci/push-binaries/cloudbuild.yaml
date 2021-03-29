@@ -9,3 +9,4 @@ steps:
 substitutions:
   _GIT_TAG: '12345'
   _PULL_BASE_SHA: 'invalid'
+timeout: 3600s # 1 hour
