@@ -22,7 +22,14 @@ import (
 	"path/filepath"
 
 	"k8s.io/klog"
+
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/fs"
+)
+
+const (
+	ciPrivateKeyEnv = "GCE_SSH_PRIVATE_KEY_FILE"
+	ciPublicKeyEnv  = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
 func (d *deployer) IsUp() (up bool, err error) {
@@ -81,6 +88,8 @@ func (d *deployer) Up() error {
 			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
 		}
 	}()
+
+	maybeSetupSSHKeys()
 
 	env := d.buildEnv()
 	script := filepath.Join(d.RepoRoot, "cluster", "kube-up.sh")
@@ -147,4 +156,48 @@ func (d *deployer) verifyUpFlags() error {
 	// assumed that one will be acquired from boskos if it is not set
 
 	return nil
+}
+
+// maybeSetupSSHKeys will best-effort try to setup ssh keys for gcloud to reuse
+// from existing files pointed to by "well-known" environment variables used in CI
+func maybeSetupSSHKeys() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		klog.Warningf("failed to get user's home directory")
+		return
+	}
+	// check if there are existing ssh keys, if either exist don't do anything
+	klog.V(2).Info("checking for existing gcloud ssh keys...")
+	privateKey := filepath.Join(home, ".ssh", "google_compute_engine")
+	if _, err := os.Stat(privateKey); err == nil {
+		klog.V(2).Infof("found existing private key at %s", privateKey)
+		return
+	}
+	publicKey := privateKey + ".pub"
+	if _, err := os.Stat(publicKey); err == nil {
+		klog.V(2).Infof("found existing public key at %s", publicKey)
+		return
+	}
+
+	// no existing keys check for CI variables, create gcloud key files if both exist
+	// note only checks if relevant envs are non-empty, no actual key verification checks
+	maybePrivateKey, privateKeyEnvSet := os.LookupEnv(ciPrivateKeyEnv)
+	if !privateKeyEnvSet {
+		klog.V(2).Infof("%s is not set", ciPrivateKeyEnv)
+		return
+	}
+	maybePublicKey, publicKeyEnvSet := os.LookupEnv(ciPublicKeyEnv)
+	if !publicKeyEnvSet {
+		klog.V(2).Infof("%s is not set", ciPublicKeyEnv)
+		return
+	}
+
+	if err := fs.CopyFile(maybePrivateKey, privateKey); err != nil {
+		klog.Warningf("failed to copy %s to %s: %v", maybePrivateKey, privateKey, err)
+		return
+	}
+
+	if err := fs.CopyFile(maybePublicKey, publicKey); err != nil {
+		klog.Warningf("failed to copy %s to %s: %v", maybePublicKey, publicKey, err)
+	}
 }

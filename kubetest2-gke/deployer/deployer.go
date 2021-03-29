@@ -223,7 +223,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
-	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", false, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
+	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", true, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
 	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
 	flags.StringVar(&d.privateClusterAccessLevel, "private-cluster-access-level", "", "Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'")
 	flags.StringSliceVar(&d.privateClusterMasterIPRanges, "private-cluster-master-ip-range", []string{"172.16.0.32/28"}, "Private cluster master IP ranges. It should be IPv4 CIDR(s), and its length must be the same as the number of clusters if private cluster is requested.")
