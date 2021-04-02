@@ -19,6 +19,7 @@ package fs
 import (
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // CopyFile copies a file from src to dst
@@ -44,6 +45,9 @@ func copyFile(src, dst string, info os.FileInfo) error {
 			err = closeErr
 		}
 	}()
+	if err := os.MkdirAll(filepath.Dir(dst), os.ModePerm); err != nil {
+		return err
+	}
 	// create dst file
 	// this is like f, err := os.Create(dst); os.Chmod(f.Name(), src.Mode())
 	out, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, info.Mode())
