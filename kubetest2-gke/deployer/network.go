@@ -169,7 +169,7 @@ func transformNetworkName(projects []string, network string) string {
 
 // Returns the sub network args needed for the cluster creation command.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_cluster_in_your_first_service_project
-func subNetworkArgs(projects []string, region, network string, projectIndex int) []string {
+func subNetworkArgs(autopilot bool, projects []string, region, network string, projectIndex int) []string {
 	// No sub network args need to be added for creating clusters in the host project.
 	if projectIndex == 0 {
 		return []string{}
@@ -179,12 +179,16 @@ func subNetworkArgs(projects []string, region, network string, projectIndex int)
 	hostProject := projects[0]
 	curtProject := projects[projectIndex]
 	subnetName := network + "-" + curtProject
-	return []string{
-		"--enable-ip-alias",
+	args := []string{
 		fmt.Sprintf("--subnetwork=projects/%s/regions/%s/subnetworks/%s", hostProject, region, subnetName),
 		fmt.Sprintf("--cluster-secondary-range-name=%s-pods", subnetName),
 		fmt.Sprintf("--services-secondary-range-name=%s-services", subnetName),
 	}
+	// GKE in Autopilot mode does not support --enable-ip-alias flag - https://cloud.google.com/sdk/gcloud/reference/container/clusters/create-auto
+	if !autopilot {
+		args = append(args, "--enable-ip-alias")
+	}
+	return args
 }
 
 func (d *deployer) setupNetwork() error {

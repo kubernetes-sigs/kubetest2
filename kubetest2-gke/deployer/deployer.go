@@ -38,9 +38,8 @@ import (
 const Name = "gke"
 
 const (
-	e2eAllow      = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
-	defaultCreate = "container clusters create --quiet"
-	image         = "cos"
+	e2eAllow     = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
+	defaultImage = "cos"
 )
 
 type privateClusterAccessLevel string
@@ -52,12 +51,14 @@ const (
 )
 
 var (
-	// poolRe matches instance group URLs of the form `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gke-some-cluster-some-pool-90fcb815-grp`. Match meaning:
+	// poolRe matches instance group URLs of the form `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gke-some-cluster-some-pool-90fcb815-grp`
+	// or `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gk3-some-cluster-some-pool-90fcb815-grp` for GKE in Autopilot mode.
+	// Match meaning:
 	// m[0]: path starting with zones/
 	// m[1]: zone
 	// m[2]: pool name (passed to e2es)
 	// m[3]: unique hash (used as nonce for firewall rules)
-	poolRe = regexp.MustCompile(`zones/([^/]+)/instanceGroupManagers/(gke-.*-([0-9a-f]{8})-grp)$`)
+	poolRe = regexp.MustCompile(`zones/([^/]+)/instanceGroupManagers/(gk[e|3]-.*-([0-9a-f]{8})-grp)$`)
 
 	urlRe           = regexp.MustCompile(`https://.*/`)
 	defaultNodePool = gkeNodePool{
@@ -106,11 +107,16 @@ type deployer struct {
 	projectClustersLayout map[string][]cluster
 	nodes                 int
 	machineType           string
+	imageType             string
 	network               string
 	subnetworkRanges      []string
 	environment           string
-	createCommandFlag     string
 	gcpServiceAccount     string
+
+	gcloudCommandGroup string
+	autopilot          bool
+	gcloudExtraFlags   string
+	createCommandFlag  string
 
 	kubecfgPath  string
 	testPrepared bool
@@ -209,9 +215,14 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		klog.Fatalf("unable to generate flags from deployer")
 		return nil
 	}
+
+	flags.StringVar(&d.gcloudCommandGroup, "gcloud-command-group", "", "gcloud command group, can be one of empty, alpha, beta")
+	flags.BoolVar(&d.autopilot, "autopilot", false, "Whether to create GKE Autopilot clusters or not")
+	flags.StringVar(&d.gcloudExtraFlags, "gcloud-extra-flags", "", "Extra gcloud flags to pass when creating the clusters")
+	flags.StringVar(&d.createCommandFlag, "create-command", "", "gcloud subcommand and additional flags used to create a cluster, such as `container clusters create --quiet`."+
+		"If it's specified, --gcloud-command-group, --autopilot, --gcloud-extra-flags will be ignored.")
 	flags.StringSliceVar(&d.clusters, "cluster-name", []string{}, "Cluster names separated by comma. Must be set. "+
 		"For multi-project profile, it should be in the format of clusterA:0,clusterB:1,clusterC:2, where the index means the index of the project.")
-	flags.StringVar(&d.createCommandFlag, "create-command", defaultCreate, "gcloud subcommand used to create a cluster. Modify if you need to pass arbitrary arguments to create.")
 	flags.StringVar(&d.gcpServiceAccount, "gcp-service-account", "", "Service account to activate before using gcloud")
 	flags.StringVar(&d.network, "network", "default", "Cluster network. Defaults to the default network if not provided. For multi-project use cases, this will be the Shared VPC network name.")
 	flags.StringSliceVar(&d.subnetworkRanges, "subnetwork-ranges", []string{}, "Subnetwork ranges as required for shared VPC setup as described in https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets."+
@@ -223,6 +234,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
+	flags.StringVar(&d.imageType, "image-type", defaultImage, "The image type to use for the cluster.")
 	flags.BoolVar(&d.gcpSSHKeyIgnored, "ignore-gcp-ssh-key", true, "Whether the GCP SSH key should be ignored or not for bringing up the cluster.")
 	flags.BoolVar(&d.workloadIdentityEnabled, "enable-workload-identity", false, "Whether enable workload identity for the cluster or not.")
 	flags.StringVar(&d.privateClusterAccessLevel, "private-cluster-access-level", "", "Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'")

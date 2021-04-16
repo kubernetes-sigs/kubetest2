@@ -67,22 +67,26 @@ func (d *deployer) Up() error {
 	loc := location(d.region, d.zone)
 	for i := range d.projects {
 		project := d.projects[i]
-		subNetworkArgs := subNetworkArgs(d.projects, d.region, d.network, i)
+		subNetworkArgs := subNetworkArgs(d.autopilot, d.projects, d.region, d.network, i)
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
 			privateClusterArgs := privateClusterArgs(d.projects, d.network, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges, cluster)
 			eg.Go(func() error {
 				// Create the cluster
-				args := make([]string, len(d.createCommand()))
-				copy(args, d.createCommand())
+				args := d.createCommand()
 				args = append(args,
 					"--project="+project,
 					loc,
-					"--machine-type="+d.machineType,
-					"--image-type="+image,
-					"--num-nodes="+strconv.Itoa(d.nodes),
 					"--network="+transformNetworkName(d.projects, d.network),
 				)
+				// A few args are not supported in GKE Autopilot cluster creation, so they should be left unset.
+				// https://cloud.google.com/sdk/gcloud/reference/container/clusters/create-auto
+				if !d.autopilot {
+					args = append(args, "--machine-type="+d.machineType)
+					args = append(args, "--num-nodes="+strconv.Itoa(d.nodes))
+					args = append(args, "--image-type="+d.imageType)
+				}
+
 				if d.workloadIdentityEnabled {
 					args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
 				}
@@ -127,7 +131,24 @@ func (d *deployer) Up() error {
 }
 
 func (d *deployer) createCommand() []string {
-	return strings.Fields(d.createCommandFlag)
+	// Use the --create-command flag if it's explicitly specified.
+	if d.createCommandFlag != "" {
+		return strings.Fields(d.createCommandFlag)
+	}
+
+	fs := make([]string, 0)
+	if d.gcloudCommandGroup != "" {
+		fs = append(fs, d.gcloudCommandGroup)
+	}
+	fs = append(fs, "container", "clusters")
+	if d.autopilot {
+		fs = append(fs, "create-auto")
+	} else {
+		fs = append(fs, "create")
+	}
+	fs = append(fs, "--quiet")
+	fs = append(fs, strings.Fields(d.gcloudExtraFlags)...)
+	return fs
 }
 
 func (d *deployer) IsUp() (up bool, err error) {
