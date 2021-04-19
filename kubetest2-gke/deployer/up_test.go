@@ -33,6 +33,7 @@ func TestClusterVersion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.version, func(t *testing.T) {
 			err := validateVersion(tc.version)
 			if tc.valid && err != nil {
