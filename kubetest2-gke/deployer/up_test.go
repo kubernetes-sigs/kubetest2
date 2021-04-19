@@ -21,6 +21,29 @@ import (
 	"testing"
 )
 
+func TestClusterVersion(t *testing.T) {
+	testCases := []struct {
+		version string
+		valid   bool
+	}{
+		{"1.18", true},
+		{"1.18.16", true},
+		{"1.18.16-gke.502", true},
+		{"1", false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.version, func(t *testing.T) {
+			err := validateVersion(tc.version)
+			if tc.valid && err != nil {
+				t.Error("unexpected error", err)
+			} else if !tc.valid && err == nil {
+				t.Error("expected error for case", tc.version)
+			}
+		})
+	}
+}
+
 func TestGenerateClusterNames(t *testing.T) {
 	testCases := []struct {
 		name                 string
