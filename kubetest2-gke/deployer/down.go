@@ -29,6 +29,7 @@ func (d *deployer) Down() error {
 	if err := d.init(); err != nil {
 		return err
 	}
+
 	if len(d.projects) > 0 {
 		if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
 			return err
@@ -39,7 +40,7 @@ func (d *deployer) Down() error {
 			project := d.projects[i]
 			for j := range d.projectClustersLayout[project] {
 				cluster := d.projectClustersLayout[project][j]
-				loc := location(d.region, d.zone)
+				loc := locationFlag(d.region, d.zone)
 
 				wg.Add(1)
 				go func() {
@@ -66,10 +67,14 @@ func (d *deployer) Down() error {
 		if err := d.teardownNetwork(); err != nil {
 			return err
 		}
+		if err := d.deleteSubnets(); err != nil {
+			return err
+		}
 		if err := d.deleteNetwork(); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
