@@ -46,7 +46,7 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []clu
 	for _, cluster := range clusters {
 		clusterName := cluster.name
 		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", clusterName, project)
-		firewall := getClusterFirewall(project, clusterName, instanceGroups)
+		firewall := clusterFirewallName(project, clusterName, instanceGroups)
 		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
 			"--project="+project,
 			"--format=value(name)")) == nil {
@@ -79,7 +79,7 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []clu
 	return nil
 }
 
-func getClusterFirewall(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
+func clusterFirewallName(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
 	// We want to ensure that there's an e2e-ports-* firewall rule
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
@@ -159,7 +159,7 @@ func (d *deployer) getInstanceGroups() error {
 	// Initialize project instance groups structure
 	d.instanceGroups = map[string]map[string][]*ig{}
 
-	location := location(d.region, d.zone)
+	location := locationFlag(d.region, d.zone)
 
 	for _, project := range d.projects {
 		d.instanceGroups[project] = map[string][]*ig{}

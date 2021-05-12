@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/octago/sflags/gen/gpflag"
@@ -201,12 +202,23 @@ func (d *deployer) verifyLocationFlags() error {
 	return nil
 }
 
-// location returns the location flags for gcloud commands.
-func location(region, zone string) string {
+// locationFlag builds the zone/region flag from the provided zone/region
+// used by gcloud commands.
+func locationFlag(region, zone string) string {
 	if zone != "" {
 		return "--zone=" + zone
 	}
 	return "--region=" + region
+}
+
+// regionFromLocation computes the region from the specified zone/region
+// used by some commands (such as subnets), which do not support zones.
+func regionFromLocation(region, zone string) string {
+	r := region
+	if zone != "" {
+		r = zone[0:strings.LastIndex(zone, "-")]
+	}
+	return r
 }
 
 func bindFlags(d *deployer) *pflag.FlagSet {

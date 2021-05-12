@@ -47,11 +47,11 @@ func (d *deployer) verifyNetworkFlags() error {
 		return fmt.Errorf("--private-cluster-master-ip-range must have the same length as the number of clusters when requesting private cluster(s)")
 	}
 
-	// For single project, no other verification is needed.
 	numProjects := len(d.projects)
 	if numProjects == 0 {
 		numProjects = d.boskosProjectsRequested
 	}
+	// For single project, no other verification is needed.
 	if numProjects == 1 {
 		return nil
 	}
@@ -99,6 +99,10 @@ func (d *deployer) createNetwork() error {
 		}
 	}
 
+	return nil
+}
+
+func (d *deployer) createSubnets() error {
 	// Create subnetworks for the service projects to work with shared VPC if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
 	if len(d.projects) == 1 {
@@ -113,7 +117,7 @@ func (d *deployer) createNetwork() error {
 		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "create",
 			subnetName,
 			"--project="+hostProject,
-			"--region="+d.region,
+			"--region="+regionFromLocation(d.region, d.zone),
 			"--network="+d.network,
 			"--range="+parts[0],
 			"--secondary-range",
@@ -126,12 +130,7 @@ func (d *deployer) createNetwork() error {
 	return nil
 }
 
-func (d *deployer) deleteNetwork() error {
-	// Do not delete the default network.
-	if d.network == "default" {
-		return nil
-	}
-
+func (d *deployer) deleteSubnets() error {
 	// Delete the subnetworks if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#deleting_the_shared_network
 	if len(d.projects) >= 1 {
@@ -142,12 +141,21 @@ func (d *deployer) deleteNetwork() error {
 			if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "delete",
 				subnetName,
 				"--project="+hostProject,
-				"--region="+d.region,
+				"--region="+regionFromLocation(d.region, d.zone),
 				"--quiet",
 			)); err != nil {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (d *deployer) deleteNetwork() error {
+	// Do not delete the default network.
+	if d.network == "default" {
+		return nil
 	}
 
 	if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.network,
@@ -192,7 +200,7 @@ func subNetworkArgs(autopilot bool, projects []string, region, network string, p
 }
 
 func (d *deployer) setupNetwork() error {
-	if err := enableSharedVPCAndGrantRoles(d.projects, d.region, d.network); err != nil {
+	if err := enableSharedVPCAndGrantRoles(d.projects, regionFromLocation(d.region, d.zone), d.network); err != nil {
 		return err
 	}
 	if err := grantHostServiceAgentUserRole(d.projects); err != nil {
