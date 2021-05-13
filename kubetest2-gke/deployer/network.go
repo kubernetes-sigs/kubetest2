@@ -98,7 +98,6 @@ func (d *deployer) createNetwork() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -117,7 +116,7 @@ func (d *deployer) createSubnets() error {
 		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "create",
 			subnetName,
 			"--project="+hostProject,
-			"--region="+regionFromLocation(d.region, d.zone),
+			"--region="+regionFromLocation(d.regions, d.zones, d.retryCount),
 			"--network="+d.network,
 			"--range="+parts[0],
 			"--secondary-range",
@@ -126,11 +125,10 @@ func (d *deployer) createSubnets() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (d *deployer) deleteSubnets() error {
+func (d *deployer) deleteSubnets(retryCount int) error {
 	// Delete the subnetworks if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#deleting_the_shared_network
 	if len(d.projects) >= 1 {
@@ -141,7 +139,7 @@ func (d *deployer) deleteSubnets() error {
 			if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "delete",
 				subnetName,
 				"--project="+hostProject,
-				"--region="+regionFromLocation(d.region, d.zone),
+				"--region="+regionFromLocation(d.regions, d.zones, retryCount),
 				"--quiet",
 			)); err != nil {
 				return err
@@ -200,7 +198,7 @@ func subNetworkArgs(autopilot bool, projects []string, region, network string, p
 }
 
 func (d *deployer) setupNetwork() error {
-	if err := enableSharedVPCAndGrantRoles(d.projects, regionFromLocation(d.region, d.zone), d.network); err != nil {
+	if err := enableSharedVPCAndGrantRoles(d.projects, regionFromLocation(d.regions, d.zones, d.retryCount), d.network); err != nil {
 		return err
 	}
 	if err := grantHostServiceAgentUserRole(d.projects); err != nil {

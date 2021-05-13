@@ -20,24 +20,33 @@ import "testing"
 
 func TestLocationFlag(t *testing.T) {
 	testCases := []struct {
-		region   string
-		zone     string
-		expected string
+		regions    []string
+		zones      []string
+		retryCount int
+		expected   string
 	}{
 		{
-			region:   "us-central1",
-			zone:     "",
-			expected: "--region=us-central1",
+			regions:    []string{"us-central1"},
+			zones:      []string{},
+			retryCount: 0,
+			expected:   "--region=us-central1",
 		},
 		{
-			region:   "",
-			zone:     "us-central1-c",
-			expected: "--zone=us-central1-c",
+			regions:    []string{},
+			zones:      []string{"us-central1-c"},
+			retryCount: 0,
+			expected:   "--zone=us-central1-c",
+		},
+		{
+			regions:    []string{"us-central1", "us-east"},
+			zones:      []string{},
+			retryCount: 1,
+			expected:   "--region=us-east",
 		},
 	}
 
 	for _, tc := range testCases {
-		got := locationFlag(tc.region, tc.zone)
+		got := locationFlag(tc.regions, tc.zones, tc.retryCount)
 		if got != tc.expected {
 			t.Errorf("expected %q but got %q", tc.expected, got)
 		}
@@ -46,24 +55,33 @@ func TestLocationFlag(t *testing.T) {
 
 func TestRegionFromLocation(t *testing.T) {
 	testCases := []struct {
-		region   string
-		zone     string
-		expected string
+		regions    []string
+		zones      []string
+		retryCount int
+		expected   string
 	}{
 		{
-			region:   "us-central1",
-			zone:     "",
-			expected: "us-central1",
+			regions:    []string{"us-central1"},
+			zones:      []string{},
+			retryCount: 0,
+			expected:   "us-central1",
 		},
 		{
-			region:   "",
-			zone:     "us-central1-c",
-			expected: "us-central1",
+			regions:    []string{},
+			zones:      []string{"us-central1-c"},
+			retryCount: 0,
+			expected:   "us-central1",
+		},
+		{
+			regions:    []string{"us-central1", "us-east"},
+			zones:      []string{},
+			retryCount: 1,
+			expected:   "us-east",
 		},
 	}
 
 	for _, tc := range testCases {
-		got := regionFromLocation(tc.region, tc.zone)
+		got := regionFromLocation(tc.regions, tc.zones, tc.retryCount)
 		if got != tc.expected {
 			t.Errorf("expected %q but got %q", tc.expected, got)
 		}
