@@ -159,7 +159,7 @@ func (d *deployer) getInstanceGroups() error {
 	// Initialize project instance groups structure
 	d.instanceGroups = map[string]map[string][]*ig{}
 
-	location := locationFlag(d.region, d.zone)
+	location := locationFlag(d.regions, d.zones, d.retryCount)
 
 	for _, project := range d.projects {
 		d.instanceGroups[project] = map[string][]*ig{}

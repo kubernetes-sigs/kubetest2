@@ -17,8 +17,12 @@ limitations under the License.
 package deployer
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
+	osexec "os/exec"
+
 	"path/filepath"
 	"strings"
 
@@ -149,4 +153,37 @@ func resolveLatestVersionInChannel(loc, channelName string) (string, error) {
 	}
 
 	return "", fmt.Errorf("channel %q does not exist in the server config", channelName)
+}
+
+func containerArgs(args ...string) []string {
+	return append(append([]string{}, "container"), args...)
+}
+
+func runWithNoOutput(cmd exec.Cmd) error {
+	exec.NoOutput(cmd)
+	return cmd.Run()
+}
+
+func runWithOutput(cmd exec.Cmd) error {
+	exec.InheritOutput(cmd)
+	return cmd.Run()
+}
+
+func runWithOutputAndReturn(cmd exec.Cmd) (string, error) {
+	var buf bytes.Buffer
+
+	exec.SetOutput(cmd, io.MultiWriter(os.Stdout, &buf), io.MultiWriter(os.Stderr, &buf))
+	if err := cmd.Run(); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// execError returns a string format of err including stderr if the
+// err is an ExitError, useful for errors from e.g. exec.Cmd.Output().
+func execError(err error) string {
+	if ee, ok := err.(*osexec.ExitError); ok {
+		return fmt.Sprintf("%v (output: %q)", err, string(ee.Stderr))
+	}
+	return err.Error()
 }

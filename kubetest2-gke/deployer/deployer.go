@@ -43,6 +43,10 @@ const (
 	defaultImage = "cos"
 )
 
+const (
+	gceStockoutErrorPattern = ".*does not have enough resources available to fulfill.*"
+)
+
 type privateClusterAccessLevel string
 
 const (
@@ -100,10 +104,13 @@ type deployer struct {
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// gke specific details
-	projects []string
-	zone     string
-	region   string
-	clusters []string
+	projects                       []string
+	zones                          []string
+	regions                        []string
+	retryCount                     int
+	retryableErrorPatterns         []string
+	retryableErrorPatternsCompiled []*regexp.Regexp
+	clusters                       []string
 	// only used for multi-project multi-cluster profile to save the project-clusters mapping
 	projectClustersLayout map[string][]cluster
 	nodes                 int
@@ -194,9 +201,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 }
 
 func (d *deployer) verifyLocationFlags() error {
-	if d.zone == "" && d.region == "" {
+	if len(d.zones) == 0 && len(d.regions) == 0 {
 		return fmt.Errorf("--zone or --region must be set for GKE deployment")
-	} else if d.zone != "" && d.region != "" {
+	} else if len(d.zones) != 0 && len(d.regions) != 0 {
 		return fmt.Errorf("--zone and --region cannot both be set")
 	}
 	return nil
@@ -204,21 +211,21 @@ func (d *deployer) verifyLocationFlags() error {
 
 // locationFlag builds the zone/region flag from the provided zone/region
 // used by gcloud commands.
-func locationFlag(region, zone string) string {
-	if zone != "" {
-		return "--zone=" + zone
+func locationFlag(regions, zones []string, retryCount int) string {
+	if len(zones) != 0 {
+		return "--zone=" + zones[retryCount]
 	}
-	return "--region=" + region
+	return "--region=" + regions[retryCount]
 }
 
 // regionFromLocation computes the region from the specified zone/region
 // used by some commands (such as subnets), which do not support zones.
-func regionFromLocation(region, zone string) string {
-	r := region
-	if zone != "" {
-		r = zone[0:strings.LastIndex(zone, "-")]
+func regionFromLocation(regions, zones []string, retryCount int) string {
+	if len(zones) != 0 {
+		zone := zones[retryCount]
+		return zone[0:strings.LastIndex(zone, "-")]
 	}
-	return r
+	return regions[retryCount]
 }
 
 func bindFlags(d *deployer) *pflag.FlagSet {
@@ -242,8 +249,9 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		"are separated by comma, and the ranges of each subnetwork configuration is separated by space.")
 	flags.StringVar(&d.environment, "environment", "prod", "Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided")
 	flags.StringSliceVar(&d.projects, "project", []string{}, "Comma separated list of GCP Project(s) to use for creating the cluster.")
-	flags.StringVar(&d.region, "region", "", "For use with gcloud commands to specify the cluster region.")
-	flags.StringVar(&d.zone, "zone", "", "For use with gcloud commands to specify the cluster zone.")
+	flags.StringSliceVar(&d.regions, "region", []string{}, "Comma separated list for use with gcloud commands to specify the cluster region(s). The first region will be considered the primary region, and the rest will be considered the backup regions.")
+	flags.StringSliceVar(&d.zones, "zone", []string{}, "Comma separated list for use with gcloud commands to specify the cluster zone(s). The first zone will be considered the primary zone, and the rest will be considered the backup zones.")
+	flags.StringSliceVar(&d.retryableErrorPatterns, "retryable-error-patterns", []string{gceStockoutErrorPattern}, "Comma separated list of regex match patterns for retryable errors during cluster creation.")
 	flags.IntVar(&d.nodes, "num-nodes", defaultNodePool.Nodes, "For use with gcloud commands to specify the number of nodes for the cluster.")
 	flags.StringVar(&d.machineType, "machine-type", defaultNodePool.MachineType, "For use with gcloud commands to specify the machine type for the cluster.")
 	flags.StringVar(&d.imageType, "image-type", defaultImage, "The image type to use for the cluster.")

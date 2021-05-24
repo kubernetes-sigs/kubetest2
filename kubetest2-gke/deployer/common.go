@@ -18,7 +18,7 @@ package deployer
 
 import (
 	"fmt"
-	realexec "os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -26,7 +26,6 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/boskos"
-	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 const (
@@ -45,6 +44,16 @@ func (d *deployer) initialize() error {
 	if d.commonOptions.ShouldUp() {
 		if err := d.verifyUpFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for up: %w", err)
+		}
+
+		// Compile the retryable error patterns as regex objects.
+		d.retryableErrorPatternsCompiled = make([]*regexp.Regexp, len(d.retryableErrorPatterns))
+		for i, regxString := range d.retryableErrorPatterns {
+			var err error
+			d.retryableErrorPatternsCompiled[i], err = regexp.Compile(regxString)
+			if err != nil {
+				return fmt.Errorf("error compiling regex: %w", err)
+			}
 		}
 
 		if len(d.projects) == 0 {
@@ -115,27 +124,4 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], cluster{i, parts[0]})
 	}
 	return nil
-}
-
-func containerArgs(args ...string) []string {
-	return append(append([]string{}, "container"), args...)
-}
-
-func runWithNoOutput(cmd exec.Cmd) error {
-	exec.NoOutput(cmd)
-	return cmd.Run()
-}
-
-func runWithOutput(cmd exec.Cmd) error {
-	exec.InheritOutput(cmd)
-	return cmd.Run()
-}
-
-// execError returns a string format of err including stderr if the
-// err is an ExitError, useful for errors from e.g. exec.Cmd.Output().
-func execError(err error) string {
-	if ee, ok := err.(*realexec.ExitError); ok {
-		return fmt.Sprintf("%v (output: %q)", err, string(ee.Stderr))
-	}
-	return err.Error()
 }

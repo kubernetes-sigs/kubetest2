@@ -8,6 +8,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/octago/sflags v0.2.0
 	github.com/pkg/errors v0.9.1
+	github.com/pkg/math v0.0.0-20141027224758-f2ed9e40e245
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
