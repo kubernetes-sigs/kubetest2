@@ -32,12 +32,12 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) prepareGcpIfNeeded(projectID string) error {
+func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
 	// TODO(RonWeber): This is an almost direct copy/paste from kubetest's prepareGcp()
 	// It badly needs refactored.
 
 	var endpoint string
-	switch env := d.environment; {
+	switch env := d.Environment; {
 	case env == "test":
 		endpoint = "https://test-container.sandbox.googleapis.com/"
 	case env == "staging":
@@ -64,11 +64,11 @@ func (d *deployer) prepareGcpIfNeeded(projectID string) error {
 	}
 
 	// gcloud creds may have changed
-	if err := activateServiceAccount(d.gcpServiceAccount); err != nil {
+	if err := activateServiceAccount(d.GCPServiceAccount); err != nil {
 		return err
 	}
 
-	if !d.gcpSSHKeyIgnored {
+	if !d.GCPSSHKeyIgnored {
 		// Ensure ssh keys exist
 		klog.V(1).Info("Checking existing of GCP ssh keys...")
 		k := filepath.Join(home(".ssh"), "google_compute_engine")

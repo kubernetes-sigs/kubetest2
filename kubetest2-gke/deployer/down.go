@@ -25,32 +25,32 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) Down() error {
-	if err := d.init(); err != nil {
+func (d *Deployer) Down() error {
+	if err := d.Init(); err != nil {
 		return err
 	}
 
-	if len(d.projects) > 0 {
-		if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
+	if len(d.Projects) > 0 {
+		if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
 			return err
 		}
 
-		d.deleteClusters(d.retryCount)
+		d.DeleteClusters(d.retryCount)
 
-		numDeletedFWRules, errCleanFirewalls := d.cleanupNetworkFirewalls(d.projects[0], d.network)
+		numDeletedFWRules, errCleanFirewalls := d.CleanupNetworkFirewalls(d.Projects[0], d.Network)
 		if errCleanFirewalls != nil {
 			klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
 		} else {
 			klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
 		}
 
-		if err := d.teardownNetwork(); err != nil {
+		if err := d.TeardownNetwork(); err != nil {
 			return err
 		}
-		if err := d.deleteSubnets(d.retryCount); err != nil {
+		if err := d.DeleteSubnets(d.retryCount); err != nil {
 			return err
 		}
-		if err := d.deleteNetwork(); err != nil {
+		if err := d.DeleteNetwork(); err != nil {
 			return err
 		}
 	}
@@ -58,26 +58,26 @@ func (d *deployer) Down() error {
 	return nil
 }
 
-func (d *deployer) deleteClusters(retryCount int) {
+func (d *Deployer) DeleteClusters(retryCount int) {
 	// We best-effort try all of these and report errors as appropriate.
 	var wg sync.WaitGroup
-	for i := range d.projects {
-		project := d.projects[i]
+	for i := range d.Projects {
+		project := d.Projects[i]
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
-			loc := locationFlag(d.regions, d.zones, retryCount)
+			loc := locationFlag(d.Regions, d.Zones, retryCount)
 
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				d.deleteCluster(project, loc, cluster)
+				d.DeleteCluster(project, loc, cluster)
 			}()
 		}
 	}
 	wg.Wait()
 }
 
-func (d *deployer) deleteCluster(project, loc string, cluster cluster) {
+func (d *Deployer) DeleteCluster(project, loc string, cluster cluster) {
 	if err := runWithOutput(exec.Command(
 		"gcloud", containerArgs("clusters", "delete", "-q", cluster.name,
 			"--project="+project,
@@ -86,15 +86,15 @@ func (d *deployer) deleteCluster(project, loc string, cluster cluster) {
 	}
 }
 
-// verifyDownFlags validates flags for down phase.
-func (d *deployer) verifyDownFlags() error {
-	if len(d.clusters) == 0 {
+// VerifyDownFlags validates flags for down phase.
+func (d *Deployer) VerifyDownFlags() error {
+	if len(d.Clusters) == 0 {
 		return fmt.Errorf("--cluster-name must be set for GKE deployment")
 	}
-	if len(d.projects) == 0 {
+	if len(d.Projects) == 0 {
 		return fmt.Errorf("--project must be set for GKE deployment")
 	}
-	if err := d.verifyLocationFlags(); err != nil {
+	if err := d.VerifyLocationFlags(); err != nil {
 		return err
 	}
 	return nil

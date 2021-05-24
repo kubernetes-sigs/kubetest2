@@ -35,8 +35,8 @@ import (
 )
 
 // Deployer implementation methods below
-func (d *deployer) Up() error {
-	if err := d.init(); err != nil {
+func (d *Deployer) Up() error {
+	if err := d.Init(); err != nil {
 		return err
 	}
 
@@ -51,49 +51,48 @@ func (d *deployer) Up() error {
 	}()
 
 	// Only run prepare once for the first GCP project.
-	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
+	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
 		return err
 	}
-	if err := d.createNetwork(); err != nil {
+	if err := d.CreateNetwork(); err != nil {
 		return err
 	}
-
-	if err := d.createClusters(); err != nil {
+	if err := d.CreateClusters(); err != nil {
 		return fmt.Errorf("error creating the clusters: %w", err)
 	}
 
-	if err := d.testSetup(); err != nil {
+	if err := d.TestSetup(); err != nil {
 		return fmt.Errorf("error running setup for the tests: %w", err)
 	}
 
 	return nil
 }
 
-func (d *deployer) createClusters() error {
+func (d *Deployer) CreateClusters() error {
 	klog.V(2).Infof("Environment: %v", os.Environ())
 
-	totalTryCount := math.Max(len(d.regions), len(d.zones))
+	totalTryCount := math.Max(len(d.Regions), len(d.Zones))
 	for retryCount := 0; retryCount < totalTryCount; retryCount++ {
 		d.retryCount = retryCount
 
-		if err := d.createSubnets(); err != nil {
+		if err := d.CreateSubnets(); err != nil {
 			return err
 		}
-		if err := d.setupNetwork(); err != nil {
+		if err := d.SetupNetwork(); err != nil {
 			return err
 		}
 
 		eg := new(errgroup.Group)
-		locationArg := locationFlag(d.regions, d.zones, retryCount)
-		for i := range d.projects {
-			project := d.projects[i]
+		locationArg := locationFlag(d.Regions, d.Zones, retryCount)
+		for i := range d.Projects {
+			project := d.Projects[i]
 			clusters := d.projectClustersLayout[project]
-			subNetworkArgs := subNetworkArgs(d.autopilot, d.projects, regionFromLocation(d.regions, d.zones, d.retryCount), d.network, i)
+			subNetworkArgs := subNetworkArgs(d.Autopilot, d.Projects, regionFromLocation(d.Regions, d.Zones, d.retryCount), d.Network, i)
 			for j := range clusters {
 				cluster := clusters[j]
 				eg.Go(
 					func() error {
-						return d.createCluster(project, cluster, subNetworkArgs, locationArg)
+						return d.CreateCluster(project, cluster, subNetworkArgs, locationArg)
 					},
 				)
 			}
@@ -103,8 +102,8 @@ func (d *deployer) createClusters() error {
 		if err := eg.Wait(); err != nil {
 			if d.isRetryableError(err) {
 				go func() {
-					d.deleteClusters(r)
-					if err := d.deleteSubnets(r); err != nil {
+					d.DeleteClusters(r)
+					if err := d.DeleteSubnets(r); err != nil {
 						log.Printf("Warning: error encountered deleting subnets: %v", err)
 					}
 				}()
@@ -121,7 +120,7 @@ func (d *deployer) createClusters() error {
 }
 
 // isRetryableError checks if the error happens during cluster creation can be potentially solved by retrying or not.
-func (d *deployer) isRetryableError(err error) bool {
+func (d *Deployer) isRetryableError(err error) bool {
 	for _, regx := range d.retryableErrorPatternsCompiled {
 		if regx.MatchString(err.Error()) {
 			return true
@@ -130,24 +129,24 @@ func (d *deployer) isRetryableError(err error) bool {
 	return false
 }
 
-func (d *deployer) createCluster(project string, cluster cluster, subNetworkArgs []string, locationArg string) error {
-	privateClusterArgs := privateClusterArgs(d.projects, d.network, d.privateClusterAccessLevel, d.privateClusterMasterIPRanges, cluster)
+func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs []string, locationArg string) error {
+	privateClusterArgs := privateClusterArgs(d.Projects, d.Network, d.PrivateClusterAccessLevel, d.PrivateClusterMasterIPRanges, cluster)
 	// Create the cluster
 	args := d.createCommand()
 	args = append(args,
 		"--project="+project,
 		locationArg,
-		"--network="+transformNetworkName(d.projects, d.network),
+		"--network="+transformNetworkName(d.Projects, d.Network),
 	)
 	// A few args are not supported in GKE Autopilot cluster creation, so they should be left unset.
 	// https://cloud.google.com/sdk/gcloud/reference/container/clusters/create-auto
-	if !d.autopilot {
-		args = append(args, "--machine-type="+d.machineType)
-		args = append(args, "--num-nodes="+strconv.Itoa(d.nodes))
-		args = append(args, "--image-type="+d.imageType)
+	if !d.Autopilot {
+		args = append(args, "--machine-type="+d.MachineType)
+		args = append(args, "--num-nodes="+strconv.Itoa(d.NumNodes))
+		args = append(args, "--image-type="+d.ImageType)
 	}
 
-	if d.workloadIdentityEnabled {
+	if d.WorkloadIdentityEnabled {
 		args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
 	}
 	if d.ReleaseChannel != "" {
@@ -177,35 +176,35 @@ func (d *deployer) createCluster(project string, cluster cluster, subNetworkArgs
 	return nil
 }
 
-func (d *deployer) createCommand() []string {
+func (d *Deployer) createCommand() []string {
 	// Use the --create-command flag if it's explicitly specified.
-	if d.createCommandFlag != "" {
-		return strings.Fields(d.createCommandFlag)
+	if d.CreateCommandFlag != "" {
+		return strings.Fields(d.CreateCommandFlag)
 	}
 
 	fs := make([]string, 0)
-	if d.gcloudCommandGroup != "" {
-		fs = append(fs, d.gcloudCommandGroup)
+	if d.GcloudCommandGroup != "" {
+		fs = append(fs, d.GcloudCommandGroup)
 	}
 	fs = append(fs, "container", "clusters")
-	if d.autopilot {
+	if d.Autopilot {
 		fs = append(fs, "create-auto")
 	} else {
 		fs = append(fs, "create")
 	}
 	fs = append(fs, "--quiet")
-	fs = append(fs, strings.Fields(d.gcloudExtraFlags)...)
+	fs = append(fs, strings.Fields(d.GcloudExtraFlags)...)
 	return fs
 }
 
-func (d *deployer) IsUp() (up bool, err error) {
-	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
+func (d *Deployer) IsUp() (up bool, err error) {
+	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
 		return false, err
 	}
 
-	for _, project := range d.projects {
+	for _, project := range d.Projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := getClusterCredentials(project, locationFlag(d.regions, d.zones, d.retryCount), cluster.name); err != nil {
+			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
 				return false, err
 			}
 
@@ -225,23 +224,23 @@ func (d *deployer) IsUp() (up bool, err error) {
 	return true, nil
 }
 
-func (d *deployer) testSetup() error {
+func (d *Deployer) TestSetup() error {
 	if d.testPrepared {
 		// Ensure setup is a singleton.
 		return nil
 	}
 
 	// Only run prepare once for the first GCP project.
-	if err := d.prepareGcpIfNeeded(d.projects[0]); err != nil {
+	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
 		return err
 	}
 	if _, err := d.Kubeconfig(); err != nil {
 		return err
 	}
-	if err := d.getInstanceGroups(); err != nil {
+	if err := d.GetInstanceGroups(); err != nil {
 		return err
 	}
-	if err := d.ensureFirewallRules(); err != nil {
+	if err := d.EnsureFirewallRules(); err != nil {
 		return err
 	}
 	d.testPrepared = true
@@ -251,7 +250,7 @@ func (d *deployer) testSetup() error {
 // Kubeconfig returns a path to a kubeconfig file for the cluster in
 // a temp directory, creating one if one does not exist.
 // It also sets the KUBECONFIG environment variable appropriately.
-func (d *deployer) Kubeconfig() (string, error) {
+func (d *Deployer) Kubeconfig() (string, error) {
 	if d.kubecfgPath != "" {
 		return d.kubecfgPath, nil
 	}
@@ -262,13 +261,13 @@ func (d *deployer) Kubeconfig() (string, error) {
 	}
 
 	kubecfgFiles := make([]string, 0)
-	for _, project := range d.projects {
+	for _, project := range d.Projects {
 		for _, cluster := range d.projectClustersLayout[project] {
 			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster.name))
 			if err := os.Setenv("KUBECONFIG", filename); err != nil {
 				return "", err
 			}
-			if err := getClusterCredentials(project, locationFlag(d.regions, d.zones, d.retryCount), cluster.name); err != nil {
+			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)
@@ -280,29 +279,29 @@ func (d *deployer) Kubeconfig() (string, error) {
 }
 
 // verifyCommonFlags validates flags for up phase.
-func (d *deployer) verifyUpFlags() error {
-	if len(d.projects) == 0 && d.boskosProjectsRequested <= 0 {
+func (d *Deployer) VerifyUpFlags() error {
+	if len(d.Projects) == 0 && d.BoskosProjectsRequested <= 0 {
 		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
 	}
 
-	if len(d.clusters) == 0 {
-		if len(d.projects) > 1 || d.boskosProjectsRequested > 1 {
+	if len(d.Clusters) == 0 {
+		if len(d.Projects) > 1 || d.BoskosProjectsRequested > 1 {
 			return fmt.Errorf("explicit --cluster-name must be set for multi-project profile")
 		}
 		if err := d.UpOptions.Validate(); err != nil {
 			return err
 		}
-		d.clusters = generateClusterNames(d.UpOptions.NumClusters, d.commonOptions.RunID())
+		d.Clusters = generateClusterNames(d.UpOptions.NumClusters, d.kubetest2CommonOptions.RunID())
 	} else {
 		klog.V(0).Infof("explicit --cluster-name specified, ignoring --num-clusters")
 	}
-	if err := d.verifyNetworkFlags(); err != nil {
+	if err := d.VerifyNetworkFlags(); err != nil {
 		return err
 	}
-	if err := d.verifyLocationFlags(); err != nil {
+	if err := d.VerifyLocationFlags(); err != nil {
 		return err
 	}
-	if d.nodes <= 0 {
+	if d.NumNodes <= 0 {
 		return fmt.Errorf("--num-nodes must be larger than 0")
 	}
 	if err := validateVersion(d.Version); err != nil {

@@ -29,26 +29,27 @@ import (
 )
 
 const (
-	defaultBoskosLocation         = "http://boskos.test-pods.svc.cluster.local."
-	defaultGKEProjectResourceType = "gke-project"
+	defaultBoskosLocation              = "http://boskos.test-pods.svc.cluster.local."
+	defaultGKEProjectResourceType      = "gke-project"
+	defaultBoskosAcquireTimeoutSeconds = 300
 )
 
-func (d *deployer) init() error {
+func (d *Deployer) Init() error {
 	var err error
-	d.doInit.Do(func() { err = d.initialize() })
+	d.doInit.Do(func() { err = d.Initialize() })
 	return err
 }
 
-// initialize should only be called by init(), behind a sync.Once
-func (d *deployer) initialize() error {
-	if d.commonOptions.ShouldUp() {
-		if err := d.verifyUpFlags(); err != nil {
+// Initialize should only be called by init(), behind a sync.Once
+func (d *Deployer) Initialize() error {
+	if d.kubetest2CommonOptions.ShouldUp() {
+		if err := d.VerifyUpFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for up: %w", err)
 		}
 
 		// Compile the retryable error patterns as regex objects.
-		d.retryableErrorPatternsCompiled = make([]*regexp.Regexp, len(d.retryableErrorPatterns))
-		for i, regxString := range d.retryableErrorPatterns {
+		d.retryableErrorPatternsCompiled = make([]*regexp.Regexp, len(d.RetryableErrorPatterns))
+		for i, regxString := range d.RetryableErrorPatterns {
 			var err error
 			d.retryableErrorPatternsCompiled[i], err = regexp.Compile(regxString)
 			if err != nil {
@@ -56,50 +57,50 @@ func (d *deployer) initialize() error {
 			}
 		}
 
-		if len(d.projects) == 0 {
-			klog.V(1).Infof("No GCP projects provided, acquiring from Boskos %d project/s", d.boskosProjectsRequested)
+		if len(d.Projects) == 0 {
+			klog.V(1).Infof("No GCP projects provided, acquiring from Boskos %d project/s", d.BoskosProjectsRequested)
 
-			boskosClient, err := boskos.NewClient(d.boskosLocation)
+			boskosClient, err := boskos.NewClient(d.BoskosLocation)
 			if err != nil {
 				return fmt.Errorf("failed to make boskos client: %w", err)
 			}
 			d.boskos = boskosClient
 
-			for i := 0; i < d.boskosProjectsRequested; i++ {
+			for i := 0; i < d.BoskosProjectsRequested; i++ {
 				resource, err := boskos.Acquire(
 					d.boskos,
-					d.boskosResourceType,
-					time.Duration(d.boskosAcquireTimeoutSeconds)*time.Second,
+					d.BoskosResourceType,
+					time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
 					d.boskosHeartbeatClose,
 				)
 
 				if err != nil {
 					return fmt.Errorf("init failed to get project from boskos: %w", err)
 				}
-				d.projects = append(d.projects, resource.Name)
+				d.Projects = append(d.Projects, resource.Name)
 				klog.V(1).Infof("Got project %s from boskos", resource.Name)
 			}
 		}
 
 		// Multi-cluster name adjustment
-		numProjects := len(d.projects)
+		numProjects := len(d.Projects)
 		d.projectClustersLayout = make(map[string][]cluster, numProjects)
 		if numProjects > 1 {
-			if err := buildProjectClustersLayout(d.projects, d.clusters, d.projectClustersLayout); err != nil {
+			if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
 				return fmt.Errorf("failed to build the project clusters layout: %v", err)
 			}
 		} else {
 			// Backwards compatible construction
-			clusters := make([]cluster, len(d.clusters))
-			for i, clusterName := range d.clusters {
+			clusters := make([]cluster, len(d.Clusters))
+			for i, clusterName := range d.Clusters {
 				clusters[i] = cluster{i, clusterName}
 			}
-			d.projectClustersLayout[d.projects[0]] = clusters
+			d.projectClustersLayout[d.Projects[0]] = clusters
 		}
 	}
 
-	if d.commonOptions.ShouldDown() {
-		if err := d.verifyDownFlags(); err != nil {
+	if d.kubetest2CommonOptions.ShouldDown() {
+		if err := d.VerifyDownFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for down: %w", err)
 		}
 	}
