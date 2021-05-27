@@ -33,6 +33,9 @@ import (
 //
 // TODO(RonWeber): Make this work with multizonal and regional clusters.
 func (d *deployer) DumpClusterLogs() error {
+	if len(d.zones) <= 0 {
+		return fmt.Errorf("DumpClusterLogs is currently only supported for zonal clusters")
+	}
 	// gkeLogDumpTemplate is a template of a shell script where
 	// - %[1]s is the project
 	// - %[2]s is the zone
@@ -76,10 +79,9 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		if d.gcsLogsDir != "" {
 			dumpCmd += " " + d.gcsLogsDir
 		}
-
 		cmd := exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
 			project,
-			d.zones,
+			d.zones[d.retryCount],
 			os.Getenv("NODE_OS_DISTRIBUTION"),
 			strings.Join(filters, " OR "),
 			dumpCmd))
