@@ -46,7 +46,7 @@ var (
 	defaultImageTag = "gke.gcr.io"
 )
 
-func (d *deployer) Build() error {
+func (d *Deployer) Build() error {
 	imageTag := defaultImageTag
 	if d.BuildOptions.CommonBuildOptions.ImageLocation != "" {
 		imageTag = d.BuildOptions.CommonBuildOptions.ImageLocation
@@ -56,7 +56,7 @@ func (d *deployer) Build() error {
 	if err := os.Setenv("KUBE_DOCKER_REGISTRY", imageTag); err != nil {
 		return err
 	}
-	if err := d.verifyBuildFlags(); err != nil {
+	if err := d.VerifyBuildFlags(); err != nil {
 		return err
 	}
 	version, err := d.BuildOptions.Build()
@@ -72,11 +72,11 @@ func (d *deployer) Build() error {
 	// append the kubetest2 run id
 	// avoid double + in the version
 	// so they are valid docker tags
-	if !strings.HasSuffix(version, d.commonOptions.RunID()) {
+	if !strings.HasSuffix(version, d.kubetest2CommonOptions.RunID()) {
 		if strings.Contains(version, "+") {
-			version += "-" + d.commonOptions.RunID()
+			version += "-" + d.kubetest2CommonOptions.RunID()
 		} else {
-			version += "+" + d.commonOptions.RunID()
+			version += "+" + d.kubetest2CommonOptions.RunID()
 		}
 	}
 
@@ -87,22 +87,22 @@ func (d *deployer) Build() error {
 		}
 	}
 	d.Version = version
-	build.StoreCommonBinaries(d.RepoRoot, d.commonOptions.RunDir())
+	build.StoreCommonBinaries(d.RepoRoot, d.kubetest2CommonOptions.RunDir())
 	return nil
 }
 
-func (d *deployer) verifyBuildFlags() error {
+func (d *Deployer) VerifyBuildFlags() error {
 	if d.RepoRoot == "" {
 		return fmt.Errorf("required repo-root when building from source")
 	}
 	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
-	if d.commonOptions.ShouldBuild() && d.commonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
+	if d.kubetest2CommonOptions.ShouldBuild() && d.kubetest2CommonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
 		return fmt.Errorf("creating a gke cluster from built sources requires staging them to a specific GCS bucket, use --stage=gs://<bucket>")
 	}
 	// force extra GCP files to be staged
 	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
 	// add kubetest2 runid as the version suffix
-	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.commonOptions.RunID()
+	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.kubetest2CommonOptions.RunID()
 	return d.BuildOptions.Validate()
 }
 

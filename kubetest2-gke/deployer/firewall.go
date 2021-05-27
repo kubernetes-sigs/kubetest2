@@ -27,18 +27,18 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) ensureFirewallRules() error {
+func (d *Deployer) EnsureFirewallRules() error {
 	// Do not modify the firewall rules for the default network
-	if d.network == "default" {
+	if d.Network == "default" {
 		return nil
 	}
 
-	if len(d.projects) == 1 {
-		project := d.projects[0]
-		return ensureFirewallRulesForSingleProject(project, d.network, d.projectClustersLayout[project], d.instanceGroups)
+	if len(d.Projects) == 1 {
+		project := d.Projects[0]
+		return ensureFirewallRulesForSingleProject(project, d.Network, d.projectClustersLayout[project], d.instanceGroups)
 	}
 
-	return ensureFirewallRulesForMultiProjects(d.projects, d.network, d.subnetworkRanges)
+	return ensureFirewallRulesForMultiProjects(d.Projects, d.Network, d.SubnetworkRanges)
 }
 
 // Ensure firewall rules for e2e testing for all clusters in one single project.
@@ -118,7 +118,7 @@ func ensureFirewallRulesForMultiProjects(projects []string, network string, subn
 }
 
 // Ensure that all firewall-rules are deleted from specific network.
-func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, error) {
+func (d *Deployer) CleanupNetworkFirewalls(hostProject, network string) (int, error) {
 	// Do not delete firewall rules for the default network.
 	if network == "default" {
 		return 0, nil
@@ -150,7 +150,7 @@ func (d *deployer) cleanupNetworkFirewalls(hostProject, network string) (int, er
 	return len(fws), nil
 }
 
-func (d *deployer) getInstanceGroups() error {
+func (d *Deployer) GetInstanceGroups() error {
 	// If instanceGroups has already been populated, return directly.
 	if d.instanceGroups != nil {
 		return nil
@@ -159,9 +159,9 @@ func (d *deployer) getInstanceGroups() error {
 	// Initialize project instance groups structure
 	d.instanceGroups = map[string]map[string][]*ig{}
 
-	location := locationFlag(d.regions, d.zones, d.retryCount)
+	location := locationFlag(d.Regions, d.Zones, d.retryCount)
 
-	for _, project := range d.projects {
+	for _, project := range d.Projects {
 		d.instanceGroups[project] = map[string][]*ig{}
 
 		for _, cluster := range d.projectClustersLayout[project] {

@@ -32,15 +32,16 @@ import (
 // the least gross hack to get this done.
 //
 // TODO(RonWeber): Make this work with multizonal and regional clusters.
-func (d *deployer) DumpClusterLogs() error {
-	if len(d.zones) <= 0 {
+func (d *Deployer) DumpClusterLogs() error {
+	if len(d.Zones) <= 0 {
 		return fmt.Errorf("DumpClusterLogs is currently only supported for zonal clusters")
 	}
 	// gkeLogDumpTemplate is a template of a shell script where
 	// - %[1]s is the project
 	// - %[2]s is the zone
-	// - %[3]s is a filter composed of the instance groups
-	// - %[4]s is the log-dump.sh command line
+	// - %[3]s is the KUBE_NODE_OS_DISTRIBUTION
+	// - %[4]s is a filter composed of the instance groups
+	// - %[5]s is the log-dump.sh command line
 	const gkeLogDumpTemplate = `
 function log_dump_custom_get_instances() {
   if [[ $1 == "master" ]]; then
@@ -57,7 +58,7 @@ export KUBERNETES_PROVIDER=gke
 export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 %[5]s
 `
-	for _, project := range d.projects {
+	for _, project := range d.Projects {
 		// Prevent an obvious injection.
 		if strings.Contains(d.localLogsDir, "'") || strings.Contains(d.gcsLogsDir, "'") {
 			return fmt.Errorf("%q or %q contain single quotes - nice try", d.localLogsDir, d.gcsLogsDir)
@@ -66,7 +67,7 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		// Generate a slice of filters to be OR'd together below
 		var filters []string
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := d.getInstanceGroups(); err != nil {
+			if err := d.GetInstanceGroups(); err != nil {
 				return err
 			}
 			for _, ig := range d.instanceGroups[project][cluster.name] {
@@ -81,7 +82,7 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		}
 		cmd := exec.Command("bash", "-c", fmt.Sprintf(gkeLogDumpTemplate,
 			project,
-			d.zones[d.retryCount],
+			d.Zones[d.retryCount],
 			os.Getenv("NODE_OS_DISTRIBUTION"),
 			strings.Join(filters, " OR "),
 			dumpCmd))

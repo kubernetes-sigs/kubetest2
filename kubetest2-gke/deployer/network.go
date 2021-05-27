@@ -37,35 +37,35 @@ bindings:
 etag: %s
 `
 
-func (d *deployer) verifyNetworkFlags() error {
+func (d *Deployer) VerifyNetworkFlags() error {
 	// Verify private cluster args.
-	if d.privateClusterAccessLevel != "" && d.privateClusterAccessLevel != string(no) &&
-		d.privateClusterAccessLevel != string(limited) && d.privateClusterAccessLevel != string(unrestricted) {
+	if d.PrivateClusterAccessLevel != "" && d.PrivateClusterAccessLevel != string(no) &&
+		d.PrivateClusterAccessLevel != string(limited) && d.PrivateClusterAccessLevel != string(unrestricted) {
 		return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
 	}
-	if d.privateClusterAccessLevel != "" && len(d.clusters) != len(d.privateClusterMasterIPRanges) {
+	if d.PrivateClusterAccessLevel != "" && len(d.Clusters) != len(d.PrivateClusterMasterIPRanges) {
 		return fmt.Errorf("--private-cluster-master-ip-range must have the same length as the number of clusters when requesting private cluster(s)")
 	}
 
-	numProjects := len(d.projects)
+	numProjects := len(d.Projects)
 	if numProjects == 0 {
-		numProjects = d.boskosProjectsRequested
+		numProjects = d.BoskosProjectsRequested
 	}
 	// For single project, no other verification is needed.
 	if numProjects == 1 {
 		return nil
 	}
 
-	if d.network == "default" {
+	if d.Network == "default" {
 		return errors.New("the default network cannot be used for multi-project profile")
 	}
 
-	if len(d.subnetworkRanges) != numProjects-1 {
+	if len(d.SubnetworkRanges) != numProjects-1 {
 		return fmt.Errorf("the number of subnetwork ranges provided "+
-			"should be the same as the number of service projects: %d!=%d", len(d.subnetworkRanges), numProjects-1)
+			"should be the same as the number of service projects: %d!=%d", len(d.SubnetworkRanges), numProjects-1)
 	}
 
-	for _, sr := range d.subnetworkRanges {
+	for _, sr := range d.SubnetworkRanges {
 		parts := strings.Split(sr, " ")
 		if len(parts) != 3 {
 			return fmt.Errorf("the provided subnetwork range %s is not in the right format, should be like "+
@@ -76,24 +76,24 @@ func (d *deployer) verifyNetworkFlags() error {
 	return nil
 }
 
-func (d *deployer) createNetwork() error {
+func (d *Deployer) CreateNetwork() error {
 	// Create network if it doesn't exist.
 	// For single project profile, the subnet-mode could be auto for simplicity.
 	// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
 	//   (Here we consider the first project to be the host project and the rest be service projects)
 	//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
 	subnetMode := "auto"
-	if len(d.projects) > 1 {
+	if len(d.Projects) > 1 {
 		subnetMode = "custom"
 	}
-	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.network,
-		"--project="+d.projects[0],
+	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.Network,
+		"--project="+d.Projects[0],
 		"--format=value(name)")) != nil {
 		// Assume error implies non-existent.
 		// TODO(chizhg): find a more reliable way to check if the network exists or not.
-		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.network)
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.network,
-			"--project="+d.projects[0],
+		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.Network)
+		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.Network,
+			"--project="+d.Projects[0],
 			"--subnet-mode="+subnetMode)); err != nil {
 			return err
 		}
@@ -101,23 +101,23 @@ func (d *deployer) createNetwork() error {
 	return nil
 }
 
-func (d *deployer) createSubnets() error {
+func (d *Deployer) CreateSubnets() error {
 	// Create subnetworks for the service projects to work with shared VPC if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
-	if len(d.projects) == 1 {
+	if len(d.Projects) == 1 {
 		return nil
 	}
-	hostProject := d.projects[0]
-	for i, nr := range d.subnetworkRanges {
-		serviceProject := d.projects[i+1]
+	hostProject := d.Projects[0]
+	for i, nr := range d.SubnetworkRanges {
+		serviceProject := d.Projects[i+1]
 		parts := strings.Split(nr, " ")
 		// The subnetwork name is in the format of `[main_network]-[service_project_id]`.
-		subnetName := d.network + "-" + serviceProject
+		subnetName := d.Network + "-" + serviceProject
 		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "create",
 			subnetName,
 			"--project="+hostProject,
-			"--region="+regionFromLocation(d.regions, d.zones, d.retryCount),
-			"--network="+d.network,
+			"--region="+regionFromLocation(d.Regions, d.Zones, d.retryCount),
+			"--network="+d.Network,
 			"--range="+parts[0],
 			"--secondary-range",
 			fmt.Sprintf("%s-services=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
@@ -128,18 +128,18 @@ func (d *deployer) createSubnets() error {
 	return nil
 }
 
-func (d *deployer) deleteSubnets(retryCount int) error {
+func (d *Deployer) DeleteSubnets(retryCount int) error {
 	// Delete the subnetworks if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#deleting_the_shared_network
-	if len(d.projects) >= 1 {
-		hostProject := d.projects[0]
-		for i := 1; i < len(d.projects); i++ {
-			serviceProject := d.projects[i]
-			subnetName := d.network + "-" + serviceProject
+	if len(d.Projects) >= 1 {
+		hostProject := d.Projects[0]
+		for i := 1; i < len(d.Projects); i++ {
+			serviceProject := d.Projects[i]
+			subnetName := d.Network + "-" + serviceProject
 			if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "delete",
 				subnetName,
 				"--project="+hostProject,
-				"--region="+regionFromLocation(d.regions, d.zones, retryCount),
+				"--region="+regionFromLocation(d.Regions, d.Zones, retryCount),
 				"--quiet",
 			)); err != nil {
 				return err
@@ -150,14 +150,14 @@ func (d *deployer) deleteSubnets(retryCount int) error {
 	return nil
 }
 
-func (d *deployer) deleteNetwork() error {
+func (d *Deployer) DeleteNetwork() error {
 	// Do not delete the default network.
-	if d.network == "default" {
+	if d.Network == "default" {
 		return nil
 	}
 
-	if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.network,
-		"--project="+d.projects[0], "--quiet")); err != nil {
+	if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.Network,
+		"--project="+d.Projects[0], "--quiet")); err != nil {
 		return err
 	}
 
@@ -197,11 +197,11 @@ func subNetworkArgs(autopilot bool, projects []string, region, network string, p
 	return args
 }
 
-func (d *deployer) setupNetwork() error {
-	if err := enableSharedVPCAndGrantRoles(d.projects, regionFromLocation(d.regions, d.zones, d.retryCount), d.network); err != nil {
+func (d *Deployer) SetupNetwork() error {
+	if err := enableSharedVPCAndGrantRoles(d.Projects, regionFromLocation(d.Regions, d.Zones, d.retryCount), d.Network); err != nil {
 		return err
 	}
-	if err := grantHostServiceAgentUserRole(d.projects); err != nil {
+	if err := grantHostServiceAgentUserRole(d.Projects); err != nil {
 		return err
 	}
 	return nil
@@ -303,11 +303,11 @@ func grantHostServiceAgentUserRole(projects []string) error {
 	return nil
 }
 
-func (d *deployer) teardownNetwork() error {
-	if err := disableSharedVPCProjects(d.projects); err != nil {
+func (d *Deployer) TeardownNetwork() error {
+	if err := disableSharedVPCProjects(d.Projects); err != nil {
 		return err
 	}
-	if err := removeHostServiceAgentUserRole(d.projects); err != nil {
+	if err := removeHostServiceAgentUserRole(d.Projects); err != nil {
 		return err
 	}
 	return nil
