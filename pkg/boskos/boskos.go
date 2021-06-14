@@ -46,7 +46,7 @@ func NewClient(boskosLocation string) (*client.Client, error) {
 }
 
 // Acquire acquires a resource for the given type and starts a heartbeat goroutine to keep the resource reserved.
-func Acquire(boskosClient *client.Client, resourceType string, timeout time.Duration, heartbeatClose chan struct{}) (*common.Resource, error) {
+func Acquire(boskosClient *client.Client, resourceType string, timeout, heartbeatInterval time.Duration, heartbeatClose chan struct{}) (*common.Resource, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -58,12 +58,14 @@ func Acquire(boskosClient *client.Client, resourceType string, timeout time.Dura
 		return nil, fmt.Errorf("boskos had no %s available", resourceType)
 	}
 
-	startBoskosHeartbeat(
-		boskosClient,
-		boskosResource,
-		5*time.Minute,
-		heartbeatClose,
-	)
+	if heartbeatInterval != 0 {
+		startBoskosHeartbeat(
+			boskosClient,
+			boskosResource,
+			heartbeatInterval,
+			heartbeatClose,
+		)
+	}
 
 	return boskosResource, nil
 }

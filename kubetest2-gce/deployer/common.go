@@ -64,6 +64,7 @@ func (d *deployer) initialize() error {
 				d.boskos,
 				gceProjectResourceType,
 				time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
+				time.Duration(d.BoskosHeartbeatIntervalSeconds)*time.Second,
 				d.boskosHeartbeatClose,
 			)
 

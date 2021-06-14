@@ -159,10 +159,11 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			Version:          "",
 			GCPSSHKeyIgnored: true,
 
-			BoskosLocation:              defaultBoskosLocation,
-			BoskosResourceType:          defaultGKEProjectResourceType,
-			BoskosAcquireTimeoutSeconds: defaultBoskosAcquireTimeoutSeconds,
-			BoskosProjectsRequested:     1,
+			BoskosLocation:                 defaultBoskosLocation,
+			BoskosResourceType:             defaultGKEProjectResourceType,
+			BoskosAcquireTimeoutSeconds:    defaultBoskosAcquireTimeoutSeconds,
+			BoskosHeartbeatIntervalSeconds: defaultBoskosHeartbeatIntervalSeconds,
+			BoskosProjectsRequested:        1,
 
 			RetryableErrorPatterns: []string{gceStockoutErrorPattern},
 		},

@@ -33,10 +33,11 @@ type UpOptions struct {
 	WorkloadIdentityEnabled bool   `flag:"~enable-workload-identity" desc:"Whether enable workload identity for the cluster or not. See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity."`
 	GCPSSHKeyIgnored        bool   `flag:"~ignore-gcp-ssh-key" desc:"Whether the GCP SSH key should be ignored or not for bringing up the cluster."`
 
-	BoskosLocation              string `flag:"~boskos-location" desc:"If set, manually specifies the location of the Boskos server."`
-	BoskosResourceType          string `flag:"~boskos-resource-type" desc:"If set, manually specifies the resource type of GCP projects to acquire from Boskos."`
-	BoskosAcquireTimeoutSeconds int    `flag:"~boskos-acquire-timeout-seconds" desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
-	BoskosProjectsRequested     int    `flag:"~projects-requested" desc:"Number of projects to request from Boskos. It is only respected if projects is empty, and must be larger than zero."`
+	BoskosLocation                 string `flag:"~boskos-location" desc:"If set, manually specifies the location of the Boskos server."`
+	BoskosResourceType             string `flag:"~boskos-resource-type" desc:"If set, manually specifies the resource type of GCP projects to acquire from Boskos."`
+	BoskosAcquireTimeoutSeconds    int    `flag:"~boskos-acquire-timeout-seconds" desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
+	BoskosHeartbeatIntervalSeconds int    `flag:"~boskos-heartbeat-interval-seconds" desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	BoskosProjectsRequested        int    `flag:"~projects-requested" desc:"Number of projects to request from Boskos. It is only respected if projects is empty, and must be larger than zero."`
 
 	PrivateClusterAccessLevel    string   `flag:"~private-cluster-access-level" desc:"Private cluster access level, if not empty, must be one of 'no', 'limited' or 'unrestricted'. See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters."`
 	PrivateClusterMasterIPRanges []string `flag:"~private-cluster-master-ip-range" desc:"Private cluster master IP ranges. It should be IPv4 CIDR(s), and its length must be the same as the number of clusters if private cluster is requested."`
