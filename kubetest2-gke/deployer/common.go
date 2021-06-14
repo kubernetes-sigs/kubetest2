@@ -29,9 +29,10 @@ import (
 )
 
 const (
-	defaultBoskosLocation              = "http://boskos.test-pods.svc.cluster.local."
-	defaultGKEProjectResourceType      = "gke-project"
-	defaultBoskosAcquireTimeoutSeconds = 300
+	defaultBoskosLocation                 = "http://boskos.test-pods.svc.cluster.local."
+	defaultGKEProjectResourceType         = "gke-project"
+	defaultBoskosAcquireTimeoutSeconds    = 300
+	defaultBoskosHeartbeatIntervalSeconds = 300
 )
 
 func (d *Deployer) Init() error {
@@ -71,6 +72,7 @@ func (d *Deployer) Initialize() error {
 					d.boskos,
 					d.BoskosResourceType,
 					time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
+					time.Duration(d.BoskosHeartbeatIntervalSeconds)*time.Second,
 					d.boskosHeartbeatClose,
 				)
 

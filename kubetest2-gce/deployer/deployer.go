@@ -65,15 +65,16 @@ type deployer struct {
 	// network is set for firewall rule creation, see buildEnv() and firewall.go
 	network string
 
-	BoskosAcquireTimeoutSeconds int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
-	RepoRoot                    string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
-	GCPProject                  string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
-	GCPZone                     string `desc:"GCP Zone to create VMs in. If unset, kube-up.sh and kube-down.sh defaults apply."`
-	EnableComputeAPI            bool   `desc:"If set, the deployer will enable the compute API for the project during the Up phase. This is necessary if the project has not been used before. WARNING: The currently configured GCP account must have permission to enable this API on the configured project."`
-	OverwriteLogsDir            bool   `desc:"If set, will overwrite an existing logs directory if one is encountered during dumping of logs. Useful when runnning tests locally."`
-	BoskosLocation              string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed, defaults to http://boskos.test-pods.svc.cluster.local."`
-	LegacyMode                  bool   `desc:"Set if the provided repo root is the kubernetes/kubernetes repo and not kubernetes/cloud-provider-gcp."`
-	NumNodes                    int    `desc:"The number of nodes in the cluster."`
+	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
+	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	RepoRoot                       string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
+	GCPProject                     string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
+	GCPZone                        string `desc:"GCP Zone to create VMs in. If unset, kube-up.sh and kube-down.sh defaults apply."`
+	EnableComputeAPI               bool   `desc:"If set, the deployer will enable the compute API for the project during the Up phase. This is necessary if the project has not been used before. WARNING: The currently configured GCP account must have permission to enable this API on the configured project."`
+	OverwriteLogsDir               bool   `desc:"If set, will overwrite an existing logs directory if one is encountered during dumping of logs. Useful when runnning tests locally."`
+	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed, defaults to http://boskos.test-pods.svc.cluster.local."`
+	LegacyMode                     bool   `desc:"Set if the provided repo root is the kubernetes/kubernetes repo and not kubernetes/cloud-provider-gcp."`
+	NumNodes                       int    `desc:"The number of nodes in the cluster."`
 
 	EnableCacheMutationDetector bool   `desc:"Sets the environment variable ENABLE_CACHE_MUTATION_DETECTOR=true during deployment. This should cause a panic if anything mutates a shared informer cache."`
 	RuntimeConfig               string `desc:"Sets the KUBE_RUNTIME_CONFIG environment variable during deployment."`
@@ -117,11 +118,12 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		logsDir:              filepath.Join(opts.RunDir(), "cluster-logs"),
 		boskosHeartbeatClose: make(chan struct{}),
 		// names need to start with an alphabet
-		instancePrefix:              "kt2-" + pseudoUniqueSubstring(opts.RunID()),
-		network:                     "kt2-" + pseudoUniqueSubstring(opts.RunID()),
-		BoskosAcquireTimeoutSeconds: 5 * 60,
-		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
-		NumNodes:                    3,
+		instancePrefix:                 "kt2-" + pseudoUniqueSubstring(opts.RunID()),
+		network:                        "kt2-" + pseudoUniqueSubstring(opts.RunID()),
+		BoskosAcquireTimeoutSeconds:    5 * 60,
+		BoskosHeartbeatIntervalSeconds: 5 * 60,
+		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
+		NumNodes:                       3,
 	}
 
 	flagSet, err := gpflag.Parse(d)
