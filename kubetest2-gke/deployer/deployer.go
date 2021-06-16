@@ -39,8 +39,9 @@ import (
 const Name = "gke"
 
 const (
-	e2eAllow     = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
-	defaultImage = "cos"
+	e2eAllow            = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
+	defaultImage        = "cos"
+	defaultWindowsImage = WindowsImageTypeLTSC
 )
 
 const (
@@ -65,9 +66,15 @@ var (
 	// m[3]: unique hash (used as nonce for firewall rules)
 	poolRe = regexp.MustCompile(`zones/([^/]+)/instanceGroupManagers/(gk[e|3]-.*-([0-9a-f]{8})-grp)$`)
 
-	urlRe           = regexp.MustCompile(`https://.*/`)
+	urlRe = regexp.MustCompile(`https://.*/`)
+
 	defaultNodePool = gkeNodePool{
 		Nodes:       3,
+		MachineType: "n1-standard-2",
+	}
+
+	defaultWindowsNodePool = gkeNodePool{
+		Nodes:       1,
 		MachineType: "n1-standard-2",
 	}
 )
@@ -154,10 +161,13 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			Environment: "prod",
 		},
 		UpOptions: &options.UpOptions{
-			NumClusters: 1,
-			NumNodes:    defaultNodePool.Nodes,
-			MachineType: defaultNodePool.MachineType,
-			ImageType:   defaultImage,
+			NumClusters:        1,
+			NumNodes:           defaultNodePool.Nodes,
+			MachineType:        defaultNodePool.MachineType,
+			ImageType:          defaultImage,
+			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
+			WindowsMachineType: defaultWindowsNodePool.MachineType,
+			WindowsImageType:   defaultWindowsImage,
 			// Leave Version as empty to use the default cluster version.
 			Version:          "",
 			GCPSSHKeyIgnored: true,
