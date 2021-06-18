@@ -22,7 +22,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -164,6 +163,12 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 		}
 	} else {
 		args = append(args, "--cluster-version="+d.Version)
+		releaseChannel, err := resolveReleaseChannelForClusterVersion(d.Version, locationArg)
+		if err != nil {
+			klog.Warningf("error resolving the release channel for %q: %v, will proceed with no channel", d.Version, err)
+		} else {
+			args = append(args, "--release-channel="+releaseChannel)
+		}
 	}
 	args = append(args, subNetworkArgs...)
 	args = append(args, privateClusterArgs...)
@@ -307,6 +312,9 @@ func (d *Deployer) VerifyUpFlags() error {
 	if err := validateVersion(d.Version); err != nil {
 		return err
 	}
+	if err := validateReleaseChannel(d.ReleaseChannel); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -334,20 +342,4 @@ func generateClusterNames(numClusters int, uid string) []string {
 		clusters[i-1] = fixedClusterNamePrefix + id + clusterNameSuffix
 	}
 	return clusters
-}
-
-func validateVersion(version string) error {
-	switch version {
-	case "latest", "":
-		return nil
-	default:
-		re, err := regexp.Compile(`(\d)\.(\d)+(\.(\d)*(.*))?`)
-		if err != nil {
-			return err
-		}
-		if !re.MatchString(version) {
-			return fmt.Errorf("unknown version %q", version)
-		}
-	}
-	return nil
 }
