@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	osexec "os/exec"
 
@@ -27,9 +28,15 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v2"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"k8s.io/test-infra/gencred/pkg/serviceaccount"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
+
+	// import needed for authenticating to GKE.
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
@@ -111,15 +118,48 @@ func home(parts ...string) string {
 	return filepath.Join(p...)
 }
 
-func getClusterCredentials(project, loc, cluster string) error {
+func GetClusterCredentials(project, loc, cluster string, kubeconfigFile string) error {
+	os.Setenv("KUBECONFIG", kubeconfigFile)
 	// Get gcloud to create the file.
 	if err := runWithOutput(exec.Command("gcloud",
-		containerArgs("clusters", "get-credentials", cluster, "--project="+project, loc)...),
-	); err != nil {
-		return fmt.Errorf("error executing get-credentials: %v", err)
+		containerArgs("clusters", "get-credentials", cluster, "--project="+project, loc)...)); err != nil {
+		return fmt.Errorf("error executing get-credentials: %w", err)
+	}
+
+	// Get the GKE kubeconfig context name.
+	contextName, err := exec.Output(exec.RawCommand("kubectl config current-context --kubeconfig=" + kubeconfigFile))
+	if err != nil {
+		return fmt.Errorf("error getting the kubeconfig context name: %w", err)
+	}
+
+	// Convert the kubeconfigFile to be gcloud-independent.
+	if err := normalizeClusterCredentials(kubeconfigFile, strings.TrimSpace(string(contextName))); err != nil {
+		return fmt.Errorf("error normalizing the cluster credentials: %w", err)
 	}
 
 	return nil
+}
+
+// normalizeClusterCredentials will convert the kubeconfigFile to be
+// gcloud-independent so that it can be used anywhere to authenticate to the GKE
+// cluster.
+func normalizeClusterCredentials(kubeconfigFile, contextName string) error {
+	// Create a Kubernetes clientset for interacting with the cluster.
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigFile)
+	if err != nil {
+		return err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	// Generate a kubeconfig file with service account credentials.
+	kubeconfig, err := serviceaccount.CreateKubeConfigWithServiceAccountCredentials(clientset, contextName)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(kubeconfigFile, kubeconfig, 0644)
 }
 
 // Resolve the current latest version in the given release channel.

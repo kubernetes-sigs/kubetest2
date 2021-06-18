@@ -202,22 +202,21 @@ func (d *Deployer) IsUp() (up bool, err error) {
 		return false, err
 	}
 
-	for _, project := range d.Projects {
-		for _, cluster := range d.projectClustersLayout[project] {
-			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
-				return false, err
-			}
+	kubeconfigFiles, err := d.Kubeconfig()
+	if err != nil {
+		return false, err
+	}
 
-			// naively assume that if the api server reports nodes, the cluster is up
-			lines, err := exec.CombinedOutputLines(
-				exec.RawCommand("kubectl get nodes -o=name"),
-			)
-			if err != nil {
-				return false, metadata.NewJUnitError(err, strings.Join(lines, "\n"))
-			}
-			if len(lines) == 0 {
-				return false, fmt.Errorf("project had no nodes active: %s", project)
-			}
+	for _, kubeconfig := range strings.Split(kubeconfigFiles, string(os.PathListSeparator)) {
+		// naively assume that if the api server reports nodes, the cluster is up
+		lines, err := exec.CombinedOutputLines(
+			exec.RawCommand("kubectl get nodes -o=name --kubeconfig=" + kubeconfig),
+		)
+		if err != nil {
+			return false, metadata.NewJUnitError(err, strings.Join(lines, "\n"))
+		}
+		if len(lines) == 0 {
+			return false, fmt.Errorf("no nodes active for given kubeconfig %q", kubeconfig)
 		}
 	}
 
@@ -264,10 +263,7 @@ func (d *Deployer) Kubeconfig() (string, error) {
 	for _, project := range d.Projects {
 		for _, cluster := range d.projectClustersLayout[project] {
 			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster.name))
-			if err := os.Setenv("KUBECONFIG", filename); err != nil {
-				return "", err
-			}
-			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
+			if err := GetClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name, filename); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)
