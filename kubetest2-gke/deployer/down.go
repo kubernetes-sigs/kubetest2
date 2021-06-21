@@ -30,29 +30,23 @@ func (d *Deployer) Down() error {
 		return err
 	}
 
-	if len(d.Projects) > 0 {
-		if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
-			return err
-		}
+	d.DeleteClusters(d.retryCount)
 
-		d.DeleteClusters(d.retryCount)
+	numDeletedFWRules, errCleanFirewalls := d.CleanupNetworkFirewalls(d.Projects[0], d.Network)
+	if errCleanFirewalls != nil {
+		klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
+	} else {
+		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
+	}
 
-		numDeletedFWRules, errCleanFirewalls := d.CleanupNetworkFirewalls(d.Projects[0], d.Network)
-		if errCleanFirewalls != nil {
-			klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
-		} else {
-			klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
-		}
-
-		if err := d.TeardownNetwork(); err != nil {
-			return err
-		}
-		if err := d.DeleteSubnets(d.retryCount); err != nil {
-			return err
-		}
-		if err := d.DeleteNetwork(); err != nil {
-			return err
-		}
+	if err := d.TeardownNetwork(); err != nil {
+		return err
+	}
+	if err := d.DeleteSubnets(d.retryCount); err != nil {
+		return err
+	}
+	if err := d.DeleteNetwork(); err != nil {
+		return err
 	}
 
 	return nil
