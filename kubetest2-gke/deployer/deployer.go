@@ -105,7 +105,9 @@ type Deployer struct {
 
 	*options.BuildOptions
 	*options.CommonOptions
-	*options.UpOptions
+	*options.ProjectOptions
+	*options.NetworkOptions
+	*options.ClusterOptions
 
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
@@ -163,26 +165,30 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			},
 		},
 		CommonOptions: &options.CommonOptions{
-			Network:     "default",
-			Environment: "prod",
-		},
-		UpOptions: &options.UpOptions{
-			NumClusters:        1,
-			NumNodes:           defaultNodePool.Nodes,
-			MachineType:        defaultNodePool.MachineType,
-			ImageType:          defaultImage,
-			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
-			WindowsMachineType: defaultWindowsNodePool.MachineType,
-			WindowsImageType:   defaultWindowsImage,
-			// Leave ClusterVersion as empty to use the default cluster version.
-			ClusterVersion:   "",
 			GCPSSHKeyIgnored: true,
-
+		},
+		ProjectOptions: &options.ProjectOptions{
 			BoskosLocation:                 defaultBoskosLocation,
 			BoskosResourceType:             defaultGKEProjectResourceType,
 			BoskosAcquireTimeoutSeconds:    defaultBoskosAcquireTimeoutSeconds,
 			BoskosHeartbeatIntervalSeconds: defaultBoskosHeartbeatIntervalSeconds,
 			BoskosProjectsRequested:        1,
+		},
+		NetworkOptions: &options.NetworkOptions{
+			Network: "default",
+		},
+		ClusterOptions: &options.ClusterOptions{
+			Environment: "prod",
+			NumClusters: 1,
+			NumNodes:    defaultNodePool.Nodes,
+			MachineType: defaultNodePool.MachineType,
+			ImageType:   defaultImage,
+			// Leave ClusterVersion as empty to use the default cluster version.
+			ClusterVersion: "",
+
+			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
+			WindowsMachineType: defaultWindowsNodePool.MachineType,
+			WindowsImageType:   defaultWindowsImage,
 
 			RetryableErrorPatterns: []string{gceStockoutErrorPattern},
 		},

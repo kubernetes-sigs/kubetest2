@@ -336,10 +336,10 @@ func (d *Deployer) VerifyUpFlags() error {
 		if len(d.Projects) > 1 || d.BoskosProjectsRequested > 1 {
 			return fmt.Errorf("explicit --cluster-name must be set for multi-project profile")
 		}
-		if err := d.UpOptions.Validate(); err != nil {
+		if err := d.ClusterOptions.Validate(); err != nil {
 			return err
 		}
-		d.Clusters = generateClusterNames(d.UpOptions.NumClusters, d.kubetest2CommonOptions.RunID())
+		d.Clusters = generateClusterNames(d.ClusterOptions.NumClusters, d.kubetest2CommonOptions.RunID())
 	} else {
 		klog.V(0).Infof("explicit --cluster-name specified, ignoring --num-clusters")
 	}
