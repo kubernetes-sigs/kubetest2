@@ -25,6 +25,7 @@ import (
 
 	"k8s.io/klog"
 
+	"github.com/pkg/math"
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 )
 
@@ -44,6 +45,8 @@ func (d *Deployer) Init() error {
 // Initialize should only be called by init(), behind a sync.Once
 func (d *Deployer) Initialize() error {
 	if d.kubetest2CommonOptions.ShouldUp() {
+		d.totalTryCount = math.Max(len(d.Regions), len(d.Zones))
+
 		if err := d.VerifyUpFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for up: %w", err)
 		}

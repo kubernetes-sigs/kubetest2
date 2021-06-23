@@ -38,7 +38,7 @@ func (d *Deployer) EnsureFirewallRules() error {
 		return ensureFirewallRulesForSingleProject(project, d.Network, d.projectClustersLayout[project], d.instanceGroups)
 	}
 
-	return ensureFirewallRulesForMultiProjects(d.Projects, d.Network, d.SubnetworkRanges)
+	return ensureFirewallRulesForMultiProjects(d.Projects, d.Network, d.subnetworkRangesInternal[d.retryCount])
 }
 
 // Ensure firewall rules for e2e testing for all clusters in one single project.
