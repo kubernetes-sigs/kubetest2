@@ -38,6 +38,7 @@ func (m *MakeBuilder) Build() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get version: %v", err)
 	}
+	setReproducibilityEnv(m.RepoRoot)
 	cmd := exec.Command("make", target)
 	cmd.SetDir(m.RepoRoot)
 	exec.InheritOutput(cmd)

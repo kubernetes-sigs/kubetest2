@@ -99,3 +99,17 @@ func StoreCommonBinaries(kuberoot string, outroot string) {
 		}
 	}
 }
+
+// setReproducibilityEnv set the commit timestamp of kubeRoot for SOURCE_DATE_EPOCH env for reproducibility
+func setReproducibilityEnv(kubeRoot string) {
+	if os.Getenv("SOURCE_DATE_EPOCH") != "" {
+		return
+	}
+	cmd := exec.Command("git", "log", "-1", "--pretty=%ct")
+	cmd.SetDir(kubeRoot)
+	if output, err := exec.CombinedOutputLines(cmd); err != nil {
+		klog.Warningf("failed to compute SOURCE_DATE_EPOCH from git: %v", err)
+	} else {
+		os.Setenv("SOURCE_DATE_EPOCH", output[0])
+	}
+}
