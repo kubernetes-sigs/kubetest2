@@ -131,26 +131,3 @@ func TestPrivateClusterArgs(t *testing.T) {
 		})
 	}
 }
-
-func TestAssertNoOverlaps(t *testing.T) {
-	testCases := []struct {
-		ranges     []string
-		shouldPass bool
-	}{
-		{ranges: []string{"10.0.0.0/24", "11.0.0.0/24"}, shouldPass: true},
-		{ranges: []string{"10.0.0.0/24", "10.0.0.0/25"}, shouldPass: false},
-		{ranges: []string{"10.0.0.0/24", "11.0.0.0/24", "10.0.0.0/25"}, shouldPass: false},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		err := assertNoOverlaps(tc.ranges)
-		if (err == nil) != tc.shouldPass {
-			if tc.shouldPass {
-				t.Errorf("test case should have passed, but failed: %q (error: %w)", tc.ranges, err)
-			} else {
-				t.Errorf("test case should have failed, but passed: %q", tc.ranges)
-			}
-		}
-	}
-}

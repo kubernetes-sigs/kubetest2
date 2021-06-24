@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"os"
 	"strings"
 
@@ -39,115 +38,41 @@ etag: %s
 `
 
 func (d *Deployer) VerifyNetworkFlags() error {
-
 	// Verify private cluster args.
-	if d.PrivateClusterAccessLevel != "" {
-		if d.PrivateClusterAccessLevel != string(no) &&
-			d.PrivateClusterAccessLevel != string(limited) && d.PrivateClusterAccessLevel != string(unrestricted) {
-			return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
-		}
-		if len(d.PrivateClusterMasterIPRanges) != len(d.Clusters)*d.totalTryCount {
-			return fmt.Errorf("the number of master ip ranges provided via --private-cluster-master-ip-range "+
-				"should be the same as the number of clusters times the total try count : %d!=%d", len(d.PrivateClusterMasterIPRanges), len(d.Clusters)*d.totalTryCount)
-		}
-		if err := assertNoOverlaps(d.PrivateClusterMasterIPRanges); err != nil {
-			return fmt.Errorf("error in private cluster master ip ranges: %v", err)
-		}
+	if d.PrivateClusterAccessLevel != "" && d.PrivateClusterAccessLevel != string(no) &&
+		d.PrivateClusterAccessLevel != string(limited) && d.PrivateClusterAccessLevel != string(unrestricted) {
+		return fmt.Errorf("--private-cluster-access-level must be one of %v", []string{"", string(no), string(limited), string(unrestricted)})
+	}
+	if d.PrivateClusterAccessLevel != "" && len(d.Clusters) != len(d.PrivateClusterMasterIPRanges) {
+		return fmt.Errorf("--private-cluster-master-ip-range must have the same length as the number of clusters when requesting private cluster(s)")
 	}
 
 	numProjects := len(d.Projects)
 	if numProjects == 0 {
 		numProjects = d.BoskosProjectsRequested
 	}
-
-	// Verify for multi-project profile.
-	if numProjects > 1 {
-		if d.Network == "default" {
-			return errors.New("the default network cannot be used for multi-project profile")
-		}
-
-		if len(d.SubnetworkRanges) != (numProjects-1)*d.totalTryCount {
-			return fmt.Errorf("the number of subnetwork ranges provided "+
-				"should be the same as the number of service projects times the total try count : %d!=%d", len(d.SubnetworkRanges), (numProjects-1)*d.totalTryCount)
-		}
-
-		if err := d.validateSubnetRanges(); err != nil {
-			return err
-		}
-	}
-
-	if err := d.internalizeNetworkFlags(numProjects); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (d *Deployer) validateSubnetRanges() error {
-	// The subnets are passed in a list, each containing groups of 3 CIDR ranges.
-	// We need to verify there are no overlaps within the entire group.
-	var allSubnetRanges []string
-	for _, subnet := range d.SubnetworkRanges {
-		ranges := strings.Split(subnet, " ")
-		if len(ranges) != 3 {
-			return fmt.Errorf("the provided subnetwork range %s is not in the right format, should be like "+
-				"10.0.4.0/22 10.0.32.0/20 10.4.0.0/14", subnet)
-		}
-
-		allSubnetRanges = append(allSubnetRanges, ranges...)
-	}
-
-	if err := assertNoOverlaps(allSubnetRanges); err != nil {
-		return fmt.Errorf("error in subnetwork ranges: %v", err)
-	}
-
-	return nil
-}
-
-func assertNoOverlaps(ranges []string) error {
-	var allRanges []*net.IPNet
-	for _, rangeString := range ranges {
-		_, thisRange, err := net.ParseCIDR(rangeString)
-		if err != nil {
-			return fmt.Errorf("error parsing %q into a CIDR: %w", rangeString, err)
-		}
-		for _, previousRange := range allRanges {
-			if areOverlapping(thisRange, previousRange) {
-				return fmt.Errorf("overlap found within the provided ranges: (%v, %v)", thisRange, previousRange)
-			}
-		}
-		allRanges = append(allRanges, thisRange)
-	}
-	return nil
-}
-
-func areOverlapping(r1, r2 *net.IPNet) bool {
-	return r1.Contains(r2.IP) || r2.Contains(r1.IP)
-}
-
-func (d *Deployer) internalizeNetworkFlags(numProjects int) error {
-	d.subnetworkRangesInternal = make([][]string, d.totalTryCount)
-	for tc := 0; tc < d.totalTryCount; tc++ {
-		d.subnetworkRangesInternal[tc] = make([]string, numProjects-1)
-		for p := 0; p < numProjects-1; p++ {
-			index := tc*(numProjects-1) + p
-			d.subnetworkRangesInternal[tc][p] = d.SubnetworkRanges[index]
-		}
-	}
-
-	// Since len(d.PrivateClusterMasterIPRanges) is 0 when private cluster is not requested.
-	if d.PrivateClusterAccessLevel == "" {
+	// For single project, no other verification is needed.
+	if numProjects == 1 {
 		return nil
 	}
 
-	d.privateClusterMasterIPRangesInternal = make([][]string, d.totalTryCount)
-	for tc := 0; tc < d.totalTryCount; tc++ {
-		d.privateClusterMasterIPRangesInternal[tc] = make([]string, len(d.Clusters))
-		for c := 0; c < len(d.Clusters); c++ {
-			index := tc*len(d.Clusters) + c
-			d.privateClusterMasterIPRangesInternal[tc][c] = d.PrivateClusterMasterIPRanges[index]
+	if d.Network == "default" {
+		return errors.New("the default network cannot be used for multi-project profile")
+	}
+
+	if len(d.SubnetworkRanges) != numProjects-1 {
+		return fmt.Errorf("the number of subnetwork ranges provided "+
+			"should be the same as the number of service projects: %d!=%d", len(d.SubnetworkRanges), numProjects-1)
+	}
+
+	for _, sr := range d.SubnetworkRanges {
+		parts := strings.Split(sr, " ")
+		if len(parts) != 3 {
+			return fmt.Errorf("the provided subnetwork range %s is not in the right format, should be like "+
+				"10.0.4.0/22 10.0.32.0/20 10.4.0.0/14", sr)
 		}
 	}
+
 	return nil
 }
 
@@ -183,7 +108,7 @@ func (d *Deployer) CreateSubnets() error {
 		return nil
 	}
 	hostProject := d.Projects[0]
-	for i, nr := range d.subnetworkRangesInternal[d.retryCount] {
+	for i, nr := range d.SubnetworkRanges {
 		serviceProject := d.Projects[i+1]
 		parts := strings.Split(nr, " ")
 		// The subnetwork name is in the format of `[main_network]-[service_project_id]`.

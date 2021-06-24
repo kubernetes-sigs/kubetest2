@@ -111,12 +111,9 @@ type Deployer struct {
 	localLogsDir string
 	gcsLogsDir   string
 
-	// gke specific details for retrying
-	totalTryCount                        int
-	retryCount                           int
-	retryableErrorPatternsCompiled       []*regexp.Regexp
-	subnetworkRangesInternal             [][]string
-	privateClusterMasterIPRangesInternal [][]string
+	// gke specific details
+	retryCount                     int
+	retryableErrorPatternsCompiled []*regexp.Regexp
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
