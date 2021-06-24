@@ -129,7 +129,7 @@ func (d *Deployer) isRetryableError(err error) bool {
 }
 
 func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs []string, locationArg string) error {
-	privateClusterArgs := privateClusterArgs(d.Projects, d.Network, d.PrivateClusterAccessLevel, d.privateClusterMasterIPRangesInternal[d.retryCount], cluster)
+	privateClusterArgs := privateClusterArgs(d.Projects, d.Network, d.PrivateClusterAccessLevel, d.PrivateClusterMasterIPRanges, cluster)
 	// Create the cluster
 	args := d.createCommand()
 	args = append(args,
