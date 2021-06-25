@@ -20,7 +20,9 @@
 # get the repo root and output path
 REPO_ROOT:=$(shell pwd)
 export REPO_ROOT
-OUT_DIR?=$(REPO_ROOT)/bin
+OUT_DIR=$(REPO_ROOT)/bin
+# record the source commit in the binary, overridable
+COMMIT?=$(shell git describe --tags --always --dirty 2>/dev/null)
 INSTALL?=install
 # make install will place binaries here
 # the default path attempts to mimic go install
@@ -47,7 +49,7 @@ SPACE:=$(subst ,, )
 SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
 # ==============================================================================
 # flags for reproducible go builds
-BUILD_FLAGS?=-trimpath -ldflags="-buildid="
+BUILD_FLAGS?=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/app.GitTag=$(COMMIT)"
 
 build-all:
 	go build -v $(BUILD_FLAGS) ./...

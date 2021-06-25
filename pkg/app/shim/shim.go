@@ -26,6 +26,9 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
+// GitTag captures the git commit SHA of the build. This gets printed by all the deployers and testers
+var GitTag string
+
 // Main implements the kubetest2 root binary entrypoint
 func Main() {
 	if err := Run(); err != nil {
@@ -66,21 +69,28 @@ func NewCommand() *cobra.Command {
 
 // runE implements the actual command logic
 func runE(cmd *cobra.Command, args []string) error {
+	cmd.Printf("Running %s version: %s\n", BinaryName, GitTag)
 	// there should be at least one argument (the deployer) unless the user
 	// is asking for help on the shim itself
 	if len(args) < 1 {
 		return cmd.Help()
 	}
 
-	// gracefully handle -h or --help if it is the only argument
+	// gracefully handle help or version command if it is the only argument
 	if len(args) == 1 {
 		// check for -h, --help
 		flags := pflag.NewFlagSet(BinaryName, pflag.ContinueOnError)
 		help := flags.BoolP("help", "h", false, "")
+		// check for -v, --version
+		ver := flags.BoolP("version", "v", false, fmt.Sprintf("prints %s version", BinaryName))
 		// we don't care about errors, only if -h / --help was set
 		_ = flags.Parse(args)
 		if *help {
 			return cmd.Help()
+		}
+		if *ver {
+			fmt.Printf("%s version %s\n", BinaryName, GitTag)
+			return nil
 		}
 	}
 
