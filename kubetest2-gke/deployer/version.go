@@ -17,12 +17,12 @@ limitations under the License.
 package deployer
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"google.golang.org/api/container/v1"
-	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -158,14 +158,14 @@ func isClusterVersionMatch(match, version string) bool {
 
 func getServerConfig(loc string) (*container.ServerConfig, error) {
 	// List the available versions for each release channel.
-	out, err := exec.Output(exec.RawCommand((fmt.Sprintf("gcloud container get-server-config --format=yaml %s", loc))))
+	out, err := exec.Output(exec.RawCommand((fmt.Sprintf("gcloud container get-server-config --format=json %s", loc))))
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse the YAML into a struct.
+	// Parse the JSON into a struct.
 	cfg := &container.ServerConfig{}
-	if err := yaml.Unmarshal(out, cfg); err != nil {
+	if err := json.Unmarshal(out, cfg); err != nil {
 		return nil, err
 	}
 
