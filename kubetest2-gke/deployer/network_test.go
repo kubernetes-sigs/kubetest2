@@ -33,24 +33,6 @@ func TestPrivateClusterArgs(t *testing.T) {
 		expected       []string
 	}{
 		{
-			desc:           "no private cluster args are needed for non-private clusters",
-			projects:       []string{"project1"},
-			network:        "whatever-network",
-			accessLevel:    "",
-			masterIPRanges: []string{"whatever-master-IP-range"},
-			clusterInfo:    cluster{index: 0, name: "whatever-cluster-name"},
-			expected:       []string{},
-		},
-		{
-			desc:           "--private-cluster-master-ip-range can be empty for non-private clusters",
-			projects:       []string{"project1"},
-			network:        "whatever-network",
-			accessLevel:    "",
-			masterIPRanges: []string{},
-			clusterInfo:    cluster{index: 0, name: "whatever-cluster-name"},
-			expected:       []string{},
-		},
-		{
 			desc:           "test private cluster args for private cluster with no limit",
 			projects:       []string{"project1"},
 			network:        "test-network1",
@@ -124,10 +106,42 @@ func TestPrivateClusterArgs(t *testing.T) {
 		tc := tc
 		t.Run(tc.desc, func(st *testing.T) {
 			st.Parallel()
-			actual := privateClusterArgs(tc.projects, tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo)
+			actual := getPrivateClusterArgs(tc.projects, tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo)
 			if diff := cmp.Diff(actual, tc.expected); diff != "" {
 				st.Error("Got private cluster args (-want, +got) =", diff)
 			}
 		})
+	}
+}
+
+func TestAssertNoOverlaps(t *testing.T) {
+	testCases := []struct {
+		ranges     []string
+		shouldPass bool
+	}{
+		{
+			ranges:     []string{"10.0.0.0/24", "11.0.0.0/24"},
+			shouldPass: true,
+		},
+		{
+			ranges:     []string{"10.0.0.0/24", "10.0.0.0/25"},
+			shouldPass: false,
+		},
+		{
+			ranges:     []string{"10.0.0.0/24", "11.0.0.0/24", "10.0.0.0/25"},
+			shouldPass: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		err := assertNoOverlaps(tc.ranges)
+		if (err == nil) != tc.shouldPass {
+			if tc.shouldPass {
+				t.Errorf("test case should have passed, but failed: %q (error: %w)", tc.ranges, err)
+			} else {
+				t.Errorf("test case should have failed, but passed: %q", tc.ranges)
+			}
+		}
 	}
 }
