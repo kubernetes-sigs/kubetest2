@@ -40,6 +40,7 @@ func (m *MakeBuilder) Build() (string, error) {
 	}
 	cmd := exec.Command("make", target)
 	cmd.SetDir(m.RepoRoot)
+	setSourceDateEpoch(m.RepoRoot, cmd)
 	exec.InheritOutput(cmd)
 	if err = cmd.Run(); err != nil {
 		return "", err

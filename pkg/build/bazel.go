@@ -50,6 +50,7 @@ func (b *Bazel) Build() (string, error) {
 	}
 	cmd := exec.Command("bazel", "build", "//build/release-tars")
 	cmd = cmd.SetDir(b.RepoRoot)
+	setSourceDateEpoch(b.RepoRoot, cmd)
 	exec.InheritOutput(cmd)
 	return version, cmd.Run()
 }
