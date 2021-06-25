@@ -100,7 +100,9 @@ func StoreCommonBinaries(kuberoot string, outroot string) {
 	}
 }
 
-// setReproducibilityEnv set the commit timestamp of kubeRoot for SOURCE_DATE_EPOCH env for reproducibility
+// setReproducibilityEnv sets the SOURCE_DATE_EPOCH env to the commit timestamp of the latest commit in the
+// kubernetes repository, specified under kubeRoot, for reproducible builds
+// https://github.com/kubernetes/kubernetes/blob/7eae33cb0e1ead51c80ad517bc670113d77fa28d/build/README.md#reproducibility
 func setReproducibilityEnv(kubeRoot string) {
 	if os.Getenv("SOURCE_DATE_EPOCH") != "" {
 		return
