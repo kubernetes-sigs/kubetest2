@@ -140,7 +140,7 @@ func runWithOutputAndReturn(cmd exec.Cmd) (string, error) {
 
 	exec.SetOutput(cmd, io.MultiWriter(os.Stdout, &buf), io.MultiWriter(os.Stderr, &buf))
 	if err := cmd.Run(); err != nil {
-		return "", err
+		return buf.String(), err
 	}
 	return buf.String(), nil
 }
