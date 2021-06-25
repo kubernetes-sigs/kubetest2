@@ -100,18 +100,19 @@ func StoreCommonBinaries(kuberoot string, outroot string) {
 	}
 }
 
-// setReproducibilityEnv sets the SOURCE_DATE_EPOCH env to the commit timestamp of the latest commit in the
+// setSourceDateEpoch sets the SOURCE_DATE_EPOCH env to the commit timestamp of the latest commit in the
 // kubernetes repository, specified under kubeRoot, for reproducible builds
 // https://github.com/kubernetes/kubernetes/blob/7eae33cb0e1ead51c80ad517bc670113d77fa28d/build/README.md#reproducibility
-func setReproducibilityEnv(kubeRoot string) {
+func setSourceDateEpoch(kubeRoot string, cmd exec.Cmd) {
 	if os.Getenv("SOURCE_DATE_EPOCH") != "" {
 		return
 	}
-	cmd := exec.Command("git", "log", "-1", "--pretty=%ct")
-	cmd.SetDir(kubeRoot)
-	if output, err := exec.CombinedOutputLines(cmd); err != nil {
-		klog.Warningf("failed to compute SOURCE_DATE_EPOCH from git: %v", err)
+	gitCmd := exec.Command("git", "log", "-1", "--pretty=%ct")
+	gitCmd.SetDir(kubeRoot)
+	if output, err := exec.CombinedOutputLines(gitCmd); err == nil {
+		env := append(os.Environ(), fmt.Sprintf("SOURCE_DATE_EPOCH=%s", output[0]))
+		cmd.SetEnv(env...)
 	} else {
-		os.Setenv("SOURCE_DATE_EPOCH", output[0])
+		klog.Warningf("failed to compute SOURCE_DATE_EPOCH from kubernetes repository: %v", err)
 	}
 }
