@@ -29,7 +29,7 @@ func (d *deployer) Down() error {
 		"--name", d.ClusterName,
 	}
 
-	klog.V(0).Infof("Down(): deleting kind cluster...\n")
+	klog.V(0).Infof("Down(): deleting kind cluster...%s\n", d.ClusterName)
 	// we want to see the output so use process.ExecJUnit
 	return process.ExecJUnit("kind", args, os.Environ())
 }
