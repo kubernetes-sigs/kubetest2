@@ -159,12 +159,12 @@ func (t *Tester) ensureKubectl(downloadPath string) error {
 	)
 	if _, err := os.Stat(downloadPath); err == nil {
 		klog.V(0).Infof("Found existing kubectl at %v", downloadPath)
-		if err := t.compareSHA(downloadPath, kubectlPathInGCS); err == nil {
+		err := t.compareSHA(downloadPath, kubectlPathInGCS)
+		if err == nil {
 			klog.V(0).Infof("Validated hash for existing kubectl at %v", downloadPath)
 			return nil
-		} else {
-			klog.Warning(err)
 		}
+		klog.Warning(err)
 	}
 
 	cmd := exec.Command("gsutil", "cp", kubectlPathInGCS, downloadPath)
@@ -193,12 +193,12 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 
 	if _, err := os.Stat(downloadPath); err == nil {
 		klog.V(0).Infof("Found existing tar at %v", downloadPath)
-		if err := t.compareSHA(downloadPath, releaseTarPathInGCS); err == nil {
+		err := t.compareSHA(downloadPath, releaseTarPathInGCS)
+		if err == nil {
 			klog.V(0).Infof("Validated hash for existing tar at %v", downloadPath)
 			return nil
-		} else {
-			klog.Warning(err)
 		}
+		klog.Warning(err)
 	}
 
 	cmd := exec.Command("gsutil", "cp",
