@@ -33,9 +33,10 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-// AcquireTestPackage obtains two test binaries and places them in $ARTIFACTS.
+// AcquireTestPackage obtains three test binaries and places them in $ARTIFACTS.
 // The first is "ginkgo", the actual ginkgo executable.
 // The second is "e2e.test", which contains kubernetes e2e test cases.
+// The third is "kubectl".
 func (t *Tester) AcquireTestPackage() error {
 	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
 	if t.TestPackageVersion == "" {
@@ -68,8 +69,12 @@ func (t *Tester) AcquireTestPackage() error {
 	if err := t.ensureReleaseTar(downloadPath, releaseTar); err != nil {
 		return err
 	}
+	if err := t.extractBinaries(downloadPath); err != nil {
+		return err
+	}
 
-	return t.extractBinaries(downloadPath)
+	t.kubectlPath = filepath.Join(artifacts.BaseDir(), "kubectl")
+	return t.ensureKubectl(t.kubectlPath)
 }
 
 func (t *Tester) extractBinaries(downloadPath string) error {
@@ -140,13 +145,51 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 	return nil
 }
 
+// ensureKubectl checks if the kubectl exists and verifies the hashes
+// else downloads it from GCS
+func (t *Tester) ensureKubectl(downloadPath string) error {
+
+	kubectlPathInGCS := fmt.Sprintf(
+		"gs://%s/%s/%s/bin/%s/%s/kubectl",
+		t.TestPackageBucket,
+		t.TestPackageDir,
+		t.TestPackageVersion,
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
+	if _, err := os.Stat(downloadPath); err == nil {
+		klog.V(0).Infof("Found existing kubectl at %v", downloadPath)
+		if err := t.compareSHA(downloadPath, kubectlPathInGCS); err == nil {
+			klog.V(0).Infof("Validated hash for existing kubectl at %v", downloadPath)
+			return nil
+		}
+		klog.Warning(err)
+	}
+
+	cmd := exec.Command("gsutil", "cp", kubectlPathInGCS, downloadPath)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to download kubectl for release %s: %s", t.TestPackageVersion, err)
+	}
+	return nil
+}
+
 // ensureReleaseTar checks if the kubernetes test tarball already exists
 // and verifies the hashes
 // else downloads it from GCS
 func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
+
+	releaseTarPathInGCS := fmt.Sprintf(
+		"gs://%s/%s/%s/%s",
+		t.TestPackageBucket,
+		t.TestPackageDir,
+		t.TestPackageVersion,
+		releaseTar,
+	)
+
 	if _, err := os.Stat(downloadPath); err == nil {
 		klog.V(0).Infof("Found existing tar at %v", downloadPath)
-		if err := t.compareSHA(downloadPath, releaseTar); err == nil {
+		if err := t.compareSHA(downloadPath, releaseTarPathInGCS); err == nil {
 			klog.V(0).Infof("Validated hash for existing tar at %v", downloadPath)
 			return nil
 		}
@@ -154,13 +197,7 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 	}
 
 	cmd := exec.Command("gsutil", "cp",
-		fmt.Sprintf(
-			"gs://%s/%s/%s/%s",
-			t.TestPackageBucket,
-			t.TestPackageDir,
-			t.TestPackageVersion,
-			releaseTar,
-		),
+		releaseTarPathInGCS,
 		downloadPath,
 	)
 	exec.InheritOutput(cmd)
@@ -170,19 +207,13 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 	return nil
 }
 
-func (t *Tester) compareSHA(downloadPath string, releaseTar string) error {
+func (t *Tester) compareSHA(downloadPath string, gcsFilePath string) error {
 	cmd := exec.Command("gsutil", "cat",
-		fmt.Sprintf(
-			"gs://%s/%s/%s/%s",
-			t.TestPackageBucket,
-			t.TestPackageDir,
-			t.TestPackageVersion,
-			releaseTar+".sha256",
-		),
+		fmt.Sprintf("%s.sha256", gcsFilePath),
 	)
 	expectedSHABytes, err := exec.Output(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to get sha256 for release tar %s for release %s: %s", releaseTar, t.TestPackageVersion, err)
+		return fmt.Errorf("failed to get sha256 for file %s for release %s: %s", gcsFilePath, t.TestPackageVersion, err)
 	}
 	expectedSHA := strings.TrimSuffix(string(expectedSHABytes), "\n")
 	actualSHA, err := sha256sum(downloadPath)
