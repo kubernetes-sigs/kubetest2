@@ -162,14 +162,18 @@ func (t *Tester) ensureKubectl(downloadPath string) error {
 		if err := t.compareSHA(downloadPath, kubectlPathInGCS); err == nil {
 			klog.V(0).Infof("Validated hash for existing kubectl at %v", downloadPath)
 			return nil
+		} else {
+			klog.Warning(err)
 		}
-		klog.Warning(err)
 	}
 
 	cmd := exec.Command("gsutil", "cp", kubectlPathInGCS, downloadPath)
 	exec.InheritOutput(cmd)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to download kubectl for release %s: %s", t.TestPackageVersion, err)
+	}
+	if err := os.Chmod(downloadPath, 0700); err != nil {
+		return fmt.Errorf("failed to make %s executable: %s", downloadPath, err)
 	}
 	return nil
 }
@@ -192,8 +196,9 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 		if err := t.compareSHA(downloadPath, releaseTarPathInGCS); err == nil {
 			klog.V(0).Infof("Validated hash for existing tar at %v", downloadPath)
 			return nil
+		} else {
+			klog.Warning(err)
 		}
-		klog.Warning(err)
 	}
 
 	cmd := exec.Command("gsutil", "cp",
