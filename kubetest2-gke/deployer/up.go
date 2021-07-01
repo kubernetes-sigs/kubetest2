@@ -81,45 +81,51 @@ func (d *Deployer) CreateClusters() error {
 	totalTryCount := math.Max(len(d.Regions), len(d.Zones))
 	for retryCount := 0; retryCount < totalTryCount; retryCount++ {
 		d.retryCount = retryCount
-
-		if err := d.CreateSubnets(); err != nil {
+		if err := d.tryCreateClusters(retryCount); err != nil {
 			return err
 		}
-		if err := d.SetupNetwork(); err != nil {
-			return err
+	}
+
+	return nil
+}
+
+func (d *Deployer) tryCreateClusters(retryCount int) error {
+	if err := d.CreateSubnets(); err != nil {
+		return err
+	}
+	if err := d.SetupNetwork(); err != nil {
+		return err
+	}
+
+	eg := new(errgroup.Group)
+	locationArg := locationFlag(d.Regions, d.Zones, retryCount)
+	for i := range d.Projects {
+		project := d.Projects[i]
+		clusters := d.projectClustersLayout[project]
+		subNetworkArgs := subNetworkArgs(d.Autopilot, d.Projects, regionFromLocation(d.Regions, d.Zones, retryCount), d.Network, i)
+		for j := range clusters {
+			cluster := clusters[j]
+			eg.Go(
+				func() error {
+					return d.CreateCluster(project, cluster, subNetworkArgs, locationArg)
+				},
+			)
 		}
+	}
 
-		eg := new(errgroup.Group)
-		locationArg := locationFlag(d.Regions, d.Zones, retryCount)
-		for i := range d.Projects {
-			project := d.Projects[i]
-			clusters := d.projectClustersLayout[project]
-			subNetworkArgs := subNetworkArgs(d.Autopilot, d.Projects, regionFromLocation(d.Regions, d.Zones, d.retryCount), d.Network, i)
-			for j := range clusters {
-				cluster := clusters[j]
-				eg.Go(
-					func() error {
-						return d.CreateCluster(project, cluster, subNetworkArgs, locationArg)
-					},
-				)
-			}
-		}
-
-		r := retryCount
-		if err := eg.Wait(); err != nil {
-			if d.isRetryableError(err) {
-				go func() {
-					d.DeleteClusters(r)
-					if err := d.DeleteSubnets(r); err != nil {
-						log.Printf("Warning: error encountered deleting subnets: %v", err)
-					}
-				}()
-			} else {
-				return fmt.Errorf("error creating clusters: %v", err)
-			}
-
+	if err := eg.Wait(); err != nil {
+		// If the error is retryable and it is not the last region/zone that
+		// can be retried, perform cleanups in the background and retry
+		// cluster creation in the next available region/zone.
+		if d.isRetryableError(err) && retryCount != d.totalTryCount-1 {
+			go func() {
+				d.DeleteClusters(retryCount)
+				if err := d.DeleteSubnets(retryCount); err != nil {
+					log.Printf("Warning: error encountered deleting subnets: %v", err)
+				}
+			}()
 		} else {
-			return nil
+			return fmt.Errorf("error creating clusters: %v", err)
 		}
 	}
 
