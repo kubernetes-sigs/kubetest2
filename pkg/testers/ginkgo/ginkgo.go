@@ -50,6 +50,7 @@ type Tester struct {
 	// These paths are set up by AcquireTestPackage()
 	e2eTestPath string
 	ginkgoPath  string
+	kubectlPath string
 }
 
 // Test runs the test
@@ -60,6 +61,7 @@ func (t *Tester) Test() error {
 
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
+		"--kubectl-path=" + t.kubectlPath,
 		"--ginkgo.flakeAttempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
@@ -139,6 +141,7 @@ func (t *Tester) validateLocalBinaries() error {
 	}
 	t.e2eTestPath = filepath.Join(t.runDir, "e2e.test")
 	t.ginkgoPath = filepath.Join(t.runDir, "ginkgo")
+	t.kubectlPath = filepath.Join(t.runDir, "kubectl")
 	return nil
 }
 
