@@ -19,7 +19,9 @@ package app
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
@@ -71,6 +73,24 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return errors.Wrap(err, "could not create runner output")
 	}
 	writer := metadata.NewWriter("kubetest2", junitRunner)
+
+	go func() {
+		// catch interrupt signals and gracefully attempt to clean up
+		c := make(chan os.Signal)
+		signal.Notify(c, syscall.SIGKILL, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP, os.Kill)
+
+		select {
+		case <-c:
+			if opts.ShouldUp() || opts.ShouldTest() {
+				klog.Info("Captured ^C, gracefully attempting to cleanup resources..")
+				if err := writer.WrapStep("Down", d.Down); err != nil {
+					result = err
+				}
+				os.Exit(0)
+			}
+		}
+	}()
+
 	// defer writing out the metadata on exit
 	// NOTE: defer is LIFO, so this should actually be the finish time
 	defer func() {
