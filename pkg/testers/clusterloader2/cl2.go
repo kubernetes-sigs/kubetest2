@@ -37,6 +37,7 @@ type Tester struct {
 	Provider      string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
 	KubeConfig    string `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
 	RepoRoot      string `desc:"Path to repository root of kubernetes/perf-tests"`
+	ReportDir     string `desc:"Path to directory, where summaries files should be stored. If not specified, summaries are stored in $ARTIFACTS directory"`
 	Nodes         int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
 }
 
@@ -45,6 +46,7 @@ func NewDefaultTester() *Tester {
 		// TODO(amwat): pass kubetest2 deployer info here if possible
 		Provider:   "skeleton",
 		KubeConfig: os.Getenv("KUBECONFIG"),
+		ReportDir:  os.Getenv("ARTIFACTS"),
 	}
 }
 
@@ -78,7 +80,7 @@ func (t *Tester) Test() error {
 	args := []string{
 		"--provider=" + t.Provider,
 		"--kubeconfig=" + t.KubeConfig,
-		"--report-dir=" + filepath.Join(os.Getenv("ARTIFACTS"), "clusterloader2"),
+		"--report-dir=" + t.ReportDir,
 	}
 	for _, tc := range testConfigs {
 		if tc != "" {
