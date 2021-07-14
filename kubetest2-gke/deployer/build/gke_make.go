@@ -90,7 +90,7 @@ func (gmb *GKEMake) Build() (string, error) {
 
 	// Skip validation for faster builds
 	// TODO: add support for a separate validate mode
-	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, pack}, arg("VERSION", version)); err != nil {
+	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{compile, pack}, arg("VERSION", version), arg("TARGET_PLATFORMS", "linux/amd64,windows/amd64")); err != nil {
 		return "", err
 	}
 
