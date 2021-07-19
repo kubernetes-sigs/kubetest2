@@ -92,28 +92,33 @@ func (d *Deployer) Initialize() error {
 				}
 			}
 		}
-
-		// Multi-cluster name adjustment
-		numProjects := len(d.Projects)
-		d.projectClustersLayout = make(map[string][]cluster, numProjects)
-		if numProjects > 1 {
-			if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
-				return fmt.Errorf("failed to build the project clusters layout: %v", err)
-			}
-		} else {
-			// Backwards compatible construction
-			clusters := make([]cluster, len(d.Clusters))
-			for i, clusterName := range d.Clusters {
-				clusters[i] = cluster{i, clusterName}
-			}
-			d.projectClustersLayout[d.Projects[0]] = clusters
-		}
 	}
 
 	if d.Kubetest2CommonOptions.ShouldDown() {
 		if err := d.VerifyDownFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for down: %w", err)
 		}
+	}
+
+	// Multi-cluster name adjustment
+	numProjects := len(d.Projects)
+	d.projectClustersLayout = make(map[string][]cluster, numProjects)
+	if numProjects > 1 {
+		if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
+			return fmt.Errorf("failed to build the project clusters layout: %v", err)
+		}
+	} else {
+		// Backwards compatible construction
+		clusters := make([]cluster, len(d.Clusters))
+		for i, clusterName := range d.Clusters {
+			clusters[i] = cluster{i, clusterName}
+		}
+		d.projectClustersLayout[d.Projects[0]] = clusters
+	}
+
+	// Prepare the GCP environment for the following operations.
+	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
+		return err
 	}
 
 	return nil
