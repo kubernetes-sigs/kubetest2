@@ -81,7 +81,8 @@ func (d *Deployer) CreateClusters() error {
 	totalTryCount := math.Max(len(d.Regions), len(d.Zones))
 	for retryCount := 0; retryCount < totalTryCount; retryCount++ {
 		d.retryCount = retryCount
-		if err := d.tryCreateClusters(retryCount); err != nil {
+		shouldRetry, err := d.tryCreateClusters(retryCount)
+		if !shouldRetry {
 			return err
 		}
 	}
@@ -89,12 +90,13 @@ func (d *Deployer) CreateClusters() error {
 	return nil
 }
 
-func (d *Deployer) tryCreateClusters(retryCount int) error {
-	if err := d.CreateSubnets(); err != nil {
-		return err
+func (d *Deployer) tryCreateClusters(retryCount int) (shouldRetry bool, err error) {
+	shouldRetry = false
+	if err = d.CreateSubnets(); err != nil {
+		return
 	}
-	if err := d.SetupNetwork(); err != nil {
-		return err
+	if err = d.SetupNetwork(); err != nil {
+		return
 	}
 
 	eg := new(errgroup.Group)
@@ -113,11 +115,12 @@ func (d *Deployer) tryCreateClusters(retryCount int) error {
 		}
 	}
 
-	if err := eg.Wait(); err != nil {
+	if err = eg.Wait(); err != nil {
 		// If the error is retryable and it is not the last region/zone that
 		// can be retried, perform cleanups in the background and retry
 		// cluster creation in the next available region/zone.
 		if d.isRetryableError(err) && retryCount != d.totalTryCount-1 {
+			shouldRetry = true
 			go func() {
 				d.DeleteClusters(retryCount)
 				if err := d.DeleteSubnets(retryCount); err != nil {
@@ -125,11 +128,11 @@ func (d *Deployer) tryCreateClusters(retryCount int) error {
 				}
 			}()
 		} else {
-			return fmt.Errorf("error creating clusters: %v", err)
+			err = fmt.Errorf("error creating clusters: %v", err)
 		}
 	}
 
-	return nil
+	return
 }
 
 // isRetryableError checks if the error happens during cluster creation can be potentially solved by retrying or not.
