@@ -57,7 +57,7 @@ func (d *Deployer) VerifyNetworkFlags() error {
 
 	numProjects := len(d.Projects)
 	if numProjects == 0 {
-		numProjects = d.BoskosProjectsRequested
+		numProjects = d.totalBoskosProjectsRequested
 	}
 
 	// Verify for multi-project profile.

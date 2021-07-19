@@ -72,11 +72,11 @@ func (d *Deployer) Build() error {
 	// append the kubetest2 run id
 	// avoid double + in the version
 	// so they are valid docker tags
-	if !strings.HasSuffix(version, d.kubetest2CommonOptions.RunID()) {
+	if !strings.HasSuffix(version, d.Kubetest2CommonOptions.RunID()) {
 		if strings.Contains(version, "+") {
-			version += "-" + d.kubetest2CommonOptions.RunID()
+			version += "-" + d.Kubetest2CommonOptions.RunID()
 		} else {
-			version += "+" + d.kubetest2CommonOptions.RunID()
+			version += "+" + d.Kubetest2CommonOptions.RunID()
 		}
 	}
 
@@ -87,7 +87,7 @@ func (d *Deployer) Build() error {
 		}
 	}
 	d.ClusterVersion = version
-	build.StoreCommonBinaries(d.RepoRoot, d.kubetest2CommonOptions.RunDir())
+	build.StoreCommonBinaries(d.RepoRoot, d.Kubetest2CommonOptions.RunDir())
 	return nil
 }
 
@@ -96,13 +96,13 @@ func (d *Deployer) VerifyBuildFlags() error {
 		return fmt.Errorf("required repo-root when building from source")
 	}
 	d.BuildOptions.CommonBuildOptions.RepoRoot = d.RepoRoot
-	if d.kubetest2CommonOptions.ShouldBuild() && d.kubetest2CommonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
+	if d.Kubetest2CommonOptions.ShouldBuild() && d.Kubetest2CommonOptions.ShouldUp() && d.BuildOptions.CommonBuildOptions.StageLocation == "" {
 		return fmt.Errorf("creating a gke cluster from built sources requires staging them to a specific GCS bucket, use --stage=gs://<bucket>")
 	}
 	// force extra GCP files to be staged
 	d.BuildOptions.CommonBuildOptions.StageExtraGCPFiles = true
 	// add kubetest2 runid as the version suffix
-	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.kubetest2CommonOptions.RunID()
+	d.BuildOptions.CommonBuildOptions.VersionSuffix = d.Kubetest2CommonOptions.RunID()
 	return d.BuildOptions.Validate()
 }
 

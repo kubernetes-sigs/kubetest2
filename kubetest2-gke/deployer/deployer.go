@@ -101,7 +101,7 @@ type cluster struct {
 
 type Deployer struct {
 	// generic parts
-	kubetest2CommonOptions types.Options
+	Kubetest2CommonOptions types.Options
 
 	*options.BuildOptions
 	*options.CommonOptions
@@ -129,6 +129,9 @@ type Deployer struct {
 	subnetworkRangesInternal             [][]string
 	privateClusterMasterIPRangesInternal [][]string
 
+	// the total number of Boskos projects to request
+	totalBoskosProjectsRequested int
+
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
 	boskos *client.Client
@@ -154,9 +157,21 @@ func (d *Deployer) Version() string {
 
 // New implements deployer.New for gke
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
-	// create a deployer object and set fields that are not flag controlled
+	d := NewDeployer(opts)
+
+	// register flags
+	fs := bindFlags(d)
+
+	// register flags for klog
+	klog.InitFlags(nil)
+	fs.AddGoFlagSet(flag.CommandLine)
+	return d, fs
+}
+
+// NewDeployer returns a deployer object with fields that are not flag controlled
+func NewDeployer(opts types.Options) *Deployer {
 	d := &Deployer{
-		kubetest2CommonOptions: opts,
+		Kubetest2CommonOptions: opts,
 		BuildOptions: &options.BuildOptions{
 			CommonBuildOptions: &build.Options{
 				Builder:  &build.NoopBuilder{},
@@ -169,10 +184,10 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		},
 		ProjectOptions: &options.ProjectOptions{
 			BoskosLocation:                 defaultBoskosLocation,
-			BoskosResourceType:             defaultGKEProjectResourceType,
+			BoskosResourceType:             []string{defaultGKEProjectResourceType},
 			BoskosAcquireTimeoutSeconds:    defaultBoskosAcquireTimeoutSeconds,
 			BoskosHeartbeatIntervalSeconds: defaultBoskosHeartbeatIntervalSeconds,
-			BoskosProjectsRequested:        1,
+			BoskosProjectsRequested:        []int{1},
 		},
 		NetworkOptions: &options.NetworkOptions{
 			Network: "default",
@@ -195,13 +210,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		localLogsDir: filepath.Join(opts.RunDir(), "logs"),
 	}
 
-	// register flags
-	fs := bindFlags(d)
-
-	// register flags for klog
-	klog.InitFlags(nil)
-	fs.AddGoFlagSet(flag.CommandLine)
-	return d, fs
+	return d
 }
 
 func (d *Deployer) VerifyLocationFlags() error {

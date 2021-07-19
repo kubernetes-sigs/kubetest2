@@ -57,10 +57,6 @@ func (d *Deployer) Up() error {
 		}
 	}()
 
-	// Only run prepare once for the first GCP project.
-	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
-		return err
-	}
 	if err := d.CreateNetwork(); err != nil {
 		return err
 	}
@@ -278,10 +274,6 @@ func (d *Deployer) TestSetup() error {
 		return nil
 	}
 
-	// Only run prepare once for the first GCP project.
-	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
-		return err
-	}
 	if _, err := d.Kubeconfig(); err != nil {
 		return err
 	}
@@ -328,18 +320,26 @@ func (d *Deployer) Kubeconfig() (string, error) {
 
 // verifyCommonFlags validates flags for up phase.
 func (d *Deployer) VerifyUpFlags() error {
-	if len(d.Projects) == 0 && d.BoskosProjectsRequested <= 0 {
-		return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
+	if len(d.Projects) == 0 {
+		for _, num := range d.BoskosProjectsRequested {
+			d.totalBoskosProjectsRequested += num
+		}
+		if d.totalBoskosProjectsRequested <= 0 {
+			return fmt.Errorf("either --project or --projects-requested with a value larger than 0 must be set for GKE deployment")
+		}
+		if len(d.BoskosProjectsRequested) != len(d.BoskosResourceType) {
+			return fmt.Errorf("the length of --project-requested and --boskos-resource-type must be the same")
+		}
 	}
 
 	if len(d.Clusters) == 0 {
-		if len(d.Projects) > 1 || d.BoskosProjectsRequested > 1 {
+		if len(d.Projects) > 1 || d.totalBoskosProjectsRequested > 1 {
 			return fmt.Errorf("explicit --cluster-name must be set for multi-project profile")
 		}
 		if err := d.ClusterOptions.Validate(); err != nil {
 			return err
 		}
-		d.Clusters = generateClusterNames(d.ClusterOptions.NumClusters, d.kubetest2CommonOptions.RunID())
+		d.Clusters = generateClusterNames(d.ClusterOptions.NumClusters, d.Kubetest2CommonOptions.RunID())
 	} else {
 		klog.V(0).Infof("explicit --cluster-name specified, ignoring --num-clusters")
 	}

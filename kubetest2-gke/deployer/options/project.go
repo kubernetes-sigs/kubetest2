@@ -19,9 +19,9 @@ package options
 type ProjectOptions struct {
 	Projects []string `flag:"~project" desc:"Comma separated list of GCP Project(s) to use for creating the cluster."`
 
-	BoskosLocation                 string `flag:"~boskos-location" desc:"If set, manually specifies the location of the Boskos server."`
-	BoskosResourceType             string `flag:"~boskos-resource-type" desc:"If set, manually specifies the resource type of GCP projects to acquire from Boskos."`
-	BoskosAcquireTimeoutSeconds    int    `flag:"~boskos-acquire-timeout-seconds" desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
-	BoskosHeartbeatIntervalSeconds int    `flag:"~boskos-heartbeat-interval-seconds" desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
-	BoskosProjectsRequested        int    `flag:"~projects-requested" desc:"Number of projects to request from Boskos. It is only respected if projects is empty, and must be larger than zero."`
+	BoskosLocation                 string   `flag:"~boskos-location" desc:"If set, manually specifies the location of the Boskos server."`
+	BoskosAcquireTimeoutSeconds    int      `flag:"~boskos-acquire-timeout-seconds" desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
+	BoskosHeartbeatIntervalSeconds int      `flag:"~boskos-heartbeat-interval-seconds" desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	BoskosResourceType             []string `flag:"~boskos-resource-type" desc:"If set, manually specifies the resource type(s) of GCP projects to acquire from Boskos."`
+	BoskosProjectsRequested        []int    `flag:"~projects-requested" desc:"Number of projects to request from Boskos. It is only respected if projects is empty, and must be larger than zero."`
 }
