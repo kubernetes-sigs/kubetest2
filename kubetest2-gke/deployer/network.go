@@ -188,15 +188,22 @@ func (d *Deployer) CreateSubnets() error {
 		parts := strings.Split(nr, " ")
 		// The subnetwork name is in the format of `[main_network]-[service_project_id]`.
 		subnetName := d.Network + "-" + serviceProject
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "create",
+		createSubnetCommand := []string{
+			"gcloud", "compute", "networks", "subnets", "create",
 			subnetName,
-			"--project="+hostProject,
-			"--region="+regionFromLocation(d.Regions, d.Zones, d.retryCount),
-			"--network="+d.Network,
-			"--range="+parts[0],
+			"--project=" + hostProject,
+			"--region=" + regionFromLocation(d.Regions, d.Zones, d.retryCount),
+			"--network=" + d.Network,
+			"--range=" + parts[0],
 			"--secondary-range",
 			fmt.Sprintf("%s-services=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
-		)); err != nil {
+		}
+		// Enabling `Private Google Access` on the subnet is needed for private
+		// cluster nodes to reach storage.googleapis.com.
+		if d.PrivateClusterAccessLevel != "" {
+			createSubnetCommand = append(createSubnetCommand, "--enable-private-ip-google-access")
+		}
+		if err := runWithOutput(exec.Command(createSubnetCommand[0], createSubnetCommand[1:]...)); err != nil {
 			return err
 		}
 	}
