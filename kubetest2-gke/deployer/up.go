@@ -163,11 +163,11 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 		args = append(args, "--machine-type="+d.MachineType)
 		args = append(args, "--num-nodes="+strconv.Itoa(d.NumNodes))
 		args = append(args, "--image-type="+d.ImageType)
+		if d.WorkloadIdentityEnabled {
+			args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
+		}
 	}
 
-	if d.WorkloadIdentityEnabled {
-		args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
-	}
 	if d.ReleaseChannel != "" {
 		args = append(args, "--release-channel="+d.ReleaseChannel)
 		if d.Version == "latest" {
