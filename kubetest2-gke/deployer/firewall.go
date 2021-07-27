@@ -57,7 +57,7 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []clu
 
 		tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
 			"--project="+project,
-			"--filter=metadata.created-by:*"+instanceGroups[project][clusterName][0].path,
+			"--filter=metadata.created-by:"+instanceGroups[project][clusterName][0].path,
 			"--limit=1",
 			"--format=get(tags.items)"))
 		if err != nil {
