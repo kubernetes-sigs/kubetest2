@@ -65,6 +65,7 @@ func (o *Options) implementationFromStrategy() error {
 			StageLocation:   o.StageLocation,
 			ImageLocation:   o.ImageLocation,
 			StageExtraFiles: o.StageExtraGCPFiles,
+			UpdateLatest:    o.UpdateLatest,
 		}
 	default:
 		return fmt.Errorf("unknown build strategy: %v", o.Strategy)

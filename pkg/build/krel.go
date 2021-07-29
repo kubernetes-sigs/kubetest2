@@ -30,6 +30,7 @@ type Krel struct {
 	ImageLocation   string
 	RepoRoot        string
 	StageExtraFiles bool
+	UpdateLatest    bool
 }
 
 var _ Stager = &Krel{}
@@ -52,7 +53,7 @@ func (rpb *Krel) Stage(version string) error {
 			GCSRoot:         mat[3],
 			AllowDup:        true,
 			CI:              mat[2] == "ci",
-			NoUpdateLatest:  true,
+			NoUpdateLatest:  !rpb.UpdateLatest,
 			Registry:        rpb.ImageLocation,
 			Version:         version,
 			StageExtraFiles: rpb.StageExtraFiles,

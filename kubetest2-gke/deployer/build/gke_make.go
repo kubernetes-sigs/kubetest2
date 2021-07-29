@@ -120,14 +120,18 @@ func (gmb *GKEMake) Stage(version string) error {
 	if gmb.UpdateLatest {
 		r := regexp.MustCompile(gkeMinorVersionRegex)
 		m := r.FindStringSubmatch(version)
+		var fName string
 		if len(m) < 2 {
-			return fmt.Errorf("failed to update the latest version because can't find the minor version of %s", version)
+			klog.Warningf("can't find the minor version of %s, defaulting to latest.txt", version)
+			fName = "latest.txt"
+		} else {
+			minor := m[1]
+			fName = fmt.Sprintf("latest-%s.txt", minor)
 		}
-		minor := m[1]
-		fName := fmt.Sprintf("latest-%s.txt", minor)
-		pushCmd := fmt.Sprintf("echo '%s' | gsutil cp - %s/%s", version, gmb.StageLocation, fName)
-		cmd := exec.Command("bash", "-c", pushCmd)
-		exec.InheritOutput(cmd)
+		pushCmd := fmt.Sprintf("gsutil cp - %s/%s", gmb.StageLocation, fName)
+		cmd := exec.Command(pushCmd)
+		cmd.SetStdin(strings.NewReader(version))
+		exec.SetOutput(cmd, os.Stdout, os.Stderr)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to upload the latest version number: %s", err)
 		}
