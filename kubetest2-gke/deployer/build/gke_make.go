@@ -36,13 +36,15 @@ const (
 	pack         gkeBuildAction = "package"
 	stage        gkeBuildAction = "push-gcs"
 	printVersion gkeBuildAction = "print-version"
-
-	gkeMinorVersionRegex string = "^v(\\d\\.\\d+).*$"
 )
 
 const (
 	// GKEMakeStrategy builds and stages using the gke_make build
 	GKEMakeStrategy build.BuildAndStageStrategy = "gke_make"
+)
+
+var (
+	gkeMinorVersionRegex = regexp.MustCompile("^v(\\d\\.\\d+).*$")
 )
 
 type GKEMake struct {
@@ -118,8 +120,7 @@ func (gmb *GKEMake) Stage(version string) error {
 	}
 
 	if gmb.UpdateLatest {
-		r := regexp.MustCompile(gkeMinorVersionRegex)
-		m := r.FindStringSubmatch(version)
+		m := gkeMinorVersionRegex.FindStringSubmatch(version)
 		var fName string
 		if len(m) < 2 {
 			klog.Warningf("can't find the minor version of %s, defaulting to latest.txt", version)
@@ -129,7 +130,7 @@ func (gmb *GKEMake) Stage(version string) error {
 			fName = fmt.Sprintf("latest-%s.txt", minor)
 		}
 		pushCmd := fmt.Sprintf("gsutil cp - %s/%s", gmb.StageLocation, fName)
-		cmd := exec.Command(pushCmd)
+		cmd := exec.RawCommand(pushCmd)
 		cmd.SetStdin(strings.NewReader(version))
 		exec.SetOutput(cmd, os.Stdout, os.Stderr)
 		if err := cmd.Run(); err != nil {
