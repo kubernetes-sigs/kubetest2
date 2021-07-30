@@ -129,7 +129,7 @@ func (gmb *GKEMake) Stage(version string) error {
 			minor := m[1]
 			fName = fmt.Sprintf("latest-%s.txt", minor)
 		}
-		pushCmd := fmt.Sprintf("gsutil cp - %s/%s", gmb.StageLocation, fName)
+		pushCmd := fmt.Sprintf("gsutil -h 'Content-Type:text/plain' cp - %s/%s", gmb.StageLocation, fName)
 		cmd := exec.RawCommand(pushCmd)
 		cmd.SetStdin(strings.NewReader(version))
 		exec.SetOutput(cmd, os.Stdout, os.Stderr)
