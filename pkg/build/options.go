@@ -37,6 +37,7 @@ type Options struct {
 	ImageLocation      string `flag:"~image-location" desc:"Image registry where built images are stored."`
 	StageExtraGCPFiles bool   `flag:"-"`
 	VersionSuffix      string `flag:"-"`
+	UpdateLatest       bool   `flag:"~update-latest" desc:"Whether should upload the build number to the GCS"`
 	Builder
 	Stager
 }
@@ -64,6 +65,7 @@ func (o *Options) implementationFromStrategy() error {
 			StageLocation:   o.StageLocation,
 			ImageLocation:   o.ImageLocation,
 			StageExtraFiles: o.StageExtraGCPFiles,
+			UpdateLatest:    o.UpdateLatest,
 		}
 	default:
 		return fmt.Errorf("unknown build strategy: %v", o.Strategy)

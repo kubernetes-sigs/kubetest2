@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"strings"
 
 	"k8s.io/klog"
@@ -42,11 +43,16 @@ const (
 	GKEMakeStrategy build.BuildAndStageStrategy = "gke_make"
 )
 
+var (
+	gkeMinorVersionRegex = regexp.MustCompile(`^v(\\d\\.\\d+).*$`)
+)
+
 type GKEMake struct {
 	RepoRoot      string
 	BuildScript   string
 	VersionSuffix string
 	StageLocation string
+	UpdateLatest  bool
 }
 
 func gkeBuildActions(actions []gkeBuildAction) string {
@@ -112,6 +118,26 @@ func (gmb *GKEMake) Stage(version string) error {
 	if err := gmb.runWithActions(os.Stdout, os.Stderr, []gkeBuildAction{stage}, args...); err != nil {
 		return err
 	}
+
+	if gmb.UpdateLatest {
+		m := gkeMinorVersionRegex.FindStringSubmatch(version)
+		var fName string
+		if len(m) < 2 {
+			klog.Warningf("can't find the minor version of %s, defaulting to latest.txt", version)
+			fName = "latest.txt"
+		} else {
+			minor := m[1]
+			fName = fmt.Sprintf("latest-%s.txt", minor)
+		}
+		pushCmd := fmt.Sprintf("gsutil -h 'Content-Type:text/plain' cp - %s/%s", gmb.StageLocation, fName)
+		cmd := exec.RawCommand(pushCmd)
+		cmd.SetStdin(strings.NewReader(version))
+		exec.SetOutput(cmd, os.Stdout, os.Stderr)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to upload the latest version number: %s", err)
+		}
+	}
+
 	return nil
 }
 

@@ -42,6 +42,7 @@ func (bo *BuildOptions) Validate() error {
 					BuildScript:   bo.BuildScript,
 					VersionSuffix: bo.CommonBuildOptions.VersionSuffix,
 					StageLocation: bo.CommonBuildOptions.StageLocation,
+					UpdateLatest:  bo.CommonBuildOptions.UpdateLatest,
 				}
 				bo.CommonBuildOptions.Builder = gkeMake
 				bo.CommonBuildOptions.Stager = gkeMake
