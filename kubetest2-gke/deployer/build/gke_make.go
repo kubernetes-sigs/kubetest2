@@ -44,7 +44,7 @@ const (
 )
 
 var (
-	gkeMinorVersionRegex = regexp.MustCompile(`^v(\\d\\.\\d+).*$`)
+	gkeMinorVersionRegex = regexp.MustCompile(`^v(\d\.\d+).*$`)
 )
 
 type GKEMake struct {
