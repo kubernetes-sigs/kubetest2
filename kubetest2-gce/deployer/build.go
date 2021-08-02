@@ -19,6 +19,7 @@ package deployer
 import (
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"k8s.io/klog"
@@ -62,7 +63,18 @@ func (d *deployer) Build() error {
 		// this code path supports the kubernetes/cloud-provider-gcp build
 		klog.V(2).Info("starting the build")
 
-		cmd := exec.Command("bazel", "build", "//release:release-tars")
+		var cmd exec.Cmd
+		// determine the build system for kubernetes/cloud-provider-gcp
+		if _, err := os.Stat(path.Join(d.RepoRoot, "Makefile")); err == nil {
+			// For releases that uses Makefile
+			cmd = exec.Command("make", "release-tars")
+		} else if _, err := os.Stat(path.Join(d.RepoRoot, "BUILD")); err == nil {
+			// For releases that uses Bazel
+			cmd = exec.Command("bazel", "build", "//release:release-tars")
+		} else {
+			return fmt.Errorf("cannot determine build system")
+		}
+
 		exec.InheritOutput(cmd)
 		cmd.SetDir(d.RepoRoot)
 		err := cmd.Run()
