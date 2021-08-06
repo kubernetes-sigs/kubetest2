@@ -40,15 +40,16 @@ const (
 )
 
 type Tester struct {
-	RepoRoot                    string `desc:"Absolute path to kubernetes repository root."`
-	GCPProject                  string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
-	GCPZone                     string `desc:"GCP Zone to create VMs in."`
-	SkipRegex                   string `desc:"Regular expression of jobs to skip."`
-	FocusRegex                  string `desc:"Regular expression of jobs to focus on."`
-	Runtime                     string `desc:"Container runtime to use."`
-	TestArgs                    string `desc:"A space-separated list of arguments to pass to node e2e test."`
-	BoskosAcquireTimeoutSeconds int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
-	BoskosLocation              string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
+	RepoRoot                       string `desc:"Absolute path to kubernetes repository root."`
+	GCPProject                     string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
+	GCPZone                        string `desc:"GCP Zone to create VMs in."`
+	SkipRegex                      string `desc:"Regular expression of jobs to skip."`
+	FocusRegex                     string `desc:"Regular expression of jobs to focus on."`
+	Runtime                        string `desc:"Container runtime to use."`
+	TestArgs                       string `desc:"A space-separated list of arguments to pass to node e2e test."`
+	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
+	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -105,6 +106,7 @@ func (t *Tester) Execute() error {
 			t.boskos,
 			gceProjectResourceType,
 			time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
+			time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
 			t.boskosHeartbeatClose,
 		)
 
