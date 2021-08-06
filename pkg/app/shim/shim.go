@@ -102,7 +102,11 @@ func runE(cmd *cobra.Command, args []string) error {
 		usage(cmd)
 		return err
 	}
-	return process.Exec(deployer, args[1:], os.Environ())
+
+	env := os.Environ()
+	version := fmt.Sprintf("kubetest2 version %s", GitTag)
+	env = append(env, fmt.Sprintf("KUBETEST2_VERSION=%s", version))
+	return process.Exec(deployer, args[1:], env)
 }
 
 // custom help info, includes usage()
