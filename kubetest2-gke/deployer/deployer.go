@@ -146,6 +146,10 @@ func (d *Deployer) Provider() string {
 	return Name
 }
 
+func (d *Deployer) Version() string {
+	return GitTag
+}
+
 // New implements deployer.New for gke
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
@@ -171,7 +175,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
 			WindowsImageType:   defaultWindowsImage,
 			// Leave Version as empty to use the default cluster version.
-			Version:          "",
+			ClusterVersion:   "",
 			GCPSSHKeyIgnored: true,
 
 			BoskosLocation:                 defaultBoskosLocation,

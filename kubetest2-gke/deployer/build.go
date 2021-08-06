@@ -86,7 +86,7 @@ func (d *Deployer) Build() error {
 			return fmt.Errorf("error staging build: %v", err)
 		}
 	}
-	d.Version = version
+	d.ClusterVersion = version
 	build.StoreCommonBinaries(d.RepoRoot, d.kubetest2CommonOptions.RunDir())
 	return nil
 }

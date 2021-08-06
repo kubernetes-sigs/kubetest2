@@ -44,6 +44,10 @@ func (d *Deployer) Init() error {
 
 // Initialize should only be called by init(), behind a sync.Once
 func (d *Deployer) Initialize() error {
+	if d.ClusterVersion == "" && d.LegacyClusterVersion != "" {
+		klog.Warningf("--version is deprecated please use --cluster-version")
+		d.ClusterVersion = d.LegacyClusterVersion
+	}
 	if d.kubetest2CommonOptions.ShouldUp() {
 		d.totalTryCount = math.Max(len(d.Regions), len(d.Zones))
 

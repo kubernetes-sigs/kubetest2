@@ -29,7 +29,8 @@ type UpOptions struct {
 	NumNodes                int    `flag:"~num-nodes" desc:"For use with gcloud commands to specify the number of nodes for the cluster."`
 	ImageType               string `flag:"~image-type" desc:"The image type to use for the cluster."`
 	ReleaseChannel          string `desc:"Use a GKE release channel, could be one of empty, rapid, regular and stable - https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels"`
-	Version                 string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400, 'latest' or ''. If --build is specified it will default to building kubernetes from source."`
+	ClusterVersion          string `desc:"Use a specific GKE version e.g. 1.16.13.gke-400, 'latest' or ''. If --build is specified it will default to building kubernetes from source."`
+	LegacyClusterVersion    string `flag:"~version,deprecated" desc:"Use --cluster-version instead"`
 	WorkloadIdentityEnabled bool   `flag:"~enable-workload-identity" desc:"Whether enable workload identity for the cluster or not. See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity."`
 	GCPSSHKeyIgnored        bool   `flag:"~ignore-gcp-ssh-key" desc:"Whether the GCP SSH key should be ignored or not for bringing up the cluster."`
 	WindowsEnabled          bool   `flag:"~enable-windows" desc:"Whether enable Windows node pool in the cluster or not."`
