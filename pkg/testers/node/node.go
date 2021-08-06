@@ -34,6 +34,8 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
+var GitTag string
+
 const (
 	target                 = "test-e2e-node"
 	gceProjectResourceType = "gce-project"

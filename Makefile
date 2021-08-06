@@ -70,6 +70,7 @@ install-deployer-%:
 
 install-tester-%: BINARY_PATH=./kubetest2-tester-$*
 install-tester-%: BINARY_NAME=kubetest2-tester-$*
+install-tester-%: BUILD_FLAGS=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/testers/$*.GitTag=$(COMMIT)"
 install-tester-%:
 	go build $(BUILD_FLAGS) -v $(BUILD_OPTS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)

@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
+var GitTag string
+
 type Tester struct {
 	argv []string
 }

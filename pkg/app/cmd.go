@@ -91,7 +91,6 @@ func runE(
 		if err != nil {
 			return fmt.Errorf("unable to find tester %v: %v", opts.test, err)
 		}
-		cmd.Printf("Running tester %s version: %s\n", opts.test, shim.GitTag)
 
 		// Get tester usage by running it with --help
 		var helpArgs []string

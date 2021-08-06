@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
+var GitTag string
+
 type Tester struct {
 	FlakeAttempts      int    `desc:"Make up to this many attempts to run each spec."`
 	GinkgoArgs         string `desc:"Additional arguments supported by the ginkgo binary."`

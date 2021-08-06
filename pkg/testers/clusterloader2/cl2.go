@@ -30,6 +30,8 @@ import (
 	suite "sigs.k8s.io/kubetest2/pkg/testers/clusterloader2/suite"
 )
 
+var GitTag string
+
 type Tester struct {
 	Suites        string `desc:"Comma separated list of standard scale testing suites e.g. load, density"`
 	TestOverrides string `desc:"Comma separated list of paths to the config override files. The latter overrides take precedence over changes in former files."`
