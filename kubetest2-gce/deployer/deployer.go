@@ -152,6 +152,10 @@ func (d *deployer) Provider() string {
 	return Name
 }
 
+func (d *deployer) Version() string {
+	return GitTag
+}
+
 func (d *deployer) Kubeconfig() (string, error) {
 	_, err := os.Stat(d.kubeconfigPath)
 	if os.IsNotExist(err) {

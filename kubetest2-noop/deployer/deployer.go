@@ -90,6 +90,10 @@ func (d *deployer) Kubeconfig() (string, error) {
 	return filepath.Join(home, ".kube", "config"), nil
 }
 
+func (d *deployer) Version() string {
+	return GitTag
+}
+
 // helper used to create & bind a flagset to the deployer
 func bindFlags(d *deployer) *pflag.FlagSet {
 	flags, err := gpflag.Parse(d)
