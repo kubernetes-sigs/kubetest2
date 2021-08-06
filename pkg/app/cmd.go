@@ -67,8 +67,6 @@ func runE(
 	opts.bindFlags(kubetest2Flags)
 	artifacts.MustBindFlags(kubetest2Flags)
 
-	cmd.Printf("Running deployer %s version: %s\n", deployerName, shim.GitTag)
-
 	// NOTE: unknown flags are forwarded to the deployer as arguments
 	kubetest2Flags.ParseErrorsWhitelist.UnknownFlags = true
 

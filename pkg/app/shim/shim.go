@@ -69,7 +69,6 @@ func NewCommand() *cobra.Command {
 
 // runE implements the actual command logic
 func runE(cmd *cobra.Command, args []string) error {
-	cmd.Printf("Running %s version: %s\n", BinaryName, GitTag)
 	// there should be at least one argument (the deployer) unless the user
 	// is asking for help on the shim itself
 	if len(args) < 1 {

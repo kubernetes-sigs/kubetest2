@@ -49,11 +49,12 @@ SPACE:=$(subst ,, )
 SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
 # ==============================================================================
 # flags for reproducible go builds
-BUILD_FLAGS?=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/app.GitTag=$(COMMIT)"
+BUILD_FLAGS?=-trimpath -ldflags="-buildid="
 
 build-all:
 	go build -v $(BUILD_FLAGS) ./...
 
+install: BUILD_FLAGS=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/app/shim.GitTag=$(COMMIT)"
 install:
 	go build -v $(BUILD_FLAGS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
