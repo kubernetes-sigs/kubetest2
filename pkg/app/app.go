@@ -63,7 +63,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return err
 	}
 
-	if err := writeVersionToMetadataJSON(opts); err != nil {
+	if err := writeVersionToMetadataJSON(opts, d); err != nil {
 		return err
 	}
 
@@ -164,7 +164,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 	return nil
 }
 
-func writeVersionToMetadataJSON(opts types.Options) error {
+func writeVersionToMetadataJSON(opts types.Options, d types.Deployer) error {
 	// setup the json metadata writer
 	metadataJSON, err := os.Create(
 		filepath.Join(opts.RunDir(), "metadata.json"),
@@ -179,6 +179,12 @@ func writeVersionToMetadataJSON(opts types.Options) error {
 	}
 	if err := meta.Add("kubetest-version", os.Getenv("KUBETEST2_VERSION")); err != nil {
 		return err
+	}
+
+	if dWithVersion, ok := d.(types.DeployerWithVersion); ok {
+		if err := meta.Add("deployer-version", dWithVersion.Version()); err != nil {
+			return err
+		}
 	}
 
 	if err := meta.Write(metadataJSON); err != nil {

@@ -113,6 +113,14 @@ type DeployerWithPostTester interface {
 	PostTest(testErr error) error
 }
 
+// DeployerWithVersion allows the deployer to specify it's version
+type DeployerWithVersion interface {
+	Deployer
+
+	// Version determines the version of the deployer binary
+	Version() string
+}
+
 // Tester defines the "interface" between kubetest2 and a tester
 // The tester is executed as a separate binary during the Test() phase
 type Tester struct {
