@@ -38,6 +38,8 @@ import (
 // Name is the name of the deployer
 const Name = "gke"
 
+var GitTag string
+
 const (
 	e2eAllow            = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
 	defaultImage        = "cos"

@@ -32,6 +32,8 @@ import (
 // Name is the name of the deployer
 const Name = "noop"
 
+var GitTag string
+
 // New implements deployer.New for kind
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled

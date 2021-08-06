@@ -39,6 +39,8 @@ import (
 // Name is the name of the deployer
 const Name = "gce"
 
+var GitTag string
+
 type deployer struct {
 	// generic parts
 	commonOptions types.Options
