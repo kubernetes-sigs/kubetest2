@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/testers"
 )
 
 var GitTag string
@@ -165,6 +166,9 @@ func (t *Tester) Execute() error {
 	}
 
 	if err := t.initKubetest2Info(); err != nil {
+		return err
+	}
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
 		return err
 	}
 	return t.Test()

@@ -28,10 +28,11 @@ import (
 
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog"
-	"sigs.k8s.io/boskos/client"
 
+	"sigs.k8s.io/boskos/client"
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/testers"
 )
 
 var GitTag string
@@ -132,7 +133,9 @@ func (t *Tester) Execute() error {
 			}
 		}
 	}()
-
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+		return err
+	}
 	return t.Test()
 }
 
