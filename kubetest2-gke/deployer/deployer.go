@@ -174,7 +174,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
 			WindowsImageType:   defaultWindowsImage,
-			// Leave Version as empty to use the default cluster version.
+			// Leave ClusterVersion as empty to use the default cluster version.
 			ClusterVersion:   "",
 			GCPSSHKeyIgnored: true,
 
