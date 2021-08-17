@@ -38,6 +38,8 @@ import (
 // Name is the name of the deployer
 const Name = "gke"
 
+var GitTag string
+
 const (
 	e2eAllow            = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
 	defaultImage        = "cos"
@@ -144,6 +146,10 @@ func (d *Deployer) Provider() string {
 	return Name
 }
 
+func (d *Deployer) Version() string {
+	return GitTag
+}
+
 // New implements deployer.New for gke
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
@@ -168,8 +174,8 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
 			WindowsImageType:   defaultWindowsImage,
-			// Leave Version as empty to use the default cluster version.
-			Version:          "",
+			// Leave ClusterVersion as empty to use the default cluster version.
+			ClusterVersion:   "",
 			GCPSSHKeyIgnored: true,
 
 			BoskosLocation:                 defaultBoskosLocation,

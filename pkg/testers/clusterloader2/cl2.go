@@ -27,8 +27,11 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/testers"
 	suite "sigs.k8s.io/kubetest2/pkg/testers/clusterloader2/suite"
 )
+
+var GitTag string
 
 type Tester struct {
 	Suites        string `desc:"Comma separated list of standard scale testing suites e.g. load, density"`
@@ -120,7 +123,9 @@ func (t *Tester) Execute() error {
 		fs.PrintDefaults()
 		return nil
 	}
-
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+		return err
+	}
 	return t.Test()
 }
 

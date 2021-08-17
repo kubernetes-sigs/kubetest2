@@ -67,8 +67,6 @@ func runE(
 	opts.bindFlags(kubetest2Flags)
 	artifacts.MustBindFlags(kubetest2Flags)
 
-	cmd.Printf("Running deployer %s version: %s\n", deployerName, shim.GitTag)
-
 	// NOTE: unknown flags are forwarded to the deployer as arguments
 	kubetest2Flags.ParseErrorsWhitelist.UnknownFlags = true
 
@@ -93,7 +91,6 @@ func runE(
 		if err != nil {
 			return fmt.Errorf("unable to find tester %v: %v", opts.test, err)
 		}
-		cmd.Printf("Running tester %s version: %s\n", opts.test, shim.GitTag)
 
 		// Get tester usage by running it with --help
 		var helpArgs []string

@@ -170,7 +170,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 
 	if d.ReleaseChannel != "" {
 		args = append(args, "--release-channel="+d.ReleaseChannel)
-		if d.Version == "latest" {
+		if d.ClusterVersion == "latest" {
 			// If latest is specified, get the latest version from server config for this channel.
 			actualVersion, err := resolveLatestVersionInChannel(locationArg, d.ReleaseChannel)
 			if err != nil {
@@ -179,13 +179,13 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 			klog.V(0).Infof("Using the latest version %q in %q channel", actualVersion, d.ReleaseChannel)
 			args = append(args, "--cluster-version="+actualVersion)
 		} else {
-			args = append(args, "--cluster-version="+d.Version)
+			args = append(args, "--cluster-version="+d.ClusterVersion)
 		}
 	} else {
-		args = append(args, "--cluster-version="+d.Version)
-		releaseChannel, err := resolveReleaseChannelForClusterVersion(d.Version, locationArg)
+		args = append(args, "--cluster-version="+d.ClusterVersion)
+		releaseChannel, err := resolveReleaseChannelForClusterVersion(d.ClusterVersion, locationArg)
 		if err != nil {
-			klog.Warningf("error resolving the release channel for %q: %v, will proceed with no channel", d.Version, err)
+			klog.Warningf("error resolving the release channel for %q: %v, will proceed with no channel", d.ClusterVersion, err)
 		} else {
 			args = append(args, "--release-channel="+releaseChannel)
 		}
@@ -352,7 +352,7 @@ func (d *Deployer) VerifyUpFlags() error {
 	if d.NumNodes <= 0 {
 		return fmt.Errorf("--num-nodes must be larger than 0")
 	}
-	if err := validateVersion(d.Version); err != nil {
+	if err := validateVersion(d.ClusterVersion); err != nil {
 		return err
 	}
 	if err := validateReleaseChannel(d.ReleaseChannel); err != nil {

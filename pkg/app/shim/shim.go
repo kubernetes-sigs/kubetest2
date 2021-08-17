@@ -69,7 +69,6 @@ func NewCommand() *cobra.Command {
 
 // runE implements the actual command logic
 func runE(cmd *cobra.Command, args []string) error {
-	cmd.Printf("Running %s version: %s\n", BinaryName, GitTag)
 	// there should be at least one argument (the deployer) unless the user
 	// is asking for help on the shim itself
 	if len(args) < 1 {
@@ -103,7 +102,11 @@ func runE(cmd *cobra.Command, args []string) error {
 		usage(cmd)
 		return err
 	}
-	return process.Exec(deployer, args[1:], os.Environ())
+
+	env := os.Environ()
+	version := fmt.Sprintf("kubetest2 version %s", GitTag)
+	env = append(env, fmt.Sprintf("KUBETEST2_VERSION=%s", version))
+	return process.Exec(deployer, args[1:], env)
 }
 
 // custom help info, includes usage()

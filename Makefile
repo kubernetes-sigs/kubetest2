@@ -49,11 +49,12 @@ SPACE:=$(subst ,, )
 SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
 # ==============================================================================
 # flags for reproducible go builds
-BUILD_FLAGS?=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/app.GitTag=$(COMMIT)"
+BUILD_FLAGS?=-trimpath -ldflags="-buildid="
 
 build-all:
 	go build -v $(BUILD_FLAGS) ./...
 
+install: BUILD_FLAGS=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/app/shim.GitTag=$(COMMIT)"
 install:
 	go build -v $(BUILD_FLAGS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
@@ -61,6 +62,7 @@ install:
 
 install-deployer-%: BINARY_PATH=./kubetest2-$*
 install-deployer-%: BINARY_NAME=kubetest2-$*
+install-deployer-%: BUILD_FLAGS=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/kubetest2-$*/deployer.GitTag=$(COMMIT)"
 install-deployer-%:
 	go build -v $(BUILD_FLAGS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)
@@ -68,6 +70,7 @@ install-deployer-%:
 
 install-tester-%: BINARY_PATH=./kubetest2-tester-$*
 install-tester-%: BINARY_NAME=kubetest2-tester-$*
+install-tester-%: BUILD_FLAGS=-trimpath -ldflags="-buildid= -X=sigs.k8s.io/kubetest2/pkg/testers/$*.GitTag=$(COMMIT)"
 install-tester-%:
 	go build $(BUILD_FLAGS) -v $(BUILD_OPTS) -o $(OUT_DIR)/$(BINARY_NAME) $(BINARY_PATH)
 	$(INSTALL) -d $(INSTALL_DIR)

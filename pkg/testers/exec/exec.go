@@ -25,7 +25,10 @@ import (
 	"k8s.io/klog"
 
 	"sigs.k8s.io/kubetest2/pkg/process"
+	"sigs.k8s.io/kubetest2/pkg/testers"
 )
+
+var GitTag string
 
 type Tester struct {
 	argv []string
@@ -62,6 +65,9 @@ func (t *Tester) Execute() error {
 	}
 
 	t.argv = os.Args[1:]
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+		return err
+	}
 	return t.Test()
 }
 
