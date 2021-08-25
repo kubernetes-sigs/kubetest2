@@ -48,7 +48,7 @@ func (d *Deployer) Initialize() error {
 		klog.Warningf("--version is deprecated please use --cluster-version")
 		d.ClusterVersion = d.LegacyClusterVersion
 	}
-	if d.kubetest2CommonOptions.ShouldUp() {
+	if d.Kubetest2CommonOptions.ShouldUp() {
 		d.totalTryCount = math.Max(len(d.Regions), len(d.Zones))
 
 		if err := d.VerifyUpFlags(); err != nil {
@@ -74,44 +74,51 @@ func (d *Deployer) Initialize() error {
 			}
 			d.boskos = boskosClient
 
-			for i := 0; i < d.BoskosProjectsRequested; i++ {
-				resource, err := boskos.Acquire(
-					d.boskos,
-					d.BoskosResourceType,
-					time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
-					time.Duration(d.BoskosHeartbeatIntervalSeconds)*time.Second,
-					d.boskosHeartbeatClose,
-				)
+			for i := 0; i < len(d.BoskosProjectsRequested); i++ {
+				for j := 0; j < d.BoskosProjectsRequested[i]; j++ {
+					resource, err := boskos.Acquire(
+						d.boskos,
+						d.BoskosResourceType[i],
+						time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
+						time.Duration(d.BoskosHeartbeatIntervalSeconds)*time.Second,
+						d.boskosHeartbeatClose,
+					)
 
-				if err != nil {
-					return fmt.Errorf("init failed to get project from boskos: %w", err)
+					if err != nil {
+						return fmt.Errorf("init failed to get project from boskos: %w", err)
+					}
+					d.Projects = append(d.Projects, resource.Name)
+					klog.V(1).Infof("Got project %s from boskos", resource.Name)
 				}
-				d.Projects = append(d.Projects, resource.Name)
-				klog.V(1).Infof("Got project %s from boskos", resource.Name)
 			}
-		}
-
-		// Multi-cluster name adjustment
-		numProjects := len(d.Projects)
-		d.projectClustersLayout = make(map[string][]cluster, numProjects)
-		if numProjects > 1 {
-			if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
-				return fmt.Errorf("failed to build the project clusters layout: %v", err)
-			}
-		} else {
-			// Backwards compatible construction
-			clusters := make([]cluster, len(d.Clusters))
-			for i, clusterName := range d.Clusters {
-				clusters[i] = cluster{i, clusterName}
-			}
-			d.projectClustersLayout[d.Projects[0]] = clusters
 		}
 	}
 
-	if d.kubetest2CommonOptions.ShouldDown() {
+	if d.Kubetest2CommonOptions.ShouldDown() {
 		if err := d.VerifyDownFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for down: %w", err)
 		}
+	}
+
+	// Multi-cluster name adjustment
+	numProjects := len(d.Projects)
+	d.projectClustersLayout = make(map[string][]cluster, numProjects)
+	if numProjects > 1 {
+		if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
+			return fmt.Errorf("failed to build the project clusters layout: %v", err)
+		}
+	} else {
+		// Backwards compatible construction
+		clusters := make([]cluster, len(d.Clusters))
+		for i, clusterName := range d.Clusters {
+			clusters[i] = cluster{i, clusterName}
+		}
+		d.projectClustersLayout[d.Projects[0]] = clusters
+	}
+
+	// Prepare the GCP environment for the following operations.
+	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
+		return err
 	}
 
 	return nil

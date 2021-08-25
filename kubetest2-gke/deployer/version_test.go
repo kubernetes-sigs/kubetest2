@@ -161,6 +161,12 @@ func TestIsClusterVersionMatch(t *testing.T) {
 			target:        "1.19.10-gke.1000",
 			expectMatched: false,
 		},
+		{
+			desc:          "version having more parts than the target cannot be matched",
+			version:       "1.19.10.1.2",
+			target:        "1.19.10-gke.1000",
+			expectMatched: false,
+		},
 	}
 
 	for _, tc := range testCases {
