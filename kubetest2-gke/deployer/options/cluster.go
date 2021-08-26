@@ -38,6 +38,7 @@ type ClusterOptions struct {
 	LegacyClusterVersion    string   `flag:"~version,deprecated" desc:"Use --cluster-version instead"`
 	ClusterVersion          string   `desc:"Use a specific GKE version e.g. 1.16.13.gke-400, 'latest' or ''. If --build is specified it will default to building kubernetes from source."`
 	WorkloadIdentityEnabled bool     `flag:"~enable-workload-identity" desc:"Whether enable workload identity for the cluster or not. See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity."`
+	FirewallRuleAllow       string   `desc:"A list of protocols and ports whose traffic will be allowed for the firewall rules created for the cluster."`
 
 	WindowsEnabled     bool   `flag:"~enable-windows" desc:"Whether enable Windows node pool in the cluster or not."`
 	WindowsNumNodes    int    `flag:"~windows-num-nodes" desc:"For use with gcloud commands to specify the number of nodes for Windows node pools in the cluster."`
