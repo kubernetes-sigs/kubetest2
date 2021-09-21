@@ -54,8 +54,8 @@ type Tester struct {
 	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
-	ImageConfigFile				   string `desc:"Path to a file containing image configuration."`
-	Parallelism					   int    `desc:"The number of nodes to run in parallel."`
+	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
+	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -72,7 +72,7 @@ func NewDefaultTester() *Tester {
 		Runtime:                     "docker",
 		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
 		BoskosAcquireTimeoutSeconds: 5 * 60,
-		Parallelism:					 8,
+		Parallelism:                 8,
 	}
 }
 
