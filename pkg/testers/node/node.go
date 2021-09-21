@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/octago/sflags/gen/gpflag"
@@ -71,7 +72,7 @@ func NewDefaultTester() *Tester {
 		Runtime:                     "docker",
 		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
 		BoskosAcquireTimeoutSeconds: 5 * 60,
-		Parallelism					 8,
+		Parallelism:					 8,
 	}
 }
 
@@ -167,9 +168,9 @@ func (t *Tester) constructArgs() []string {
 		"CLOUDSDK_CORE_PROJECT=" + t.GCPProject,
 		// https://github.com/kubernetes/kubernetes/blob/96be00df69390ed41b8ec22facc43bcbb9c88aae/hack/make-rules/test-e2e-node.sh#L113
 		"ZONE=" + t.GCPZone,
-		"TEST_ARGS=" + t.TestArgs
-		"PARALLELISM=" + t.Parallelism
-		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile
+		"TEST_ARGS=" + t.TestArgs,
+		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
+		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
 	}
 	return append(defaultArgs, argsFromFlags...)
 }
