@@ -103,16 +103,16 @@ func (d *Deployer) Initialize() error {
 
 	// Multi-cluster name adjustment
 	numProjects := len(d.Projects)
-	d.projectClustersLayout = make(map[string][]cluster, numProjects)
+	d.projectClustersLayout = make(map[string][]Cluster, numProjects)
 	if numProjects > 1 {
 		if err := buildProjectClustersLayout(d.Projects, d.Clusters, d.projectClustersLayout); err != nil {
 			return fmt.Errorf("failed to build the project clusters layout: %v", err)
 		}
 	} else {
 		// Backwards compatible construction
-		clusters := make([]cluster, len(d.Clusters))
+		clusters := make([]Cluster, len(d.Clusters))
 		for i, clusterName := range d.Clusters {
-			clusters[i] = cluster{i, clusterName}
+			clusters[i] = Cluster{i, clusterName}
 		}
 		d.projectClustersLayout[d.Projects[0]] = clusters
 	}
@@ -126,20 +126,24 @@ func (d *Deployer) Initialize() error {
 }
 
 // buildProjectClustersLayout builds the projects and real cluster names mapping based on the provided --cluster-name flag.
-func buildProjectClustersLayout(projects, clusters []string, projectClustersLayout map[string][]cluster) error {
+func buildProjectClustersLayout(projects, clusters []string, projectClustersLayout map[string][]Cluster) error {
 	for i, clusterName := range clusters {
-		parts := strings.Split(clusterName, ":")
-		if len(parts) != 2 {
-			return fmt.Errorf("cluster name does not follow expected format (name:projectIndex): %s", clusterName)
+		if strings.Contains(clusterName, ":") {
+			parts := strings.Split(clusterName, ":")
+			if len(parts) != 2 {
+				return fmt.Errorf("cluster name does not follow expected format (name:projectIndex): %s", clusterName)
+			}
+			projectIndex, err := strconv.Atoi(parts[1])
+			if err != nil {
+				return fmt.Errorf("cluster name does not follow contain a valid project index (name:projectIndex. E.g: cluster:0): %v", err)
+			}
+			if projectIndex >= len(projects) {
+				return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
+			}
+			projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], Cluster{i, parts[0]})
+		} else {
+			projectClustersLayout[projects[i]] = append(projectClustersLayout[projects[i]], Cluster{i, clusterName})
 		}
-		projectIndex, err := strconv.Atoi(parts[1])
-		if err != nil {
-			return fmt.Errorf("cluster name does not follow contain a valid project index (name:projectIndex. E.g: cluster:0): %v", err)
-		}
-		if projectIndex >= len(projects) {
-			return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
-		}
-		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], cluster{i, parts[0]})
 	}
 	return nil
 }

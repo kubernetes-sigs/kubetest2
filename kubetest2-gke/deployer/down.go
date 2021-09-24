@@ -44,11 +44,8 @@ func (d *Deployer) Down() error {
 
 	d.DeleteClusters(d.retryCount)
 
-	numDeletedFWRules, errCleanFirewalls := d.CleanupNetworkFirewalls(d.Projects[0], d.Network)
-	if errCleanFirewalls != nil {
-		klog.Errorf("Error cleaning-up firewall rules: %v", errCleanFirewalls)
-	} else {
-		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
+	if err := d.CleanupNetworkFirewalls(d.Projects[0], d.Network); err != nil {
+		klog.Errorf("Error cleaning-up firewall rules: %v", err)
 	}
 
 	if err := d.TeardownNetwork(); err != nil {
@@ -71,7 +68,7 @@ func (d *Deployer) DeleteClusters(retryCount int) {
 		project := d.Projects[i]
 		for j := range d.projectClustersLayout[project] {
 			cluster := d.projectClustersLayout[project][j]
-			loc := locationFlag(d.Regions, d.Zones, retryCount)
+			loc := LocationFlag(d.Regions, d.Zones, retryCount)
 
 			wg.Add(1)
 			go func() {
@@ -83,9 +80,9 @@ func (d *Deployer) DeleteClusters(retryCount int) {
 	wg.Wait()
 }
 
-func (d *Deployer) DeleteCluster(project, loc string, cluster cluster) {
+func (d *Deployer) DeleteCluster(project, loc string, cluster Cluster) {
 	if err := runWithOutput(exec.Command(
-		"gcloud", containerArgs("clusters", "delete", "-q", cluster.name,
+		"gcloud", containerArgs("clusters", "delete", "-q", cluster.Name,
 			"--project="+project,
 			loc)...)); err != nil {
 		klog.Errorf("Error deleting cluster: %v", err)

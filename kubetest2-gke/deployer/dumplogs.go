@@ -70,7 +70,7 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 			if err := d.GetInstanceGroups(); err != nil {
 				return err
 			}
-			for _, ig := range d.instanceGroups[project][cluster.name] {
+			for _, ig := range d.instanceGroups[project][cluster.Name] {
 				filters = append(filters, fmt.Sprintf("(metadata.created-by:*%s)", ig.path))
 			}
 		}

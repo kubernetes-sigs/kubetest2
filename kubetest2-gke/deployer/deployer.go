@@ -89,10 +89,10 @@ type ig struct {
 	uniq string
 }
 
-type cluster struct {
-	// index is the index of the cluster in the list provided via the --cluster-name flag
-	index int
-	name  string
+type Cluster struct {
+	// Index is the index of the cluster in the list provided via the --cluster-name flag
+	Index int
+	Name  string
 }
 
 type Deployer struct {
@@ -108,7 +108,7 @@ type Deployer struct {
 	// doInit helps to make sure the initialization is performed only once
 	doInit sync.Once
 	// only used for multi-project multi-cluster profile to save the project-clusters mapping
-	projectClustersLayout map[string][]cluster
+	projectClustersLayout map[string][]Cluster
 	// project -> cluster -> instance groups
 	instanceGroups map[string]map[string][]*ig
 
@@ -217,18 +217,18 @@ func (d *Deployer) VerifyLocationFlags() error {
 	return nil
 }
 
-// locationFlag builds the zone/region flag from the provided zone/region
+// LocationFlag builds the zone/region flag from the provided zone/region
 // used by gcloud commands.
-func locationFlag(regions, zones []string, retryCount int) string {
+func LocationFlag(regions, zones []string, retryCount int) string {
 	if len(zones) != 0 {
 		return "--zone=" + zones[retryCount]
 	}
 	return "--region=" + regions[retryCount]
 }
 
-// regionFromLocation computes the region from the specified zone/region
+// RegionFromLocation computes the region from the specified zone/region
 // used by some commands (such as subnets), which do not support zones.
-func regionFromLocation(regions, zones []string, retryCount int) string {
+func RegionFromLocation(regions, zones []string, retryCount int) string {
 	if len(zones) != 0 {
 		zone := zones[retryCount]
 		return zone[0:strings.LastIndex(zone, "-")]

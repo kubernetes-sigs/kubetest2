@@ -88,11 +88,11 @@ func (d *Deployer) tryCreateClusters(retryCount int) (shouldRetry bool, err erro
 	}
 
 	eg := new(errgroup.Group)
-	locationArg := locationFlag(d.Regions, d.Zones, retryCount)
+	locationArg := LocationFlag(d.Regions, d.Zones, retryCount)
 	for i := range d.Projects {
 		project := d.Projects[i]
 		clusters := d.projectClustersLayout[project]
-		subNetworkArgs := subNetworkArgs(d.Autopilot, d.Projects, regionFromLocation(d.Regions, d.Zones, retryCount), d.Network, i)
+		subNetworkArgs := SubNetworkArgs(d.Autopilot, d.Projects, RegionFromLocation(d.Regions, d.Zones, retryCount), d.Network, i)
 		for j := range clusters {
 			cluster := clusters[j]
 			eg.Go(
@@ -133,7 +133,7 @@ func (d *Deployer) isRetryableError(err error) bool {
 	return false
 }
 
-func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs []string, locationArg string) error {
+func (d *Deployer) CreateCluster(project string, cluster Cluster, subNetworkArgs []string, locationArg string) error {
 	privateClusterArgs := []string{}
 	if d.PrivateClusterAccessLevel != "" {
 		privateClusterArgs = getPrivateClusterArgs(d.Projects, d.Network, d.PrivateClusterAccessLevel, d.privateClusterMasterIPRangesInternal[d.retryCount], cluster, d.Autopilot)
@@ -184,7 +184,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	}
 	args = append(args, subNetworkArgs...)
 	args = append(args, privateClusterArgs...)
-	args = append(args, cluster.name)
+	args = append(args, cluster.Name)
 	output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
 	if err != nil {
 		//parse output for match with regex error
@@ -223,11 +223,11 @@ func (d *Deployer) createCommand() []string {
 	return fs
 }
 
-func (d *Deployer) createWindowsNodePoolCommand(project string, cluster cluster, locationArg, nodePoolName, imageType string) []string {
+func (d *Deployer) createWindowsNodePoolCommand(project string, cluster Cluster, locationArg, nodePoolName, imageType string) []string {
 	fs := make([]string, 0)
 	fs = append(fs, "container", "node-pools", "create", nodePoolName)
 	fs = append(fs, "--quiet")
-	fs = append(fs, "--cluster="+cluster.name)
+	fs = append(fs, "--cluster="+cluster.Name)
 	fs = append(fs, "--project="+project)
 	fs = append(fs, locationArg)
 	if imageType != "" {
@@ -248,7 +248,7 @@ func (d *Deployer) IsUp() (up bool, err error) {
 
 	for _, project := range d.Projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
+			if err := getClusterCredentials(project, LocationFlag(d.Regions, d.Zones, d.retryCount), cluster.Name); err != nil {
 				return false, err
 			}
 
@@ -303,11 +303,11 @@ func (d *Deployer) Kubeconfig() (string, error) {
 	kubecfgFiles := make([]string, 0)
 	for _, project := range d.Projects {
 		for _, cluster := range d.projectClustersLayout[project] {
-			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster.name))
+			filename := filepath.Join(tmpdir, fmt.Sprintf("kubecfg-%s-%s", project, cluster.Name))
 			if err := os.Setenv("KUBECONFIG", filename); err != nil {
 				return "", err
 			}
-			if err := getClusterCredentials(project, locationFlag(d.Regions, d.Zones, d.retryCount), cluster.name); err != nil {
+			if err := getClusterCredentials(project, LocationFlag(d.Regions, d.Zones, d.retryCount), cluster.Name); err != nil {
 				return "", err
 			}
 			kubecfgFiles = append(kubecfgFiles, filename)

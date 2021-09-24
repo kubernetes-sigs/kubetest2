@@ -46,7 +46,7 @@ func TestLocationFlag(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := locationFlag(tc.regions, tc.zones, tc.retryCount)
+		got := LocationFlag(tc.regions, tc.zones, tc.retryCount)
 		if got != tc.expected {
 			t.Errorf("expected %q but got %q", tc.expected, got)
 		}
@@ -81,7 +81,7 @@ func TestRegionFromLocation(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		got := regionFromLocation(tc.regions, tc.zones, tc.retryCount)
+		got := RegionFromLocation(tc.regions, tc.zones, tc.retryCount)
 		if got != tc.expected {
 			t.Errorf("expected %q but got %q", tc.expected, got)
 		}
