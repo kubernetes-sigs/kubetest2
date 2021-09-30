@@ -73,6 +73,7 @@ func NewDefaultTester() *Tester {
 		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
 		BoskosAcquireTimeoutSeconds: 5 * 60,
 		Parallelism:                 8,
+		boskosHeartbeatClose:        make(chan struct{}),
 	}
 }
 
