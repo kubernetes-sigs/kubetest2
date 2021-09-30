@@ -34,19 +34,19 @@ func (d *Deployer) EnsureFirewallRules() error {
 	}
 
 	if len(d.Projects) == 1 {
-		project := d.Projects[0]
-		return ensureFirewallRulesForSingleProject(project, d.Network, d.projectClustersLayout[project], d.instanceGroups)
+		return d.ensureFirewallRulesForSingleProject()
 	}
 
-	return ensureFirewallRulesForMultiProjects(d.Projects, d.Network, d.subnetworkRangesInternal[d.retryCount])
+	return d.ensureFirewallRulesForMultiProjects()
 }
 
 // Ensure firewall rules for e2e testing for all clusters in one single project.
-func ensureFirewallRulesForSingleProject(project, network string, clusters []cluster, instanceGroups map[string]map[string][]*ig) error {
-	for _, cluster := range clusters {
+func (d *Deployer) ensureFirewallRulesForSingleProject() error {
+	project := d.Projects[0]
+	for _, cluster := range d.projectClustersLayout[project] {
 		clusterName := cluster.name
 		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", clusterName, project)
-		firewall := clusterFirewallName(project, clusterName, instanceGroups)
+		firewall := clusterFirewallName(project, clusterName, d.instanceGroups)
 		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
 			"--project="+project,
 			"--format=value(name)")) == nil {
@@ -55,25 +55,30 @@ func ensureFirewallRulesForSingleProject(project, network string, clusters []clu
 		}
 		klog.V(1).Infof("Couldn't describe firewall '%s', assuming it doesn't exist and creating it", firewall)
 
-		tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
-			"--project="+project,
-			"--filter=metadata.created-by:"+instanceGroups[project][clusterName][0].path,
-			"--limit=1",
-			"--format=get(tags.items)"))
-		if err != nil {
-			return fmt.Errorf("instances list failed: %s", execError(err))
+		firewallRulesCreateCmd := []string{
+			"gcloud", "compute", "firewall-rules", "create", firewall,
+			"--project=" + project,
+			"--network=" + d.Network,
+			"--allow=" + d.FirewallRuleAllow,
 		}
-		tag := strings.TrimSpace(string(tagOut))
-		if tag == "" {
-			return fmt.Errorf("instances list returned no instances (or instance has no tags)")
+		if !d.Autopilot {
+			tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
+				"--project="+project,
+				"--filter=metadata.created-by:"+d.instanceGroups[project][clusterName][0].path,
+				"--limit=1",
+				"--format=get(tags.items)"))
+			if err != nil {
+				return fmt.Errorf("instances list failed: %s", execError(err))
+			}
+			tag := strings.TrimSpace(string(tagOut))
+			if tag == "" {
+				return fmt.Errorf("instances list returned no instances (or instance has no tags)")
+			}
+			firewallRulesCreateCmd = append(firewallRulesCreateCmd, "--target-tags="+tag)
 		}
 
-		if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
-			"--project="+project,
-			"--network="+network,
-			"--allow="+e2eAllow,
-			"--target-tags="+tag)); err != nil {
-			return fmt.Errorf("error creating e2e firewall rule: %v", err)
+		if err := runWithOutput(exec.Command(firewallRulesCreateCmd[0], firewallRulesCreateCmd[1:]...)); err != nil {
+			return fmt.Errorf("error creating firewall rule: %v", err)
 		}
 	}
 	return nil
@@ -90,25 +95,25 @@ func clusterFirewallName(project, cluster string, instanceGroups map[string]map[
 // Ensure firewall rules for multi-project profile.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_additional_firewall_rules
 // Please note we are not including the firewall rule for SSH connection as it's not needed for testing.
-func ensureFirewallRulesForMultiProjects(projects []string, network string, subnetworkRanges []string) error {
-	hostProject := projects[0]
+func (d *Deployer) ensureFirewallRulesForMultiProjects() error {
+	hostProject := d.Projects[0]
 	hostProjectNumber, err := getProjectNumber(hostProject)
 	if err != nil {
 		return fmt.Errorf("error looking up project number for id %q: %w", hostProject, err)
 	}
-	for i := 1; i < len(projects); i++ {
-		curtProject := projects[i]
+	for i := 1; i < len(d.Projects); i++ {
+		curtProject := d.Projects[i]
 		curtProjectNumber, err := getProjectNumber(curtProject)
 		if err != nil {
 			return fmt.Errorf("error looking up project number for id %q: %w", curtProject, err)
 		}
 		firewall := fmt.Sprintf("rule-%s-%s", hostProjectNumber, curtProjectNumber)
 		// sourceRanges need to be separated with ",", while the provided subnetworkRanges are separated with space.
-		sourceRanges := strings.ReplaceAll(subnetworkRanges[i-1], " ", ",")
+		sourceRanges := strings.ReplaceAll(d.SubnetworkRanges[i-1], " ", ",")
 		if err := runWithOutput(exec.Command("gcloud", "compute", "firewall-rules", "create", firewall,
 			"--project="+hostProject,
-			"--network="+network,
-			"--allow=tcp,udp,icmp",
+			"--network="+d.Network,
+			"--allow="+d.FirewallRuleAllow,
 			"--direction=INGRESS",
 			"--source-ranges="+sourceRanges)); err != nil {
 			return fmt.Errorf("error creating firewall rule for project %q: %v", curtProject, err)

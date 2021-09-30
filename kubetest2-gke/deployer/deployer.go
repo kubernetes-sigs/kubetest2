@@ -41,9 +41,9 @@ const Name = "gke"
 var GitTag string
 
 const (
-	e2eAllow            = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
-	defaultImage        = "cos"
-	defaultWindowsImage = WindowsImageTypeLTSC
+	defaultFirewallRuleAllow = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
+	defaultImage             = "cos"
+	defaultWindowsImage      = WindowsImageTypeLTSC
 )
 
 const (
@@ -199,7 +199,8 @@ func NewDeployer(opts types.Options) *Deployer {
 			MachineType: defaultNodePool.MachineType,
 			ImageType:   defaultImage,
 			// Leave ClusterVersion as empty to use the default cluster version.
-			ClusterVersion: "",
+			ClusterVersion:    "",
+			FirewallRuleAllow: defaultFirewallRuleAllow,
 
 			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
