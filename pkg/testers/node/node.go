@@ -68,11 +68,13 @@ type Tester struct {
 
 func NewDefaultTester() *Tester {
 	return &Tester{
-		SkipRegex:                   `\[Flaky\]|\[Slow\]|\[Serial\]`,
-		Runtime:                     "docker",
-		BoskosLocation:              "http://boskos.test-pods.svc.cluster.local.",
-		BoskosAcquireTimeoutSeconds: 5 * 60,
-		Parallelism:                 8,
+		SkipRegex:                      `\[Flaky\]|\[Slow\]|\[Serial\]`,
+		Runtime:                        "docker",
+		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
+		BoskosAcquireTimeoutSeconds:    5 * 60,
+		BoskosHeartbeatIntervalSeconds: 5 * 60,
+		Parallelism:                    8,
+		boskosHeartbeatClose:           make(chan struct{}),
 	}
 }
 
