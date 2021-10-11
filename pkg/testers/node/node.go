@@ -24,6 +24,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/boskos/client"
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/fs"
 	"sigs.k8s.io/kubetest2/pkg/testers"
 )
 
@@ -41,6 +43,8 @@ var GitTag string
 const (
 	target                 = "test-e2e-node"
 	gceProjectResourceType = "gce-project"
+	ciPrivateKeyEnv        = "GCE_SSH_PRIVATE_KEY_FILE"
+	ciPublicKeyEnv         = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
 type Tester struct {
@@ -64,6 +68,9 @@ type Tester struct {
 	// this channel serves as a signal channel for the hearbeat goroutine
 	// so that it can be explicitly closed
 	boskosHeartbeatClose chan struct{}
+
+	// this contains ssh key path
+	privateKey string
 }
 
 func NewDefaultTester() *Tester {
@@ -100,6 +107,8 @@ func (t *Tester) Execute() error {
 	if err := t.validateFlags(); err != nil {
 		return fmt.Errorf("failed to validate flags: %v", err)
 	}
+
+	t.maybeSetupSSHKeys()
 
 	// try to acquire project from boskos
 	if t.GCPProject == "" {
@@ -155,6 +164,50 @@ func (t *Tester) validateFlags() error {
 	return nil
 }
 
+// maybeSetupSSHKeys will best-effort try to setup ssh keys for gcloud to reuse
+// from existing files pointed to by "well-known" environment variables used in CI
+func (t *Tester) maybeSetupSSHKeys() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		klog.Warningf("failed to get user's home directory")
+		return
+	}
+	// check if there are existing ssh keys, if either exist don't do anything
+	klog.V(2).Info("checking for existing gcloud ssh keys...")
+	t.privateKey = filepath.Join(home, ".ssh", "google_compute_engine")
+	if _, err := os.Stat(t.privateKey); err == nil {
+		klog.V(2).Infof("found existing private key at %s", t.privateKey)
+		return
+	}
+	publicKey := t.privateKey + ".pub"
+	if _, err := os.Stat(publicKey); err == nil {
+		klog.V(2).Infof("found existing public key at %s", publicKey)
+		return
+	}
+
+	// no existing keys check for CI variables, create gcloud key files if both exist
+	// note only checks if relevant envs are non-empty, no actual key verification checks
+	maybePrivateKey, privateKeyEnvSet := os.LookupEnv(ciPrivateKeyEnv)
+	if !privateKeyEnvSet {
+		klog.V(2).Infof("%s is not set", ciPrivateKeyEnv)
+		return
+	}
+	maybePublicKey, publicKeyEnvSet := os.LookupEnv(ciPublicKeyEnv)
+	if !publicKeyEnvSet {
+		klog.V(2).Infof("%s is not set", ciPublicKeyEnv)
+		return
+	}
+
+	if err := fs.CopyFile(maybePrivateKey, t.privateKey); err != nil {
+		klog.Warningf("failed to copy %s to %s: %v", maybePrivateKey, t.privateKey, err)
+		return
+	}
+
+	if err := fs.CopyFile(maybePublicKey, publicKey); err != nil {
+		klog.Warningf("failed to copy %s to %s: %v", maybePublicKey, publicKey, err)
+	}
+}
+
 func (t *Tester) constructArgs() []string {
 	defaultArgs := []string{
 		"REMOTE=true",
@@ -173,6 +226,7 @@ func (t *Tester) constructArgs() []string {
 		"TEST_ARGS=" + t.TestArgs,
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
 		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
+		"SSH_KEY=" + t.privateKey,
 	}
 	return append(defaultArgs, argsFromFlags...)
 }
