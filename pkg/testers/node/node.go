@@ -71,6 +71,7 @@ type Tester struct {
 
 	// this contains ssh key path
 	privateKey string
+	sshUser    string
 }
 
 func NewDefaultTester() *Tester {
@@ -106,6 +107,17 @@ func (t *Tester) Execute() error {
 	}
 	if err := t.validateFlags(); err != nil {
 		return fmt.Errorf("failed to validate flags: %v", err)
+	}
+
+	// Use the KUBE_SSH_USER environment variable if it is set. This is particularly
+	// required for Fedora CoreOS hosts that only have the user 'core`. Tests
+	// using Fedora CoreOS as a host for node tests must set KUBE_SSH_USER
+	// environment variable so that test infrastructure can communicate with the host
+	// successfully using ssh.
+	if os.Getenv("KUBE_SSH_USER") != "" {
+		t.sshUser = os.Getenv("KUBE_SSH_USER")
+	} else {
+		t.sshUser = os.Getenv("USER")
 	}
 
 	t.maybeSetupSSHKeys()
@@ -226,6 +238,7 @@ func (t *Tester) constructArgs() []string {
 		"TEST_ARGS=" + t.TestArgs,
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
 		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
+		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
 	}
 	return append(defaultArgs, argsFromFlags...)
