@@ -59,6 +59,7 @@ type Tester struct {
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
+	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
 
 	// boskos struct field will be non-nil when the deployer is
@@ -238,6 +239,7 @@ func (t *Tester) constructArgs() []string {
 		"TEST_ARGS=" + t.TestArgs,
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
 		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
+		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
 	}
