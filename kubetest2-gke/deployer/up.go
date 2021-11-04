@@ -158,7 +158,9 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	if !d.Autopilot {
 		args = append(args, "--machine-type="+d.MachineType)
 		args = append(args, "--num-nodes="+strconv.Itoa(d.NumNodes))
-		args = append(args, "--image-type="+d.ImageType)
+		if d.ImageType != "" {
+			args = append(args, "--image-type="+d.ImageType)
+		}
 		if d.WorkloadIdentityEnabled {
 			args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
 		}
