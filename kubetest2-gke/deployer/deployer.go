@@ -42,7 +42,6 @@ var GitTag string
 
 const (
 	defaultFirewallRuleAllow = "tcp:22,tcp:80,tcp:8080,tcp:30000-32767,udp:30000-32767"
-	defaultWindowsImage      = WindowsImageTypeLTSC
 )
 
 const (
@@ -202,7 +201,6 @@ func NewDeployer(opts types.Options) *Deployer {
 
 			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
-			WindowsImageType:   defaultWindowsImage,
 
 			RetryableErrorPatterns: []string{gceStockoutErrorPattern},
 		},
