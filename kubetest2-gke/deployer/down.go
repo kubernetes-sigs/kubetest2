@@ -29,6 +29,11 @@ func (d *Deployer) Down() error {
 	if err := d.Init(); err != nil {
 		return err
 	}
+	// Nothing to clean if there is no GCP project.
+	// This edge case happens e.g. when Up fails to acquire the Boskos project.
+	if len(d.Projects) == 0 {
+		return nil
+	}
 
 	d.DeleteClusters(d.retryCount)
 

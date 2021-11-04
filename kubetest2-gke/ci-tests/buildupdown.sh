@@ -59,6 +59,7 @@ function main() {
 
   kubetest2 gke \
     -v 2 \
+    --boskos-resource-type gce-project \
     --num-clusters "${NUM_CLUSTERS}" \
     --num-nodes 1 \
     --zone us-central1-c,us-west1-a,us-east1-b \
