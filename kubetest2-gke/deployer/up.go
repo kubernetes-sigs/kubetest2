@@ -33,14 +33,6 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 )
 
-const (
-	// WindowsImageTypeLTSC is a gcloud --image-type option for Windows LTSC image
-	WindowsImageTypeLTSC = "WINDOWS_LTSC"
-
-	// WindowsImageTypeSAC is a gcloud --image-type opotion for Windows SAC image
-	WindowsImageTypeSAC = "WINDOWS_SAC"
-)
-
 // Deployer implementation methods below
 func (d *Deployer) Up() error {
 	if err := d.Init(); err != nil {
@@ -158,7 +150,9 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	if !d.Autopilot {
 		args = append(args, "--machine-type="+d.MachineType)
 		args = append(args, "--num-nodes="+strconv.Itoa(d.NumNodes))
-		args = append(args, "--image-type="+d.ImageType)
+		if d.ImageType != "" {
+			args = append(args, "--image-type="+d.ImageType)
+		}
 		if d.WorkloadIdentityEnabled {
 			args = append(args, fmt.Sprintf("--workload-pool=%s.svc.id.goog", project))
 		}
@@ -234,7 +228,9 @@ func (d *Deployer) createWindowsNodePoolCommand(project string, cluster cluster,
 	fs = append(fs, "--cluster="+cluster.name)
 	fs = append(fs, "--project="+project)
 	fs = append(fs, locationArg)
-	fs = append(fs, "--image-type="+imageType)
+	if imageType != "" {
+		fs = append(fs, "--image-type="+imageType)
+	}
 	fs = append(fs, "--machine-type="+d.WindowsMachineType)
 	fs = append(fs, "--num-nodes="+strconv.Itoa(d.WindowsNumNodes))
 
