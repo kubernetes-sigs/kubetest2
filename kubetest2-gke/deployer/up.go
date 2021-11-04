@@ -148,7 +148,9 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	// A few args are not supported in GKE Autopilot cluster creation, so they should be left unset.
 	// https://cloud.google.com/sdk/gcloud/reference/container/clusters/create-auto
 	if !d.Autopilot {
-		args = append(args, "--machine-type="+d.MachineType)
+		if d.MachineType != "" {
+			args = append(args, "--machine-type="+d.MachineType)
+		}
 		args = append(args, "--num-nodes="+strconv.Itoa(d.NumNodes))
 		if d.ImageType != "" {
 			args = append(args, "--image-type="+d.ImageType)
@@ -231,7 +233,9 @@ func (d *Deployer) createWindowsNodePoolCommand(project string, cluster cluster,
 	if imageType != "" {
 		fs = append(fs, "--image-type="+imageType)
 	}
-	fs = append(fs, "--machine-type="+d.WindowsMachineType)
+	if d.WindowsMachineType != "" {
+		fs = append(fs, "--machine-type="+d.WindowsMachineType)
+	}
 	fs = append(fs, "--num-nodes="+strconv.Itoa(d.WindowsNumNodes))
 
 	return fs
