@@ -69,13 +69,11 @@ var (
 	urlRe = regexp.MustCompile(`https://.*/`)
 
 	defaultNodePool = gkeNodePool{
-		Nodes:       3,
-		MachineType: "n1-standard-2",
+		Nodes: 3,
 	}
 
 	defaultWindowsNodePool = gkeNodePool{
-		Nodes:       1,
-		MachineType: "n1-standard-2",
+		Nodes: 1,
 	}
 )
 
