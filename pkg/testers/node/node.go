@@ -41,10 +41,9 @@ import (
 var GitTag string
 
 const (
-	target                 = "test-e2e-node"
-	gceProjectResourceType = "gce-project"
-	ciPrivateKeyEnv        = "GCE_SSH_PRIVATE_KEY_FILE"
-	ciPublicKeyEnv         = "GCE_SSH_PUBLIC_KEY_FILE"
+	target          = "test-e2e-node"
+	ciPrivateKeyEnv = "GCE_SSH_PRIVATE_KEY_FILE"
+	ciPublicKeyEnv  = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
 type Tester struct {
@@ -61,6 +60,7 @@ type Tester struct {
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
 	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
+	GcpProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -135,7 +135,7 @@ func (t *Tester) Execute() error {
 
 		resource, err := boskos.Acquire(
 			t.boskos,
-			gceProjectResourceType,
+			t.GcpProjectType,
 			time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
 			time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
 			t.boskosHeartbeatClose,
