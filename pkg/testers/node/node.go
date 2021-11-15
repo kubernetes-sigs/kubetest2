@@ -61,6 +61,7 @@ type Tester struct {
 	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
 	GcpProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
+	RuntimeConfig                  string `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -242,6 +243,7 @@ func (t *Tester) constructArgs() []string {
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
+		"RUNTIME_CONFIG=" + t.RuntimeConfig,
 	}
 	return append(defaultArgs, argsFromFlags...)
 }
