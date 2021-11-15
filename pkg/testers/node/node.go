@@ -85,6 +85,7 @@ func NewDefaultTester() *Tester {
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
 		Parallelism:                    8,
 		boskosHeartbeatClose:           make(chan struct{}),
+		GcpProjectType:                 "gce-project",
 	}
 }
 
