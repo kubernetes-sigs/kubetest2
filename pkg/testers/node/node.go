@@ -244,7 +244,9 @@ func (t *Tester) constructArgs() []string {
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
-		"RUNTIME_CONFIG=" + t.RuntimeConfig,
+	}
+	if t.RuntimeConfig != "" {
+		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
 	}
 	return append(defaultArgs, argsFromFlags...)
 }
