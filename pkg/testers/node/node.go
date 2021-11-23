@@ -41,10 +41,9 @@ import (
 var GitTag string
 
 const (
-	target                 = "test-e2e-node"
-	gceProjectResourceType = "gce-project"
-	ciPrivateKeyEnv        = "GCE_SSH_PRIVATE_KEY_FILE"
-	ciPublicKeyEnv         = "GCE_SSH_PUBLIC_KEY_FILE"
+	target          = "test-e2e-node"
+	ciPrivateKeyEnv = "GCE_SSH_PRIVATE_KEY_FILE"
+	ciPublicKeyEnv  = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
 type Tester struct {
@@ -61,6 +60,8 @@ type Tester struct {
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
 	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
+	GCPProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
+	RuntimeConfig                  string `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -84,6 +85,7 @@ func NewDefaultTester() *Tester {
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
 		Parallelism:                    8,
 		boskosHeartbeatClose:           make(chan struct{}),
+		GCPProjectType:                 "gce-project",
 	}
 }
 
@@ -135,7 +137,7 @@ func (t *Tester) Execute() error {
 
 		resource, err := boskos.Acquire(
 			t.boskos,
-			gceProjectResourceType,
+			t.GCPProjectType,
 			time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
 			time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
 			t.boskosHeartbeatClose,
@@ -242,6 +244,9 @@ func (t *Tester) constructArgs() []string {
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
+	}
+	if t.RuntimeConfig != "" {
+		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
 	}
 	return append(defaultArgs, argsFromFlags...)
 }
