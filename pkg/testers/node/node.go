@@ -60,7 +60,7 @@ type Tester struct {
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
 	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
-	GcpProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
+	GCPProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
 	RuntimeConfig                  string `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
 
 	// boskos struct field will be non-nil when the deployer is
@@ -85,7 +85,7 @@ func NewDefaultTester() *Tester {
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
 		Parallelism:                    8,
 		boskosHeartbeatClose:           make(chan struct{}),
-		GcpProjectType:                 "gce-project",
+		GCPProjectType:                 "gce-project",
 	}
 }
 
@@ -137,7 +137,7 @@ func (t *Tester) Execute() error {
 
 		resource, err := boskos.Acquire(
 			t.boskos,
-			t.GcpProjectType,
+			t.GCPProjectType,
 			time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
 			time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
 			t.boskosHeartbeatClose,
