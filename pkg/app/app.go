@@ -19,7 +19,9 @@ package app
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog"
@@ -75,6 +77,30 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return errors.Wrap(err, "could not create runner output")
 	}
 	writer := metadata.NewWriter("kubetest2", junitRunner)
+
+	done := make(chan bool)
+	defer func() { done <- true }()
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+		// catch interrupt signals and gracefully attempt to clean up
+		for {
+			select {
+			case <-c:
+				if opts.ShouldUp() || opts.ShouldTest() {
+					klog.Info("Captured ^C, gracefully attempting to cleanup resources..")
+					if err := writer.WrapStep("Down", d.Down); err != nil {
+						result = err
+					}
+					os.Exit(0)
+				}
+			case <-done:
+				return
+			}
+		}
+	}()
+
 	// defer writing out the metadata on exit
 	// NOTE: defer is LIFO, so this should actually be the finish time
 	defer func() {
@@ -100,17 +126,6 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 			return err
 		}
 	}
-
-	// ensure tearing down the cluster happens last, even if up or test fails.
-	defer func() {
-		if opts.ShouldDown() {
-			// TODO(bentheelder): instead of keeping the first error, consider
-			// a multi-error type
-			if err := writer.WrapStep("Down", d.Down); err != nil && result == nil {
-				result = err
-			}
-		}
-	}()
 
 	// up a cluster
 	if opts.ShouldUp() {
@@ -161,6 +176,16 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 			return testErr
 		}
 	}
+
+	// ensure tearing down the cluster happens last.
+	if opts.ShouldDown() {
+		// TODO(bentheelder): instead of keeping the first error, consider
+		// a multi-error type
+		if err := writer.WrapStep("Down", d.Down); err != nil && result == nil {
+			result = err
+		}
+	}
+
 	return nil
 }
 
