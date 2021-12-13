@@ -138,7 +138,7 @@ func TestAssertNoOverlaps(t *testing.T) {
 		err := assertNoOverlaps(tc.ranges)
 		if (err == nil) != tc.shouldPass {
 			if tc.shouldPass {
-				t.Errorf("test case should have passed, but failed: %q (error: %w)", tc.ranges, err)
+				t.Errorf("test case should have passed, but failed: %q (error: %v)", tc.ranges, err)
 			} else {
 				t.Errorf("test case should have failed, but passed: %q", tc.ranges)
 			}
