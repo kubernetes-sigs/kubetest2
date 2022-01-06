@@ -155,7 +155,7 @@ func (t *Tester) Execute() error {
 			klog.V(1).Info("releasing boskos project")
 			err := boskos.Release(
 				t.boskos,
-				t.GCPProject,
+				[]string{t.GCPProject},
 				t.boskosHeartbeatClose,
 			)
 			if err != nil {

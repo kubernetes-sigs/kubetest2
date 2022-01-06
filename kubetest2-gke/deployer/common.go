@@ -73,6 +73,7 @@ func (d *Deployer) Initialize() error {
 				return fmt.Errorf("failed to make boskos client: %w", err)
 			}
 			d.boskos = boskosClient
+			d.boskosHeartbeatClose = make(chan struct{})
 
 			for i := 0; i < len(d.BoskosProjectsRequested); i++ {
 				for j := 0; j < d.BoskosProjectsRequested[i]; j++ {

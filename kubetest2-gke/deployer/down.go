@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/boskos"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -33,6 +34,12 @@ func (d *Deployer) Down() error {
 	// This edge case happens e.g. when Up fails to acquire the Boskos project.
 	if len(d.Projects) == 0 {
 		return nil
+	}
+
+	// If the GCP projects are acquired from Boskos, release the projects and
+	// rely on boskos-janitor to do clean-ups for them.
+	if d.totalBoskosProjectsRequested > 0 {
+		return boskos.Release(d.boskos, d.Projects, d.boskosHeartbeatClose)
 	}
 
 	d.DeleteClusters(d.retryCount)
