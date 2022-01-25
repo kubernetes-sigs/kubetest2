@@ -180,7 +180,7 @@ func (d *deployer) buildEnv() []string {
 		env = append(env, fmt.Sprintf("NODE_SCOPES=%s", d.NodeScopes))
 	}
 
-	if len(d.NodeServiceAccount) > 0 {
+	if d.NodeServiceAccount) != "" {
 		env = append(env, fmt.Sprintf("KUBE_GCE_NODE_SERVICE_ACCOUNT=%s", d.NodeServiceAccount))
 	}
 
