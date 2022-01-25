@@ -176,7 +176,7 @@ func (d *deployer) buildEnv() []string {
 	// e.g. https://github.com/kubernetes/kubernetes/issues/99480
 	env = append(env, "KUBE_CONFIG_FILE=config-test.sh")
 
-	if len(d.NodeScopes) > 0 {
+	if d.NodeScopes) != "" {
 		env = append(env, fmt.Sprintf("NODE_SCOPES=%s", d.NodeScopes))
 	}
 
