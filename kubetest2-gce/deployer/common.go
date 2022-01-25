@@ -176,11 +176,11 @@ func (d *deployer) buildEnv() []string {
 	// e.g. https://github.com/kubernetes/kubernetes/issues/99480
 	env = append(env, "KUBE_CONFIG_FILE=config-test.sh")
 
-	if d.NodeScopes) != "" {
+	if d.NodeScopes != "" {
 		env = append(env, fmt.Sprintf("NODE_SCOPES=%s", d.NodeScopes))
 	}
 
-	if d.NodeServiceAccount) != "" {
+	if d.NodeServiceAccount != "" {
 		env = append(env, fmt.Sprintf("KUBE_GCE_NODE_SERVICE_ACCOUNT=%s", d.NodeServiceAccount))
 	}
 
