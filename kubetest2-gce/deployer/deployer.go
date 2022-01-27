@@ -82,6 +82,8 @@ type deployer struct {
 	RuntimeConfig               string `desc:"Sets the KUBE_RUNTIME_CONFIG environment variable during deployment."`
 	EnablePodSecurityPolicy     bool   `desc:"Sets the environment variable ENABLE_POD_SECURITY_POLICY=true during deployment."`
 	CreateCustomNetwork         bool   `desc:"Sets the environment variable CREATE_CUSTOM_NETWORK=true during deployment."`
+	NodeScopes                  string `desc:"Sets the NODE_SCOPES environment variable during deployment."`
+	NodeServiceAccount          string `desc:"Sets the KUBE_GCE_NODE_SERVICE_ACCOUNT environment variable during deployment."`
 }
 
 // pseudoUniqueSubstring returns a substring of a UUID
