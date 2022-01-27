@@ -1,12 +1,12 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 reviewers:
-- amwat
 - BenTheElder
 - cofyc
 - MushuEE
 - spiffxp
 approvers:
-- amwat
 - BenTheElder
 - spiffxp
+emeritus_approvers:
+- amwat
