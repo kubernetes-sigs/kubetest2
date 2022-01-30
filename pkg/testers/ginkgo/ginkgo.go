@@ -138,7 +138,13 @@ func (t *Tester) validateLocalBinaries() error {
 	for _, binary := range build.CommonTestBinaries {
 		path := filepath.Join(t.runDir, binary)
 		if _, err := os.Stat(path); err != nil {
-			return fmt.Errorf("failed to validate %s:%v", binary, err)
+			logPath := path
+			if abspath, err := filepath.Abs(path); err != nil {
+				klog.Warningf("failed to convert path %q to absolute path: %v", path, err)
+			} else {
+				logPath = abspath
+			}
+			return fmt.Errorf("failed to validate pre-built binary %s (checked at %q): %w", binary, logPath, err)
 		}
 		klog.V(2).Infof("found existing %s at %s", binary, path)
 	}
