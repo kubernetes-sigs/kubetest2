@@ -189,6 +189,10 @@ func (t *Tester) initKubetest2Info() error {
 	return nil
 }
 
+func (t *Tester) SetRunDir(dir string) {
+	t.runDir = dir
+}
+
 func NewDefaultTester() *Tester {
 	return &Tester{
 		FlakeAttempts:     1,
