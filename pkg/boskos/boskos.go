@@ -95,7 +95,7 @@ func startBoskosHeartbeat(boskosClient *client.Client, resource *common.Resource
 // Release releases a resource.
 func Release(client *client.Client, resourceNames []string, heartbeatClose chan struct{}) error {
 	for _, name := range resourceNames {
-		if err := client.Release(name, "free"); err != nil {
+		if err := client.Release(name, "dirty"); err != nil {
 			return fmt.Errorf("failed to release %s: %s", name, err)
 		}
 	}
