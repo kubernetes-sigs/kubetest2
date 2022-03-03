@@ -73,13 +73,17 @@ func (t *Tester) AcquireTestPackage() error {
 		return err
 	}
 
-	t.kubectlPath = filepath.Join(artifacts.BaseDir(), "kubectl")
+	t.kubectlPath = filepath.Join(artifacts.RunDir(), "kubectl")
 	return t.ensureKubectl(t.kubectlPath)
 }
 
 func (t *Tester) extractBinaries(downloadPath string) error {
 	// ensure the artifacts dir
 	if err := os.MkdirAll(artifacts.BaseDir(), os.ModePerm); err != nil {
+		return err
+	}
+	// ensure the rundir
+	if err := os.MkdirAll(artifacts.RunDir(), os.ModePerm); err != nil {
 		return err
 	}
 
@@ -98,8 +102,8 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 	tarReader := tar.NewReader(gzf)
 
 	// Map of paths in archive to destination paths
-	t.e2eTestPath = filepath.Join(artifacts.BaseDir(), "e2e.test")
-	t.ginkgoPath = filepath.Join(artifacts.BaseDir(), "ginkgo")
+	t.e2eTestPath = filepath.Join(artifacts.RunDir(), "e2e.test")
+	t.ginkgoPath = filepath.Join(artifacts.RunDir(), "ginkgo")
 	extract := map[string]string{
 		"kubernetes/test/bin/e2e.test": t.e2eTestPath,
 		"kubernetes/test/bin/ginkgo":   t.ginkgoPath,

@@ -60,6 +60,8 @@ type Options interface {
 	RunID() string
 	// RunDir returns the directory to put run-specific output files.
 	RunDir() string
+	// if this is true, kubetest2 will copy the RunDIR to ARTIFACTS
+	RundirInArtifacts() bool
 }
 
 // Deployer defines the interface between kubetest and a deployer

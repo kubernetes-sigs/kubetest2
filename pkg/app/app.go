@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/klog"
 
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 	"sigs.k8s.io/kubetest2/pkg/types"
@@ -57,7 +58,10 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		Throughout this, collecting metadata and writing it out on exit
 	*/
 	// TODO(bentheelder): signal handling & timeout
-
+	if !opts.RundirInArtifacts() {
+		klog.Infof("The files in RunDir shall not be part of Artifacts")
+		klog.Infof("pass rundir-in-artifacts flag True for RunDir to be part of Artifacts")
+	}
 	klog.Infof("RunDir for this run: %q", opts.RunDir())
 
 	// ensure the run dir
@@ -69,9 +73,14 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return err
 	}
 
+	// ensure the artifacts dir
+	if err := os.MkdirAll(artifacts.BaseDir(), os.ModePerm); err != nil {
+		return err
+	}
+
 	// setup junit writer
 	junitRunner, err := os.Create(
-		filepath.Join(opts.RunDir(), "junit_runner.xml"),
+		filepath.Join(artifacts.BaseDir(), "junit_runner.xml"),
 	)
 	if err != nil {
 		return errors.Wrap(err, "could not create runner output")
@@ -158,7 +167,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		// also add run_dir to $PATH for locally built binaries
 		updatedPath := opts.RunDir() + string(filepath.ListSeparator) + os.Getenv("PATH")
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "PATH", updatedPath))
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", opts.RunDir()))
+		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", artifacts.BaseDir()))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_DIR", opts.RunDir()))
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
 		// If the deployer provides a kubeconfig pass it to the tester

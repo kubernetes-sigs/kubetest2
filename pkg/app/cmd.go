@@ -191,6 +191,7 @@ type options struct {
 	test                string
 	skipTestJUnitReport bool
 	runid               string
+	rundirInArtifacts   bool
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -202,7 +203,6 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
 	flags.BoolVar(&o.skipTestJUnitReport, "skip-test-junit-report", false, "skip reporting the test step as a JUnit test case, "+
 		"should be set to true when solely relying on the tester binary to generate it's own junit.")
-
 	var defaultRunID string
 	// reuse uid for CI use cases
 	if uid, exists := os.LookupEnv("PROW_JOB_ID"); exists && uid != "" {
@@ -211,6 +211,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 		defaultRunID = uuid.New().String()
 	}
 	flags.StringVar(&o.runid, "run-id", defaultRunID, "unique identifier for a kubetest2 run")
+	flags.BoolVar(&o.rundirInArtifacts, "rundir-in-artifacts", false, `if true, the test binaries and run specific metadata will be in the ARTIFACTS`)
 }
 
 // assert that options implements deployer options
@@ -245,7 +246,26 @@ func (o *options) RunID() string {
 }
 
 func (o *options) RunDir() string {
-	return filepath.Join(artifacts.BaseDir(), o.RunID())
+	if o.RundirInArtifacts() {
+		//making rundir under ARTIFACTS
+		return filepath.Join(artifacts.BaseDir(), subRunDir(), o.RunID())
+	}
+	return filepath.Join(artifacts.RunDir(), o.RunID())
+}
+
+func subRunDir() string {
+	//Function to make sure only relative path is appended to artifacts BaseDir
+	if artifacts.RunDirFlag == "" {
+		if path, set := os.LookupEnv("KUBETEST2_RUN_DIR"); set {
+			return path
+		}
+		return "_rundir"
+	}
+	return artifacts.RunDirFlag
+}
+
+func (o *options) RundirInArtifacts() bool {
+	return o.rundirInArtifacts
 }
 
 // metadata used for CLI usage string
