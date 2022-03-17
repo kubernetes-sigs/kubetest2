@@ -26,8 +26,9 @@ import (
 )
 
 type BuildOptions struct {
-	CommonBuildOptions *build.Options
-	BuildScript        string `flag:"~build-script" desc:"Only used with the gke_make build. Absolute path to the gke_make build script."`
+	CommonBuildOptions      *build.Options
+	UpdateLatestGreenMarker bool   `flag:"~update-latest-green-marker" desc:"When set to true, will update the latest-green-x.y.txt marker on GCS."`
+	BuildScript             string `flag:"~build-script" desc:"Only used with the gke_make build. Absolute path to the gke_make build script."`
 }
 
 var _ build.Builder = &BuildOptions{}
