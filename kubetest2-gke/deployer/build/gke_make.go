@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 
 	"k8s.io/klog"
 
+	util "sigs.k8s.io/kubetest2/kubetest2-gke/deployer/utils"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
@@ -40,11 +40,8 @@ const (
 
 const (
 	// GKEMakeStrategy builds and stages using the gke_make build
-	GKEMakeStrategy build.BuildAndStageStrategy = "gke_make"
-)
-
-var (
-	gkeMinorVersionRegex = regexp.MustCompile(`^v(\d\.\d+).*$`)
+	GKEMakeStrategy         build.BuildAndStageStrategy = "gke_make"
+	latestBuildMarkerPrefix string                      = "latest"
 )
 
 type GKEMake struct {
@@ -120,21 +117,8 @@ func (gmb *GKEMake) Stage(version string) error {
 	}
 
 	if gmb.UpdateLatest {
-		m := gkeMinorVersionRegex.FindStringSubmatch(version)
-		var fName string
-		if len(m) < 2 {
-			klog.Warningf("can't find the minor version of %s, defaulting to latest.txt", version)
-			fName = "latest.txt"
-		} else {
-			minor := m[1]
-			fName = fmt.Sprintf("latest-%s.txt", minor)
-		}
-		pushCmd := fmt.Sprintf("gsutil -h 'Content-Type:text/plain' cp - %s/%s", gmb.StageLocation, fName)
-		cmd := exec.RawCommand(pushCmd)
-		cmd.SetStdin(strings.NewReader(version))
-		exec.SetOutput(cmd, os.Stdout, os.Stderr)
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to upload the latest version number: %s", err)
+		if err := util.StageGKEBuildMarker(version, gmb.StageLocation, latestBuildMarkerPrefix); err != nil {
+			return fmt.Errorf("error during build marker staging: %s", err)
 		}
 	}
 
