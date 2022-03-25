@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	gkeMinorVersionRegex = regexp.MustCompile(`^v(\d\.\d+).*$`)
+	gkeMinorVersionRegex = regexp.MustCompile(`^(\d\.\d+).*$`)
 )
 
 // StageGKEBuildMarker stages the build marker to the stage location.
