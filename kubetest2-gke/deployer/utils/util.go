@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	gkeMinorVersionRegex = regexp.MustCompile(`^v(\d\.\d+).*$`)
+	gkeMinorVersionRegex = regexp.MustCompile(`^(\d\.\d+).*$`)
 )
 
 // StageGKEBuildMarker stages the build marker to the stage location.
@@ -35,7 +35,7 @@ func StageGKEBuildMarker(version, stageLocation, markerPrefix string) error {
 	m := gkeMinorVersionRegex.FindStringSubmatch(version)
 	var fName string
 	if len(m) < 2 {
-		klog.Warningf("can't find the minor version of %s, defaulting to latest.txt", version)
+		klog.Warningf("can't find the minor version of %s, defaulting to %s.txt", version, markerPrefix)
 		fName = fmt.Sprintf("%s.txt", markerPrefix)
 	} else {
 		minor := m[1]
