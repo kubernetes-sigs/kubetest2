@@ -127,6 +127,18 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
+	// ensure tearing down the cluster happens last.
+	// down should be called both when Up and Test fails to ensure resources are being cleaned up.
+	defer func() {
+		if opts.ShouldDown() {
+			// TODO(bentheelder): instead of keeping the first error, consider
+			// a multi-error type
+			if err := writer.WrapStep("Down", d.Down); err != nil && result == nil {
+				result = err
+			}
+		}
+	}()
+
 	// up a cluster
 	if opts.ShouldUp() {
 		// TODO(bentheelder): this should write out to JUnit
@@ -174,15 +186,6 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 		if testErr != nil {
 			return testErr
-		}
-	}
-
-	// ensure tearing down the cluster happens last.
-	if opts.ShouldDown() {
-		// TODO(bentheelder): instead of keeping the first error, consider
-		// a multi-error type
-		if err := writer.WrapStep("Down", d.Down); err != nil && result == nil {
-			result = err
 		}
 	}
 
