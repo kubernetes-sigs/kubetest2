@@ -30,6 +30,7 @@ func TestPrivateClusterArgs(t *testing.T) {
 		accessLevel    string
 		masterIPRanges []string
 		clusterInfo    cluster
+		autopilot      bool
 		expected       []string
 	}{
 		{
@@ -40,8 +41,8 @@ func TestPrivateClusterArgs(t *testing.T) {
 			masterIPRanges: []string{"172.16.0.32/28"},
 			clusterInfo:    cluster{index: 0, name: "cluster1"},
 			expected: []string{
-				"--enable-ip-alias",
 				"--enable-private-nodes",
+				"--enable-ip-alias",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=172.16.0.32/28",
 				"--no-issue-client-certificate",
@@ -58,8 +59,8 @@ func TestPrivateClusterArgs(t *testing.T) {
 			masterIPRanges: []string{"173.16.0.32/28"},
 			clusterInfo:    cluster{index: 0, name: "cluster2"},
 			expected: []string{
-				"--enable-ip-alias",
 				"--enable-private-nodes",
+				"--enable-ip-alias",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=173.16.0.32/28",
 				"--no-issue-client-certificate",
@@ -75,8 +76,8 @@ func TestPrivateClusterArgs(t *testing.T) {
 			masterIPRanges: []string{"173.16.0.32/28", "175.16.0.32/22"},
 			clusterInfo:    cluster{index: 1, name: "cluster3"},
 			expected: []string{
-				"--enable-ip-alias",
 				"--enable-private-nodes",
+				"--enable-ip-alias",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=175.16.0.32/22",
 				"--no-issue-client-certificate",
@@ -92,11 +93,25 @@ func TestPrivateClusterArgs(t *testing.T) {
 			masterIPRanges: []string{"173.16.0.32/28", "175.16.0.32/22"},
 			clusterInfo:    cluster{index: 1, name: "cluster3"},
 			expected: []string{
-				"--enable-ip-alias",
 				"--enable-private-nodes",
+				"--enable-ip-alias",
 				"--no-enable-basic-auth",
 				"--master-ipv4-cidr=175.16.0.32/22",
 				"--no-issue-client-certificate",
+				"--no-enable-master-authorized-networks",
+			},
+		},
+		{
+			desc:           "multiple flags are not needed for GKE Autopilot private clusters",
+			projects:       []string{"project1"},
+			network:        "test-network5",
+			accessLevel:    string(unrestricted),
+			masterIPRanges: []string{"173.16.0.32/28", "175.16.0.32/22"},
+			clusterInfo:    cluster{index: 0, name: "cluster1"},
+			autopilot:      true,
+			expected: []string{
+				"--enable-private-nodes",
+				"--create-subnetwork=name=test-network5-cluster1",
 				"--no-enable-master-authorized-networks",
 			},
 		},
@@ -106,7 +121,7 @@ func TestPrivateClusterArgs(t *testing.T) {
 		tc := tc
 		t.Run(tc.desc, func(st *testing.T) {
 			st.Parallel()
-			actual := getPrivateClusterArgs(tc.projects, tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo)
+			actual := getPrivateClusterArgs(tc.projects, tc.network, tc.accessLevel, tc.masterIPRanges, tc.clusterInfo, tc.autopilot)
 			if diff := cmp.Diff(actual, tc.expected); diff != "" {
 				st.Error("Got private cluster args (-want, +got) =", diff)
 			}

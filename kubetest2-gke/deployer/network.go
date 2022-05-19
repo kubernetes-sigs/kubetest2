@@ -454,13 +454,17 @@ func removeHostServiceAgentUserRole(projects []string) error {
 
 // This function returns the args required for creating a private cluster.
 // Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters#top_of_page
-func getPrivateClusterArgs(projects []string, network, accessLevel string, masterIPRanges []string, clusterInfo cluster) []string {
+func getPrivateClusterArgs(projects []string, network, accessLevel string, masterIPRanges []string, clusterInfo cluster, autopilot bool) []string {
 	common := []string{
-		"--enable-ip-alias",
 		"--enable-private-nodes",
-		"--no-enable-basic-auth",
-		"--master-ipv4-cidr=" + masterIPRanges[clusterInfo.index],
-		"--no-issue-client-certificate",
+	}
+	// GKE in Autopilot mode does not support certain flags - https://cloud.google.com/kubernetes-engine/docs/how-to/private-clusters
+	if !autopilot {
+		common = append(common,
+			"--enable-ip-alias",
+			"--no-enable-basic-auth",
+			"--master-ipv4-cidr="+masterIPRanges[clusterInfo.index],
+			"--no-issue-client-certificate")
 	}
 
 	// For multi-project profile, it'll be using the shared vpc, which creates subnets before cluster creation.
