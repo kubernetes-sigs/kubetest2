@@ -51,6 +51,10 @@ SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
 # flags for reproducible go builds
 BUILD_FLAGS?=-trimpath -ldflags="-buildid="
 
+KERNEL?=$(shell uname -s)
+MACHINE?=$(shell uname -m)
+GORELEASER_BIN?=https://github.com/goreleaser/goreleaser/releases/download/v1.9.0/goreleaser_$(KERNEL)_$(MACHINE).tar.gz
+
 build-all:
 	go build -v $(BUILD_FLAGS) ./...
 
@@ -120,5 +124,15 @@ unit:
 
 verify:
 	$(MAKE) -j lint shellcheck unit tidy boilerplate
+
+snapshot: bin/goreleaser
+	@bin/goreleaser --snapshot --rm-dist
+
+bin/goreleaser:
+	@mkdir -p bin
+	@curl -sL $(GORELEASER_BIN) | tar xzf - -C bin
+	@chmod +x bin/goreleaser
+	@rm -rf bin/LICENSE.md bin/README.md bin/completions bin/manpages
+
 
 .PHONY: build-all install install-deployer-% install-tester-% install-all ci-binaries push-ci-binaries quick-verify clean-output clean verify lint shellcheck

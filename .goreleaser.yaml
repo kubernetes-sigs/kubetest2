@@ -1,0 +1,58 @@
+project_name: kubetest2
+
+before:
+  hooks:
+    - go mod tidy
+
+build: &build
+  env:
+    - CGO_ENABLED=0
+  goos: [linux, darwin, windows]
+  goarch: [amd64, arm64]
+
+builds:
+  - <<: *build
+    main: .
+    id: kubetest2
+  - <<: *build
+    main: ./kubetest2-gce
+    id: kubetest2-gce
+    binary: kubetest2-gce
+  - <<: *build
+    main: ./kubetest2-gke
+    id: kubetest2-gke
+    binary: kubetest2-gke
+  - <<: *build
+    main: ./kubetest2-kind
+    id: kubetest2-kind
+    binary: kubetest2-kind
+  - <<: *build
+    main: ./kubetest2-noop
+    id: kubetest2-noop
+    binary: kubetest2-noop
+  - <<: *build
+    main: ./kubetest2-tester-clusterloader2
+    id: kubetest2-tester-clusterloader2
+    binary: kubetest2-tester-clusterloader2
+  - <<: *build
+    main: ./kubetest2-tester-exec
+    id: kubetest2-tester-exec
+    binary: kubetest2-tester-exec
+  - <<: *build
+    main: ./kubetest2-tester-ginkgo
+    id: kubetest2-tester-ginkgo
+    binary: kubetest2-tester-ginkgo
+  - <<: *build
+    main: ./kubetest2-tester-node
+    id: kubetest2-tester-node
+    binary: kubetest2-tester-node
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
