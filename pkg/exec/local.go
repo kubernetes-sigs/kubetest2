@@ -22,7 +22,7 @@ import (
 	osexec "os/exec"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // LocalCmd wraps os/exec.Cmd, implementing the exec.Cmd interface

@@ -27,7 +27,7 @@ import (
 
 	"github.com/pkg/math"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
