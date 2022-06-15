@@ -96,6 +96,14 @@ type cluster struct {
 	name  string
 }
 
+type extraNodepool struct {
+	Index       int
+	Name        string
+	MachineType string
+	ImageType   string
+	NumNodes    int
+}
+
 type Deployer struct {
 	// generic parts
 	Kubetest2CommonOptions types.Options
@@ -112,6 +120,9 @@ type Deployer struct {
 	projectClustersLayout map[string][]cluster
 	// project -> cluster -> instance groups
 	instanceGroups map[string]map[string][]*ig
+
+	// extra node pools to create, per cluster.
+	extraNodePoolSpecs []*extraNodepool
 
 	kubecfgPath  string
 	testPrepared bool
