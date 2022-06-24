@@ -137,9 +137,12 @@ func (d *deployer) buildEnv() []string {
 	// but log-dump does not, set it explicitly here for maximum consistency
 	env = append(env, fmt.Sprintf("KUBE_GCE_NETWORK=%s", d.network))
 
-	// Pass through number of nodes and associated IP range. In the future,
-	// IP range will be configurable.
+	// NUM_NODES is used by kube-up.sh script to decide what is expected shape
+	// of the cluster. It's already set on default on 3.
 	env = append(env, fmt.Sprintf("NUM_NODES=%d", d.NumNodes))
+
+	// Pass through associated IP range. In the future, IP range will be
+	// configurable.
 	env = append(env, fmt.Sprintf("CLUSTER_IP_RANGE=%s", getClusterIPRange(d.NumNodes)))
 
 	// NETWORK has to be manually specified to ensure created firewall rules
@@ -160,6 +163,16 @@ func (d *deployer) buildEnv() []string {
 
 	if d.CreateCustomNetwork {
 		env = append(env, "CREATE_CUSTOM_NETWORK=true")
+	}
+
+	// MASTER_SIZE and NODE_SIZE are used by kube-up script to decide on the
+	// shape of the cluster. We want to overwrite them only when they are set.
+	// Otherwise, let's use script default.
+	if d.MasterSize != "" {
+		env = append(env, fmt.Sprintf("MASTER_SIZE=%s", d.MasterSize))
+	}
+	if d.NodeSize != "" {
+		env = append(env, fmt.Sprintf("NODE_SIZE=%s", d.NodeSize))
 	}
 
 	// KUBECTL_PATH points to the kubectl existing in $PATH
