@@ -24,7 +24,7 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/build"

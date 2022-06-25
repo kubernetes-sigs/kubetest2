@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/pkg/math"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 )

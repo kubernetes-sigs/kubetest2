@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"github.com/octago/sflags/gen/gpflag"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/boskos/client"
 	"sigs.k8s.io/kubetest2/pkg/boskos"

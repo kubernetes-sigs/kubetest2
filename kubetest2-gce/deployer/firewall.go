@@ -19,7 +19,7 @@ package deployer
 import (
 	"fmt"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 

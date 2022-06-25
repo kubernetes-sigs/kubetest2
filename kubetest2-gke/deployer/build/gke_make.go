@@ -22,7 +22,7 @@ import (
 	"os"
 	"strings"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	util "sigs.k8s.io/kubetest2/kubetest2-gke/deployer/utils"
 	"sigs.k8s.io/kubetest2/pkg/build"

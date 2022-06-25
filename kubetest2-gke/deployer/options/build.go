@@ -19,7 +19,7 @@ package options
 import (
 	"os"
 
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 
 	gkeBuild "sigs.k8s.io/kubetest2/kubetest2-gke/deployer/build"
 	"sigs.k8s.io/kubetest2/pkg/build"
