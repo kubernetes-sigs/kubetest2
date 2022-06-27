@@ -84,6 +84,9 @@ type deployer struct {
 	CreateCustomNetwork         bool   `desc:"Sets the environment variable CREATE_CUSTOM_NETWORK=true during deployment."`
 	NodeScopes                  string `desc:"Sets the NODE_SCOPES environment variable during deployment."`
 	NodeServiceAccount          string `desc:"Sets the KUBE_GCE_NODE_SERVICE_ACCOUNT environment variable during deployment."`
+
+	MasterSize string `desc:"Sets the MASTER_SIZE environment variable during deployment."`
+	NodeSize   string `desc:"Sets the NODE_SIZE environment variable during deployment."`
 }
 
 // pseudoUniqueSubstring returns a substring of a UUID
