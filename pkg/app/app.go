@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
@@ -83,7 +82,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		filepath.Join(artifacts.BaseDir(), "junit_runner.xml"),
 	)
 	if err != nil {
-		return errors.Wrap(err, "could not create runner output")
+		return fmt.Errorf("could not create runner output: %w", err)
 	}
 	writer := metadata.NewWriter("kubetest2", junitRunner)
 

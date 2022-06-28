@@ -21,7 +21,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	rbuild "k8s.io/release/pkg/build"
 )
 
@@ -47,18 +46,19 @@ func (rpb *Krel) Stage(version string) error {
 		return fmt.Errorf("invalid stage location: %v. Use gs://<bucket>/<ci|devel>/<optional-suffix>", rpb.StageLocation)
 	}
 
-	return errors.Wrap(
-		rbuild.NewInstance(&rbuild.Options{
-			Bucket:          mat[1],
-			GCSRoot:         mat[3],
-			AllowDup:        true,
-			CI:              mat[2] == "ci",
-			NoUpdateLatest:  !rpb.UpdateLatest,
-			Registry:        rpb.ImageLocation,
-			Version:         version,
-			StageExtraFiles: rpb.StageExtraFiles,
-			RepoRoot:        rpb.RepoRoot,
-		}).Push(),
-		"stage via krel push",
-	)
+	if err := rbuild.NewInstance(&rbuild.Options{
+		Bucket:          mat[1],
+		GCSRoot:         mat[3],
+		AllowDup:        true,
+		CI:              mat[2] == "ci",
+		NoUpdateLatest:  !rpb.UpdateLatest,
+		Registry:        rpb.ImageLocation,
+		Version:         version,
+		StageExtraFiles: rpb.StageExtraFiles,
+		RepoRoot:        rpb.RepoRoot,
+	}).Push(); err != nil {
+
+		return fmt.Errorf("stage via krel push: %w", err)
+	}
+	return nil
 }

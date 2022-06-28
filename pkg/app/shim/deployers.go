@@ -23,8 +23,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // FindDeployer locates the binary implementing the named deployer
@@ -33,7 +31,7 @@ func FindDeployer(name string) (path string, err error) {
 	binary := fmt.Sprintf("%s-%s", BinaryName, name)
 	path, err = exec.LookPath(binary)
 	if err != nil {
-		return "", errors.Errorf("%#v not found in PATH, could not locate %#v deployer", binary, name)
+		return "", fmt.Errorf("%#v not found in PATH, could not locate %#v deployer", binary, name)
 	}
 	return path, err
 }
