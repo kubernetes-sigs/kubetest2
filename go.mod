@@ -1,6 +1,6 @@
 module sigs.k8s.io/kubetest2
 
-go 1.14
+go 1.17
 
 require (
 	github.com/google/go-cmp v0.5.4
@@ -12,9 +12,10 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
 	google.golang.org/api v0.36.0
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/release v0.7.1-0.20210204090829-09fb5e3883b8
 	sigs.k8s.io/boskos v0.0.0-20200710214748-f5935686c7fc
 )
+
+require golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
