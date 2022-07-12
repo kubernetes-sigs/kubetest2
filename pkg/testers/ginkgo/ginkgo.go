@@ -65,10 +65,11 @@ func (t *Tester) Test() error {
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
 		"--kubectl-path=" + t.kubectlPath,
-		"--ginkgo.flakeAttempts=" + strconv.Itoa(t.FlakeAttempts),
+		"--ginkgo.flake-attempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + artifacts.BaseDir(),
+		"--ginkgo.timeout=" + "24h",
 	}
 	extraE2EArgs, err := shellquote.Split(t.TestArgs)
 	if err != nil {
