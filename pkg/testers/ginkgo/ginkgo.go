@@ -65,7 +65,7 @@ func (t *Tester) Test() error {
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
 		"--kubectl-path=" + t.kubectlPath,
-		"--ginkgo.flake-attempts=" + strconv.Itoa(t.FlakeAttempts),
+		"--ginkgo.flakeAttempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + artifacts.BaseDir(),
