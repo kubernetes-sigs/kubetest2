@@ -69,7 +69,6 @@ func (t *Tester) Test() error {
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + artifacts.BaseDir(),
-		"--ginkgo.timeout=" + "24h",
 	}
 	extraE2EArgs, err := shellquote.Split(t.TestArgs)
 	if err != nil {
