@@ -23,8 +23,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // FindTester locates the binary implementing the named tester
@@ -33,7 +31,7 @@ func FindTester(name string) (path string, err error) {
 	binary := fmt.Sprintf("%s-tester-%s", BinaryName, name)
 	path, err = exec.LookPath(binary)
 	if err != nil {
-		return "", errors.Errorf("%#v not found in PATH, could not locate %#v tester", binary, name)
+		return "", fmt.Errorf("%#v not found in PATH, could not locate %#v tester", binary, name)
 	}
 	return path, err
 }
