@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
@@ -65,12 +66,26 @@ func (t *Tester) Test() error {
 	e2eTestArgs := []string{
 		"--kubeconfig=" + t.kubeconfigPath,
 		"--kubectl-path=" + t.kubectlPath,
-		"--ginkgo.flake-attempts=" + strconv.Itoa(t.FlakeAttempts),
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + artifacts.BaseDir(),
-		"--ginkgo.timeout=" + "24h",
 	}
+
+	// some ginkgo flags and behaviors are not backwards compatible
+	switch v := t.ginkgoMajorVersion(); v {
+	case "1":
+		e2eTestArgs = append(e2eTestArgs,
+			"--ginkgo.flakeAttempts="+strconv.Itoa(t.FlakeAttempts),
+		)
+	case "2":
+		e2eTestArgs = append(e2eTestArgs,
+			"--ginkgo.timeout="+"24h",
+			"--ginkgo.flake-attempts="+strconv.Itoa(t.FlakeAttempts),
+		)
+	default:
+		return fmt.Errorf("unsupported ginkgo version: %s", v)
+	}
+
 	extraE2EArgs, err := shellquote.Split(t.TestArgs)
 	if err != nil {
 		return fmt.Errorf("error parsing --test-args: %v", err)
@@ -153,6 +168,29 @@ func (t *Tester) validateLocalBinaries() error {
 	t.ginkgoPath = filepath.Join(t.runDir, "ginkgo")
 	t.kubectlPath = filepath.Join(t.runDir, "kubectl")
 	return nil
+}
+
+// ginkgoMajorVersion returns the ginkgo major version
+// empty if not found
+func (t *Tester) ginkgoMajorVersion() string {
+	klog.V(2).Infof("checking ginkgo version ...")
+	cmd := exec.Command(t.ginkgoPath, "version")
+	lines, err := exec.OutputLines(cmd)
+	if err != nil || len(lines) != 1 {
+		return ""
+	}
+	// the output is in the format
+	// Ginkgo Version 1.14.0
+	// Ginkgo Version 2.1.4
+	parts := strings.Split(lines[0], " ")
+	if len(parts) != 3 {
+		return ""
+	}
+	vers := strings.Split(parts[2], ".")
+	if len(vers) != 3 {
+		return ""
+	}
+	return vers[0]
 }
 
 func (t *Tester) Execute() error {
