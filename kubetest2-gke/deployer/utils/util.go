@@ -27,26 +27,32 @@ import (
 )
 
 var (
-	gkeMinorVersionRegex = regexp.MustCompile(`^(\d\.\d+).*$`)
+	gkeMinorVersionRegex = regexp.MustCompile(`^v?(\d\.\d+).*$`)
 )
 
 // StageGKEBuildMarker stages the build marker to the stage location.
 func StageGKEBuildMarker(version, stageLocation, markerPrefix string) error {
-	m := gkeMinorVersionRegex.FindStringSubmatch(version)
-	var fName string
-	if len(m) < 2 {
-		klog.Warningf("can't find the minor version of %s, defaulting to %s.txt", version, markerPrefix)
-		fName = fmt.Sprintf("%s.txt", markerPrefix)
-	} else {
-		minor := m[1]
-		fName = fmt.Sprintf("%s-%s.txt", markerPrefix, minor)
-	}
-	pushCmd := fmt.Sprintf("gsutil -h 'Content-Type:text/plain' cp - %s/%s", stageLocation, fName)
+	destinationURL := stageLocation + "/" + fileName(version, markerPrefix)
+	pushCmd := fmt.Sprintf("gsutil -h 'Content-Type:text/plain' cp - %s", destinationURL)
 	cmd := exec.RawCommand(pushCmd)
+	if !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
 	cmd.SetStdin(strings.NewReader(version))
 	exec.SetOutput(cmd, os.Stdout, os.Stderr)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to upload the latest version number: %s", err)
 	}
 	return nil
+}
+
+func fileName(version, markerPrefix string) string {
+	m := gkeMinorVersionRegex.FindStringSubmatch(version)
+	if len(m) < 2 {
+		klog.Warningf("can't find the minor version of %s, defaulting to %s.txt %v", version, markerPrefix, m)
+		return fmt.Sprintf("%s.txt", markerPrefix)
+	}
+
+	minor := m[1]
+	return fmt.Sprintf("%s-%s.txt", markerPrefix, minor)
 }
