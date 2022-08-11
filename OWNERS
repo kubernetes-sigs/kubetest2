@@ -1,11 +1,10 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 reviewers:
-- BenTheElder
 - MushuEE
 approvers:
-- BenTheElder
 - MushuEE
 emeritus_approvers:
 - amwat
 - spiffxp
+- BenTheElder
