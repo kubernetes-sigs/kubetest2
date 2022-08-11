@@ -57,8 +57,11 @@ func execJUnit(cmd *exec.Cmd, env []string) error {
 	cmd.Stdin = os.Stdin
 	// ensure we also capture output
 	var systemout bytes.Buffer
-	cmd.Stdout = io.MultiWriter(&systemout, os.Stdout)
-	cmd.Stderr = io.MultiWriter(&systemout, os.Stderr)
+	syncSystemOut := &mutexWriter{
+		writer: &systemout,
+	}
+	cmd.Stdout = io.MultiWriter(syncSystemOut, os.Stdout)
+	cmd.Stderr = io.MultiWriter(syncSystemOut, os.Stderr)
 
 	// actually execute, return a JUnit error if the command errors
 	if err := execCmdWithSignals(cmd); err != nil {
