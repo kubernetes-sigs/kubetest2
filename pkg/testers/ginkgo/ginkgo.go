@@ -17,6 +17,7 @@ limitations under the License.
 package ginkgo
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -199,7 +200,11 @@ func (t *Tester) Execute() error {
 		return fmt.Errorf("failed to initialize tester: %v", err)
 	}
 
+	klog.InitFlags(nil)
+	fs.AddGoFlagSet(flag.CommandLine)
+
 	help := fs.BoolP("help", "h", false, "")
+
 	if err := fs.Parse(os.Args); err != nil {
 		return fmt.Errorf("failed to parse flags: %v", err)
 	}
