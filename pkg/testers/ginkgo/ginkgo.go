@@ -60,6 +60,10 @@ type Tester struct {
 
 // Test runs the test
 func (t *Tester) Test() error {
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+		return err
+	}
+
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
@@ -216,9 +220,6 @@ func (t *Tester) Execute() error {
 	}
 
 	if err := t.initKubetest2Info(); err != nil {
-		return err
-	}
-	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
 		return err
 	}
 	return t.Test()
