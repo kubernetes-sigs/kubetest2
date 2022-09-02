@@ -20,13 +20,14 @@ import (
 	"os"
 	"path/filepath"
 
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 )
 
 func WriteVersionToMetadata(version string) error {
 	var meta *metadata.CustomJSON
 	// check existing metadata and initialize it if it exists
-	metadataPath := filepath.Join(os.Getenv("KUBETEST2_RUN_DIR"), "metadata.json")
+	metadataPath := filepath.Join(artifacts.BaseDir(), "metadata.json")
 	if _, err := os.Stat(metadataPath); err == nil {
 		metadataJSON, err := os.Open(metadataPath)
 		if err != nil {

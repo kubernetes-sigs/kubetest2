@@ -68,7 +68,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return err
 	}
 
-	if err := writeVersionToMetadataJSON(opts, d); err != nil {
+	if err := writeVersionToMetadataJSON(d); err != nil {
 		return err
 	}
 
@@ -200,10 +200,10 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 	return nil
 }
 
-func writeVersionToMetadataJSON(opts types.Options, d types.Deployer) error {
+func writeVersionToMetadataJSON(d types.Deployer) error {
 	// setup the json metadata writer
 	metadataJSON, err := os.Create(
-		filepath.Join(opts.RunDir(), "metadata.json"),
+		filepath.Join(artifacts.BaseDir(), "metadata.json"),
 	)
 	if err != nil {
 		return err
