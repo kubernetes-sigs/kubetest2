@@ -68,12 +68,12 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		return err
 	}
 
-	if err := writeVersionToMetadataJSON(d); err != nil {
+	// ensure the artifacts dir
+	if err := os.MkdirAll(artifacts.BaseDir(), os.ModePerm); err != nil {
 		return err
 	}
 
-	// ensure the artifacts dir
-	if err := os.MkdirAll(artifacts.BaseDir(), os.ModePerm); err != nil {
+	if err := writeVersionToMetadataJSON(d); err != nil {
 		return err
 	}
 
