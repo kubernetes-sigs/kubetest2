@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-// AcquireTestPackage obtains three test binaries and places them in $ARTIFACTS.
+// AcquireTestPackage obtains three test binaries and places them in $KUBETEST2_RUN_DIR.
 // The first is "ginkgo", the actual ginkgo executable.
 // The second is "e2e.test", which contains kubernetes e2e test cases.
 // The third is "kubectl".

@@ -17,6 +17,7 @@ limitations under the License.
 package ginkgo
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ type Tester struct {
 	TestPackageDir     string `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
 	TestPackageMarker  string `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
 	TestArgs           string `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
-	UseBuiltBinaries   bool   `desc:"determines whether to use binaries built by the deployer instead of extracting the test tars from GCS."`
+	UseBuiltBinaries   bool   `desc:"Look for binaries in $KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
 
 	kubeconfigPath string
 	runDir         string
@@ -59,6 +60,10 @@ type Tester struct {
 
 // Test runs the test
 func (t *Tester) Test() error {
+	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+		return err
+	}
+
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
@@ -199,7 +204,11 @@ func (t *Tester) Execute() error {
 		return fmt.Errorf("failed to initialize tester: %v", err)
 	}
 
+	klog.InitFlags(nil)
+	fs.AddGoFlagSet(flag.CommandLine)
+
 	help := fs.BoolP("help", "h", false, "")
+
 	if err := fs.Parse(os.Args); err != nil {
 		return fmt.Errorf("failed to parse flags: %v", err)
 	}
@@ -211,9 +220,6 @@ func (t *Tester) Execute() error {
 	}
 
 	if err := t.initKubetest2Info(); err != nil {
-		return err
-	}
-	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
 		return err
 	}
 	return t.Test()
