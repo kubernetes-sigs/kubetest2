@@ -28,6 +28,17 @@ make install-deployer-gce
 # currently equivalent to /home/prow/go/src/github.com/kubernetes/cloud-provider-gcp
 K_REPO_ROOT="${REPO_ROOT}/../../kubernetes/cloud-provider-gcp"
 
+# TODO(spiffxp): remove this when cloudprovider-gcp has a .bazelversion file
+export USE_BAZEL_VERSION=5.3.0
+# TODO(spiffxp): remove this when gce-build-up-down job updated to do this,
+#                or when bazel 5.3.0 is preinstalled on kubekins image
+if [ "${CI}" == "true" ]; then
+  go install github.com/bazelbuild/bazelisk@latest
+  mkdir -p /tmp/use-bazelisk
+  ln -s "$(go env GOPATH)/bin/bazelisk" /tmp/use-bazelisk/bazel
+  export PATH="/tmp/use-bazelisk:${PATH}"
+fi
+
 kubetest2 gce \
             -v 2 \
             --repo-root "$K_REPO_ROOT" \
