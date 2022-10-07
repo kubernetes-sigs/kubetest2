@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
 
@@ -39,7 +40,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
 	d := &deployer{
 		commonOptions: opts,
-		logsDir:       filepath.Join(opts.RunDir(), "logs"),
+		logsDir:       filepath.Join(artifacts.BaseDir(), "logs"),
 	}
 	// register flags and return
 	return d, bindFlags(d)

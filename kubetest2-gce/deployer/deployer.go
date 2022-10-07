@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/boskos/client"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gce/deployer/options"
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
@@ -122,7 +123,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 			},
 		},
 		kubeconfigPath:       filepath.Join(opts.RunDir(), "kubetest2-kubeconfig"),
-		logsDir:              filepath.Join(opts.RunDir(), "cluster-logs"),
+		logsDir:              filepath.Join(artifacts.BaseDir(), "cluster-logs"),
 		boskosHeartbeatClose: make(chan struct{}),
 		// names need to start with an alphabet
 		instancePrefix:                 "kt2-" + pseudoUniqueSubstring(opts.RunID()),
