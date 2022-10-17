@@ -106,6 +106,9 @@ fix:
 boilerplate:
 	./hack/verify/boilerplate.py
 
+go-version:
+	./hack/verify/go-version.sh
+
 lint:
 	./hack/verify/lint.sh
 
@@ -119,6 +122,6 @@ unit:
 	./hack/ci/unit.sh
 
 verify:
-	$(MAKE) -j lint shellcheck unit tidy boilerplate
+	$(MAKE) -j lint shellcheck unit tidy boilerplate go-version
 
 .PHONY: build-all install install-deployer-% install-tester-% install-all ci-binaries push-ci-binaries quick-verify clean-output clean verify lint shellcheck

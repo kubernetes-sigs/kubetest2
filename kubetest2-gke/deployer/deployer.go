@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/boskos/client"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/types"
 )
@@ -202,7 +203,7 @@ func NewDeployer(opts types.Options) *Deployer {
 
 			RetryableErrorPatterns: []string{gceStockoutErrorPattern},
 		},
-		localLogsDir: filepath.Join(opts.RunDir(), "logs"),
+		localLogsDir: filepath.Join(artifacts.BaseDir(), "logs"),
 	}
 
 	return d
