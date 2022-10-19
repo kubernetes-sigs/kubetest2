@@ -192,11 +192,34 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	}
 
 	if d.WindowsEnabled {
-		args := d.createWindowsNodePoolCommand(project, cluster, locationArg, "windows-pool", d.WindowsImageType)
+		args := d.createNodePoolCommand(project, cluster, locationArg, "windows-pool", d.WindowsImageType, d.WindowsMachineType, d.WindowsNumNodes)
 		output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
 		if err != nil {
 			return fmt.Errorf("error creating windows node-pool: %v, output: %q", err, output)
 		}
+	}
+
+	eg := new(errgroup.Group)
+	// serialize extra nodepool creates by default.
+	eg.SetLimit(1)
+	if d.NodePoolCreateConcurrency > 1 {
+		eg.SetLimit(d.NodePoolCreateConcurrency)
+	}
+
+	for _, enp := range d.extraNodePoolSpecs {
+		enp := enp
+		eg.Go(func() error {
+			args := d.createNodePoolCommand(project, cluster, locationArg, enp.Name, enp.ImageType, enp.MachineType, enp.NumNodes)
+			output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
+			if err != nil {
+				return fmt.Errorf("error creating nodepool %q: %v, output: %q", enp.Name, err, output)
+			}
+			return nil
+		})
+	}
+
+	if err := eg.Wait(); err != nil {
+		return err
 	}
 
 	return nil
@@ -212,6 +235,7 @@ func (d *Deployer) createCommand() []string {
 	if d.GcloudCommandGroup != "" {
 		fs = append(fs, d.GcloudCommandGroup)
 	}
+
 	fs = append(fs, "container", "clusters")
 	if d.Autopilot {
 		fs = append(fs, "create-auto")
@@ -223,7 +247,7 @@ func (d *Deployer) createCommand() []string {
 	return fs
 }
 
-func (d *Deployer) createWindowsNodePoolCommand(project string, cluster cluster, locationArg, nodePoolName, imageType string) []string {
+func (d *Deployer) createNodePoolCommand(project string, cluster cluster, locationArg, nodePoolName, imageType string, machineType string, numNodes int) []string {
 	fs := make([]string, 0)
 	fs = append(fs, "container", "node-pools", "create", nodePoolName)
 	fs = append(fs, "--quiet")
@@ -233,10 +257,10 @@ func (d *Deployer) createWindowsNodePoolCommand(project string, cluster cluster,
 	if imageType != "" {
 		fs = append(fs, "--image-type="+imageType)
 	}
-	if d.WindowsMachineType != "" {
-		fs = append(fs, "--machine-type="+d.WindowsMachineType)
+	if machineType != "" {
+		fs = append(fs, "--machine-type="+machineType)
 	}
-	fs = append(fs, "--num-nodes="+strconv.Itoa(d.WindowsNumNodes))
+	fs = append(fs, "--num-nodes="+strconv.Itoa(numNodes))
 
 	return fs
 }
@@ -358,6 +382,16 @@ func (d *Deployer) VerifyUpFlags() error {
 	if err := validateReleaseChannel(d.ReleaseChannel); err != nil {
 		return err
 	}
+
+	for _, np := range d.ExtraNodePool {
+		// defaults
+		enp := &extraNodepool{}
+
+		if err := buildExtraNodePoolOptions(np, enp); err != nil {
+			return fmt.Errorf("invalid extra nodepool spec %q: %v", np, err)
+		}
+	}
+
 	return nil
 }
 

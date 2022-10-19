@@ -18,6 +18,13 @@ package options
 
 import "fmt"
 
+type ExtraNodePoolOptions struct {
+	Name        string
+	MachineType string
+	ImageType   string
+	NumNodes    int
+}
+
 type ClusterOptions struct {
 	Environment string `flag:"~environment" desc:"Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided"`
 
@@ -45,6 +52,9 @@ type ClusterOptions struct {
 	WindowsMachineType string `flag:"~windows-machine-type" desc:"For use with gcloud commands to specify the machine type for Windows node in the cluster."`
 	WindowsImageType   string `flag:"~windows-image-type" desc:"The Windows image type to use for the cluster."`
 
+	NodePoolCreateConcurrency int      `flag:"~nodepool-create-concurrency" desc:"Number of nodepools to create concurrently, default is 1"`
+	ExtraNodePool             []string `flag:"~extra-nodepool" desc:"create an extra nodepool. repeat the flag for another nodepool. options as key=value&key=value... supported options are name,machine-type,image-type,num-nodes. "`
+
 	RetryableErrorPatterns []string `flag:"~retryable-error-patterns" desc:"Comma separated list of regex match patterns for retryable errors during cluster creation."`
 }
 
@@ -53,5 +63,6 @@ func (uo *ClusterOptions) Validate() error {
 	if uo.NumClusters < 1 || uo.NumClusters > 99 {
 		return fmt.Errorf("need to specify between 1 and 99 clusters got %q: ", uo.NumClusters)
 	}
+
 	return nil
 }

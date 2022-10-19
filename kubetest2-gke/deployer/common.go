@@ -18,6 +18,7 @@ package deployer
 
 import (
 	"fmt"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -117,6 +118,26 @@ func (d *Deployer) Initialize() error {
 		d.projectClustersLayout[d.Projects[0]] = clusters
 	}
 
+	// build extra node pool specs.
+	for i, np := range d.ExtraNodePool {
+		// defaults
+		enp := &extraNodepool{
+			Index:       i,
+			Name:        fmt.Sprintf("extra-node-pool-%d", i),
+			MachineType: d.MachineType,
+			ImageType:   d.ImageType,
+			NumNodes:    1, // default nodepool size.
+		}
+
+		if err := buildExtraNodePoolOptions(np, enp); err != nil {
+			return fmt.Errorf("invalid extra nodepool spec %q", np)
+		}
+
+		d.extraNodePoolSpecs = append(d.extraNodePoolSpecs, enp)
+
+		klog.V(1).Infof("parsed extra nodepool spec %q: %v", np, enp)
+	}
+
 	// Prepare the GCP environment for the following operations.
 	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
 		return err
@@ -140,6 +161,55 @@ func buildProjectClustersLayout(projects, clusters []string, projectClustersLayo
 			return fmt.Errorf("project index %d specified in the cluster name should be smaller than the number of projects %d", projectIndex, len(projects))
 		}
 		projectClustersLayout[projects[projectIndex]] = append(projectClustersLayout[projects[projectIndex]], cluster{i, parts[0]})
+	}
+	return nil
+}
+
+func buildExtraNodePoolOptions(np string, enp *extraNodepool) error {
+	values, err := url.ParseQuery(np)
+	if err != nil {
+		return err
+	}
+	for k := range values {
+
+		switch k {
+		case "name":
+			enp.Name = values.Get("name")
+		case "machine-type":
+			enp.MachineType = values.Get("machine-type")
+		case "image-type":
+			enp.ImageType = values.Get("image-type")
+		case "num-nodes":
+			n, err := strconv.Atoi(values.Get("num-nodes"))
+			if err != nil {
+				return err
+			}
+			if n < 0 {
+				return fmt.Errorf("num-nodes must be a positive integer, got %d", n)
+			}
+			enp.NumNodes = n
+		default:
+			return fmt.Errorf("unknown parameter: %q", k)
+		}
+	}
+	return validateExtraNodepoolOptions(enp)
+}
+
+func validateExtraNodepoolOptions(enp *extraNodepool) error {
+	if enp.Name == "" {
+		return fmt.Errorf("name required")
+	}
+
+	if enp.MachineType == "" {
+		return fmt.Errorf("machine-type required")
+	}
+
+	if enp.ImageType == "" {
+		return fmt.Errorf("image-type required")
+	}
+
+	if enp.NumNodes <= 0 {
+		return fmt.Errorf("num-nodes must be > 0")
 	}
 	return nil
 }

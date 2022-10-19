@@ -17,8 +17,11 @@ limitations under the License.
 package deployer
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestClusterVersion(t *testing.T) {
@@ -114,5 +117,68 @@ func TestGenerateClusterNames(t *testing.T) {
 				t.Errorf("expected cluster names to be: %v\nbut got %v", tc.expectedClusterNames, actualClusterNames)
 			}
 		})
+	}
+}
+
+func TestBuildExtraNodePoolOptions(t *testing.T) {
+	for _, c := range []struct {
+		name             string
+		np               string
+		expectedNodepool extraNodepool
+		expectedError    string
+	}{
+		{
+			name: "valid nodepool",
+			np:   "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type&num-nodes=2",
+			expectedNodepool: extraNodepool{
+				Name:        "extra-nodepool",
+				MachineType: "test-machine-type",
+				ImageType:   "test-image-type",
+				NumNodes:    2,
+			},
+			expectedError: "%!s(<nil>)",
+		},
+		{
+			name:          "num-nodes not set",
+			np:            "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type",
+			expectedError: "num-nodes must be > 0",
+		},
+		{
+			name:          "undefined name",
+			np:            "machine-type=test-machine-type&image-type=test-image-type&num-nodes=1",
+			expectedError: "name required",
+		},
+
+		{
+			name:          "undefined machine-type",
+			np:            "name=extra-nodepool&image-type=test-image-type&num-nodes=1",
+			expectedError: "machine-type required",
+		},
+
+		{
+			name:          "undefined image-type",
+			np:            "name=extra-nodepool&machine-type=test-machine-type&num-nodes=1",
+			expectedError: "image-type required",
+		},
+	} {
+		tc := c
+		t.Run(tc.name, func(t *testing.T) {
+			enp := extraNodepool{}
+			err := buildExtraNodePoolOptions(tc.np, &enp)
+			if fmt.Sprintf("%s", err) != tc.expectedError {
+				t.Logf("unexpected error: want %q, got %q", tc.expectedError, fmt.Errorf("%s", err))
+				t.Fail()
+			}
+			if err != nil {
+				return
+			}
+
+			if !cmp.Equal(enp, tc.expectedNodepool) {
+				t.Logf("unexpected extra nodepool, got(+), want(-): %s",
+					cmp.Diff(tc.expectedNodepool, enp))
+				t.Fail()
+			}
+		})
+
 	}
 }
