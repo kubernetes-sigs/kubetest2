@@ -97,9 +97,11 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 			select {
 			case <-c:
 				if opts.ShouldUp() || opts.ShouldTest() {
-					klog.Info("Captured ^C, gracefully attempting to cleanup resources..")
-					if err := writer.WrapStep("Down", d.Down); err != nil {
-						result = err
+					if opts.ShouldDown() {
+						klog.Info("Captured ^C, gracefully attempting to cleanup resources..")
+						if err := writer.WrapStep("Down", d.Down); err != nil {
+							result = err
+						}
 					}
 					os.Exit(0)
 				}
