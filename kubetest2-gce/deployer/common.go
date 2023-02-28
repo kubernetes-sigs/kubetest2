@@ -197,6 +197,10 @@ func (d *deployer) buildEnv() []string {
 		env = append(env, fmt.Sprintf("KUBE_GCE_NODE_SERVICE_ACCOUNT=%s", d.NodeServiceAccount))
 	}
 
+	if d.IngressGCEImage != "" {
+		env = append(env, fmt.Sprintf("GCE_GLBC_IMAGE=%s", d.IngressGCEImage))
+	}
+
 	return env
 }
 
