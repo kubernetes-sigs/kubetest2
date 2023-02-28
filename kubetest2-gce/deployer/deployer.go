@@ -88,6 +88,8 @@ type deployer struct {
 
 	MasterSize string `desc:"Sets the MASTER_SIZE environment variable during deployment."`
 	NodeSize   string `desc:"Sets the NODE_SIZE environment variable during deployment."`
+
+	IngressGCEImage string `desc:"Sets the ingress-gce image used for the Ingress and Loadbalancer controller."`
 }
 
 // pseudoUniqueSubstring returns a substring of a UUID
