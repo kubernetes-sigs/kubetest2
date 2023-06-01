@@ -42,7 +42,7 @@ type Tester struct {
 	Parallel           int    `desc:"Run this many tests in parallel at once."`
 	SkipRegex          string `desc:"Regular expression of jobs to skip."`
 	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
-	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to GCS. Defaults to latest. Use \"gsutil ls gs://kubernetes-release/release/\" to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
 	TestPackageBucket  string `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
 	TestPackageDir     string `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
 	TestPackageMarker  string `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
