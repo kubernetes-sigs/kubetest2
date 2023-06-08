@@ -58,6 +58,8 @@ type Tester struct {
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
+	UseDockerizedBuild             bool   `desc:"Use dockerized build for test artifacts"`
+	TargetBuildArch                string `desc:"Target architecture for the test artifacts for dockerized build"`
 	ImageConfigDir                 string `desc:"Path to image config files."`
 	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
 	GCPProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
@@ -244,6 +246,8 @@ func (t *Tester) constructArgs() []string {
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
+		"USE_DOCKERIZED_BUILD=" + strconv.FormatBool(t.UseDockerizedBuild),
+		"TARGET_BUILD_ARCH=" + t.TargetBuildArch,
 	}
 	if t.RuntimeConfig != "" {
 		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
