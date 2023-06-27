@@ -52,12 +52,17 @@ type Tester struct {
 	GCPZone                        string `desc:"GCP Zone to create VMs in."`
 	SkipRegex                      string `desc:"Regular expression of jobs to skip."`
 	FocusRegex                     string `desc:"Regular expression of jobs to focus on."`
-	Runtime                        string `desc:"Container runtime to use."`
 	TestArgs                       string `desc:"A space-separated list of arguments to pass to node e2e test."`
 	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
 	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
+	Images                         string `desc:"List of images to use when creating instances separated by commas"`
+	ImageProject                   string `desc:"A GCP Project containing an image to use when creating instances"`
+	InstanceType                   string `desc:"Machine/Instance type to use on AWS/GCP"`
+	InstanceMetadata               string `desc:"Instance Metadata to use for creating GCE instance"`
+	UserDataFile                   string `desc:"User Data to use for creating EC2 instance"`
+	Provider                       string `desc:"Cloud Provider to use for node tests. Valid options are ec2 and gce"`
 	UseDockerizedBuild             bool   `desc:"Use dockerized build for test artifacts"`
 	TargetBuildArch                string `desc:"Target architecture for the test artifacts for dockerized build"`
 	ImageConfigDir                 string `desc:"Path to image config files."`
@@ -81,13 +86,13 @@ type Tester struct {
 func NewDefaultTester() *Tester {
 	return &Tester{
 		SkipRegex:                      `\[Flaky\]|\[Slow\]|\[Serial\]`,
-		Runtime:                        "docker",
 		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
 		BoskosAcquireTimeoutSeconds:    5 * 60,
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
 		Parallelism:                    8,
 		boskosHeartbeatClose:           make(chan struct{}),
 		GCPProjectType:                 "gce-project",
+		Provider:                       "gce",
 	}
 }
 
@@ -125,31 +130,33 @@ func (t *Tester) Execute() error {
 		t.sshUser = os.Getenv("USER")
 	}
 
-	t.maybeSetupSSHKeys()
+	if t.Provider == "gce" {
+		t.maybeSetupSSHKeys()
 
-	// try to acquire project from boskos
-	if t.GCPProject == "" {
-		klog.V(1).Info("no GCP project provided, acquiring from Boskos ...")
+		// try to acquire project from boskos
+		if t.GCPProject == "" {
+			klog.V(1).Info("no GCP project provided, acquiring from Boskos ...")
 
-		boskosClient, err := boskos.NewClient(t.BoskosLocation)
-		if err != nil {
-			return fmt.Errorf("failed to make boskos client: %s", err)
+			boskosClient, err := boskos.NewClient(t.BoskosLocation)
+			if err != nil {
+				return fmt.Errorf("failed to make boskos client: %s", err)
+			}
+			t.boskos = boskosClient
+
+			resource, err := boskos.Acquire(
+				t.boskos,
+				t.GCPProjectType,
+				time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
+				time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
+				t.boskosHeartbeatClose,
+			)
+
+			if err != nil {
+				return fmt.Errorf("init failed to get project from boskos: %s", err)
+			}
+			t.GCPProject = resource.Name
+			klog.V(1).Infof("got project %s from boskos", t.GCPProject)
 		}
-		t.boskos = boskosClient
-
-		resource, err := boskos.Acquire(
-			t.boskos,
-			t.GCPProjectType,
-			time.Duration(t.BoskosAcquireTimeoutSeconds)*time.Second,
-			time.Duration(t.BoskosHeartbeatIntervalSeconds)*time.Second,
-			t.boskosHeartbeatClose,
-		)
-
-		if err != nil {
-			return fmt.Errorf("init failed to get project from boskos: %s", err)
-		}
-		t.GCPProject = resource.Name
-		klog.V(1).Infof("got project %s from boskos", t.GCPProject)
 	}
 
 	defer func() {
@@ -175,7 +182,7 @@ func (t *Tester) validateFlags() error {
 	if t.RepoRoot == "" {
 		return fmt.Errorf("required --repo-root")
 	}
-	if t.GCPZone == "" {
+	if t.GCPZone == "" && t.Provider == "gce" {
 		return fmt.Errorf("required --gcp-zone")
 	}
 	return nil
@@ -234,7 +241,6 @@ func (t *Tester) constructArgs() []string {
 	argsFromFlags := []string{
 		"SKIP=" + t.SkipRegex,
 		"FOCUS=" + t.FocusRegex,
-		"RUNTIME=" + t.Runtime,
 		// https://github.com/kubernetes/kubernetes/blob/96be00df69390ed41b8ec22facc43bcbb9c88aae/hack/make-rules/test-e2e-node.sh#L120
 		// TODO: this should be configurable without overriding at the gcloud env level
 		"CLOUDSDK_CORE_PROJECT=" + t.GCPProject,
@@ -244,6 +250,11 @@ func (t *Tester) constructArgs() []string {
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
 		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
+		"IMAGE_PROJECT=" + t.ImageProject,
+		"IMAGES=" + t.Images,
+		"INSTANCE_METADATA=" + t.InstanceMetadata,
+		"USER_DATA_FILE=" + t.UserDataFile,
+		"INSTANCE_TYPE=" + t.InstanceType,
 		"SSH_USER=" + t.sshUser,
 		"SSH_KEY=" + t.privateKey,
 		"USE_DOCKERIZED_BUILD=" + strconv.FormatBool(t.UseDockerizedBuild),
