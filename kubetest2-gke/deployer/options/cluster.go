@@ -39,7 +39,7 @@ type ClusterOptions struct {
 	NumClusters             int      `flag:"~num-clusters" desc:"Number of clusters to create, will auto-generate names as (kt2-<run-id>-<index>)."`
 	Clusters                []string `flag:"~cluster-name" desc:"Cluster names separated by comma. Must be set. For multi-project profile, it should be in the format of clusterA:0,clusterB:1,clusterC:2, where the index means the index of the project."`
 	MachineType             string   `flag:"~machine-type" desc:"For use with gcloud commands to specify the machine type for the cluster."`
-	NumNodes                int      `flag:"~num-nodes" desc:"For use with gcloud commands to specify the number of nodes for the cluster."`
+	NumNodes                int      `flag:"~num-nodes" desc:"For use with gcloud commands to specify the number of nodes for each of the cluster's zones."`
 	ImageType               string   `flag:"~image-type" desc:"The image type to use for the cluster."`
 	ReleaseChannel          string   `desc:"Use a GKE release channel, could be one of empty, rapid, regular and stable - https://cloud.google.com/kubernetes-engine/docs/concepts/release-channels"`
 	LegacyClusterVersion    string   `flag:"~version,deprecated" desc:"Use --cluster-version instead"`
