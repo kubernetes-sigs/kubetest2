@@ -47,28 +47,29 @@ const (
 )
 
 type Tester struct {
-	RepoRoot                       string `desc:"Absolute path to kubernetes repository root."`
-	GCPProject                     string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
-	GCPZone                        string `desc:"GCP Zone to create VMs in."`
-	SkipRegex                      string `desc:"Regular expression of jobs to skip."`
-	FocusRegex                     string `desc:"Regular expression of jobs to focus on."`
-	TestArgs                       string `desc:"A space-separated list of arguments to pass to node e2e test."`
-	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
-	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
-	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
-	ImageConfigFile                string `desc:"Path to a file containing image configuration."`
-	Images                         string `desc:"List of images to use when creating instances separated by commas"`
-	ImageProject                   string `desc:"A GCP Project containing an image to use when creating instances"`
-	InstanceType                   string `desc:"Machine/Instance type to use on AWS/GCP"`
-	InstanceMetadata               string `desc:"Instance Metadata to use for creating GCE instance"`
-	UserDataFile                   string `desc:"User Data to use for creating EC2 instance"`
-	Provider                       string `desc:"Cloud Provider to use for node tests. Valid options are ec2 and gce"`
-	UseDockerizedBuild             bool   `desc:"Use dockerized build for test artifacts"`
-	TargetBuildArch                string `desc:"Target architecture for the test artifacts for dockerized build"`
-	ImageConfigDir                 string `desc:"Path to image config files."`
-	Parallelism                    int    `desc:"The number of nodes to run in parallel."`
-	GCPProjectType                 string `desc:"Explicitly indicate which project type to select from boskos."`
-	RuntimeConfig                  string `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
+	RepoRoot                       string        `desc:"Absolute path to kubernetes repository root."`
+	GCPProject                     string        `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
+	GCPZone                        string        `desc:"GCP Zone to create VMs in."`
+	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
+	FocusRegex                     string        `desc:"Regular expression of jobs to focus on."`
+	TestArgs                       string        `desc:"A space-separated list of arguments to pass to node e2e test."`
+	BoskosAcquireTimeoutSeconds    int           `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
+	BoskosHeartbeatIntervalSeconds int           `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	BoskosLocation                 string        `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
+	ImageConfigFile                string        `desc:"Path to a file containing image configuration."`
+	Images                         string        `desc:"List of images to use when creating instances separated by commas"`
+	ImageProject                   string        `desc:"A GCP Project containing an image to use when creating instances"`
+	InstanceType                   string        `desc:"Machine/Instance type to use on AWS/GCP"`
+	InstanceMetadata               string        `desc:"Instance Metadata to use for creating GCE instance"`
+	UserDataFile                   string        `desc:"User Data to use for creating EC2 instance"`
+	Provider                       string        `desc:"Cloud Provider to use for node tests. Valid options are ec2 and gce"`
+	UseDockerizedBuild             bool          `desc:"Use dockerized build for test artifacts"`
+	TargetBuildArch                string        `desc:"Target architecture for the test artifacts for dockerized build"`
+	ImageConfigDir                 string        `desc:"Path to image config files."`
+	Parallelism                    int           `desc:"The number of nodes to run in parallel."`
+	GCPProjectType                 string        `desc:"Explicitly indicate which project type to select from boskos."`
+	RuntimeConfig                  string        `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
+	Timeout                        time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -259,6 +260,7 @@ func (t *Tester) constructArgs() []string {
 		"SSH_KEY=" + t.privateKey,
 		"USE_DOCKERIZED_BUILD=" + strconv.FormatBool(t.UseDockerizedBuild),
 		"TARGET_BUILD_ARCH=" + t.TargetBuildArch,
+		"TIMEOUT=" + t.Timeout.String(),
 	}
 	if t.RuntimeConfig != "" {
 		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
