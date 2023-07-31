@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/boskos/client"
 	"sigs.k8s.io/boskos/common"
+	"sigs.k8s.io/kubetest2/internal/boskos/client"
 )
 
 // const (for the run) owner string for consistency between up and down

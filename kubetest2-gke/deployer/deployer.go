@@ -28,7 +28,7 @@ import (
 	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/boskos/client"
+	"sigs.k8s.io/kubetest2/internal/boskos/client"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
 	"sigs.k8s.io/kubetest2/pkg/artifacts"

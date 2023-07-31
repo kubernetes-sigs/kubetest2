@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-//  ignore package name stutter
+// ignore package name stutter
 type BuildAndStageStrategy string //nolint:golint
 
 const (
