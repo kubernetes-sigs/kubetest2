@@ -104,7 +104,7 @@ fix:
 	./hack/update/tidy.sh
 
 boilerplate:
-	./hack/verify/boilerplate.py
+	./hack/verify/boilerplate.sh
 
 go-version:
 	./hack/verify/go-version.sh
