@@ -18,7 +18,6 @@ package shim
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -52,7 +51,7 @@ func FindDeployers() map[string]string {
 		}
 
 		// list all files in the directory
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 
 		// ignore bad directories in PATH
 		if os.IsNotExist(err) {

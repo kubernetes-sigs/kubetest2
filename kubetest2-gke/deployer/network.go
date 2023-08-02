@@ -19,7 +19,6 @@ package deployer
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -76,11 +75,7 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		}
 	}
 
-	if err := d.internalizeNetworkFlags(numProjects); err != nil {
-		return err
-	}
-
-	return nil
+	return d.internalizeNetworkFlags(numProjects)
 }
 
 func validateSubnetRanges(subnetworkRanges []string) error {
@@ -238,12 +233,8 @@ func (d *Deployer) DeleteNetwork() error {
 		return nil
 	}
 
-	if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.Network,
-		"--project="+d.Projects[0], "--quiet")); err != nil {
-		return err
-	}
-
-	return nil
+	return runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.Network,
+		"--project="+d.Projects[0], "--quiet"))
 }
 
 func transformNetworkName(projects []string, network string) string {
@@ -280,13 +271,11 @@ func subNetworkArgs(autopilot bool, projects []string, region, network string, p
 }
 
 func (d *Deployer) SetupNetwork() error {
-	if err := enableSharedVPCAndGrantRoles(d.Projects, regionFromLocation(d.Regions, d.Zones, d.retryCount), d.Network); err != nil {
+	err := enableSharedVPCAndGrantRoles(d.Projects, regionFromLocation(d.Regions, d.Zones, d.retryCount), d.Network)
+	if err != nil {
 		return err
 	}
-	if err := grantHostServiceAgentUserRole(d.Projects); err != nil {
-		return err
-	}
-	return nil
+	return grantHostServiceAgentUserRole(d.Projects)
 }
 
 // This function implements https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#enabling_and_granting_roles
@@ -342,12 +331,12 @@ func enableSharedVPCAndGrantRoles(projects []string, region, network string) err
 		googleAPIServiceAccount := serviceProjectNum + "@cloudservices.gserviceaccount.com"
 
 		// Grant the required IAM roles to service accounts that belong to the service project.
-		tempFile, err := ioutil.TempFile("", "*.yaml")
+		tempFile, err := os.CreateTemp("", "*.yaml")
 		if err != nil {
 			return fmt.Errorf("failed to create a temporary yaml file: %v", err)
 		}
 		policyStr := fmt.Sprintf(networkUserPolicyTemplate, googleAPIServiceAccount, gkeServiceAccount, strings.TrimSpace(string(subnetETag)))
-		if err = ioutil.WriteFile(tempFile.Name(), []byte(policyStr), os.ModePerm); err != nil {
+		if err = os.WriteFile(tempFile.Name(), []byte(policyStr), os.ModePerm); err != nil {
 			return fmt.Errorf("failed to write the content into %s: %v", tempFile.Name(), err)
 		}
 		if err = runWithOutput(exec.Command("gcloud", "compute", "networks", "subnets", "set-iam-policy", subnetName,
@@ -386,13 +375,11 @@ func grantHostServiceAgentUserRole(projects []string) error {
 }
 
 func (d *Deployer) TeardownNetwork() error {
-	if err := disableSharedVPCProjects(d.Projects); err != nil {
+	err := disableSharedVPCProjects(d.Projects)
+	if err != nil {
 		return err
 	}
-	if err := removeHostServiceAgentUserRole(d.Projects); err != nil {
-		return err
-	}
-	return nil
+	return removeHostServiceAgentUserRole(d.Projects)
 }
 
 func disableSharedVPCProjects(projects []string) error {

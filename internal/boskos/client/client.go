@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -169,7 +168,10 @@ func (c *Client) AcquireWithPriority(rtype, state, dest, requestID string) (*com
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if r != nil {
-		c.storage.Add(*r)
+		_ = c.storage.Add(*r)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return r, nil
@@ -219,7 +221,7 @@ func (c *Client) AcquireByState(state, dest string, names []string) ([]common.Re
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	for _, r := range resources {
-		c.storage.Add(r)
+		_ = c.storage.Add(r)
 	}
 	return resources, nil
 }
@@ -263,7 +265,7 @@ func (c *Client) ReleaseAll(dest string) error {
 	}
 	var allErrors error
 	for _, r := range resources {
-		c.storage.Delete(r.Name)
+		_ = c.storage.Delete(r.Name)
 		err := c.Release(r.Name, dest)
 		if err != nil {
 			allErrors = multierror.Append(allErrors, err)
@@ -280,11 +282,8 @@ func (c *Client) ReleaseOne(name, dest string) error {
 	if _, err := c.storage.Get(name); err != nil {
 		return fmt.Errorf("no resource name %v", name)
 	}
-	c.storage.Delete(name)
-	if err := c.Release(name, dest); err != nil {
-		return err
-	}
-	return nil
+	_ = c.storage.Delete(name)
+	return c.Release(name, dest)
 }
 
 // UpdateAll signals update for all resources hold by the client.
@@ -407,7 +406,7 @@ func (c *Client) acquire(rtype, state, dest, requestID string) (*common.Resource
 
 		switch resp.StatusCode {
 		case http.StatusOK:
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return false, err
 			}
@@ -560,7 +559,7 @@ func (c *Client) reset(rtype, state string, expire time.Duration, dest string) (
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusOK {
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return false, err
 			}
@@ -594,7 +593,7 @@ func (c *Client) metric(rtype string) (common.Metric, error) {
 			return false, nil
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return false, err
 		}

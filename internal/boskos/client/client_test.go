@@ -166,7 +166,7 @@ func TestRelease(t *testing.T) {
 			t.Fatalf("failed to create the Boskos client")
 		}
 		for _, r := range tc.resources {
-			c.storage.Add(common.Resource{Name: r})
+			_ = c.storage.Add(common.Resource{Name: r})
 		}
 		if tc.res == "" {
 			err = c.ReleaseAll("d")
@@ -231,7 +231,7 @@ func TestUpdate(t *testing.T) {
 			t.Fatalf("failed to create the Boskos client")
 		}
 		for _, r := range tc.resources {
-			c.storage.Add(common.Resource{Name: r})
+			_ = c.storage.Add(common.Resource{Name: r})
 		}
 
 		if tc.res == "" {

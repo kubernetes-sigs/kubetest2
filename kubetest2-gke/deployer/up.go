@@ -18,7 +18,6 @@ package deployer
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -218,11 +217,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 		})
 	}
 
-	if err := eg.Wait(); err != nil {
-		return err
-	}
-
-	return nil
+	return eg.Wait()
 }
 
 func (d *Deployer) createCommand() []string {
@@ -319,7 +314,7 @@ func (d *Deployer) Kubeconfig() (string, error) {
 		return d.kubecfgPath, nil
 	}
 
-	tmpdir, err := ioutil.TempDir("", "kubetest2-gke")
+	tmpdir, err := os.MkdirTemp("", "kubetest2-gke")
 	if err != nil {
 		return "", err
 	}

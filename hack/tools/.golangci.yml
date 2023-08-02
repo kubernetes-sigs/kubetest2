@@ -5,21 +5,18 @@ linters:
   disable-all: true
   enable:
   # default golangci-lint lints
-  - deadcode
   - errcheck
   - gosimple
   - govet
   - ineffassign
   - staticcheck
-  - structcheck
   - typecheck
   - unused
-  - varcheck
 
   # additional lints
   - gochecknoinits
   - gofmt
-  - golint
+  - revive
   - misspell
-  - scopelint
+  - exportloopref
   - unparam

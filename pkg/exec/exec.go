@@ -21,7 +21,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 
 	shell "github.com/kballard/go-shellquote"
@@ -130,6 +129,6 @@ func InheritOutput(cmd Cmd) {
 
 // NoOutput ignores all output from the command.
 func NoOutput(cmd Cmd) {
-	cmd.SetStdout(ioutil.Discard)
-	cmd.SetStderr(ioutil.Discard)
+	cmd.SetStdout(io.Discard)
+	cmd.SetStderr(io.Discard)
 }

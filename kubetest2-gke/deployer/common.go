@@ -139,11 +139,7 @@ func (d *Deployer) Initialize() error {
 	}
 
 	// Prepare the GCP environment for the following operations.
-	if err := d.PrepareGcpIfNeeded(d.Projects[0]); err != nil {
-		return err
-	}
-
-	return nil
+	return d.PrepareGcpIfNeeded(d.Projects[0])
 }
 
 // buildProjectClustersLayout builds the projects and real cluster names mapping based on the provided --cluster-name flag.
