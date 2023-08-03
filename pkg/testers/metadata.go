@@ -66,8 +66,5 @@ func WriteVersionToMetadata(version string) error {
 	if err := metadataJSON.Sync(); err != nil {
 		return err
 	}
-	if err := metadataJSON.Close(); err != nil {
-		return err
-	}
-	return nil
+	return metadataJSON.Close()
 }

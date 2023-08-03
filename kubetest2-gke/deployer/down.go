@@ -57,11 +57,7 @@ func (d *Deployer) Down() error {
 	if err := d.DeleteSubnets(d.retryCount); err != nil {
 		return err
 	}
-	if err := d.DeleteNetwork(); err != nil {
-		return err
-	}
-
-	return nil
+	return d.DeleteNetwork()
 }
 
 func (d *Deployer) DeleteClusters(retryCount int) {
@@ -100,8 +96,5 @@ func (d *Deployer) VerifyDownFlags() error {
 	if len(d.Projects) == 0 {
 		return fmt.Errorf("--project must be set for GKE deployment")
 	}
-	if err := d.VerifyLocationFlags(); err != nil {
-		return err
-	}
-	return nil
+	return d.VerifyLocationFlags()
 }

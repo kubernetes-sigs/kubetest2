@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 type CustomJSON struct {
@@ -30,7 +29,7 @@ type CustomJSON struct {
 func NewCustomJSON(from io.Reader) (*CustomJSON, error) {
 	meta := &CustomJSON{}
 	if from != nil {
-		dataBytes, err := ioutil.ReadAll(from)
+		dataBytes, err := io.ReadAll(from)
 		if err != nil {
 			return nil, err
 		}

@@ -28,7 +28,7 @@ import (
 	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/boskos/client"
+	"sigs.k8s.io/kubetest2/internal/boskos/client"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
@@ -170,8 +170,6 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// register flags
 	fs := bindFlags(d)
 
-	// register flags for klog
-	klog.InitFlags(nil)
 	fs.AddGoFlagSet(flag.CommandLine)
 	return d, fs
 }

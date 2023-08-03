@@ -141,10 +141,7 @@ func (t *Tester) pretestSetup() error {
 	klog.V(0).Infof("Using kubeconfig at %s", t.kubeconfigPath)
 
 	if t.UseBuiltBinaries {
-		if err := t.validateLocalBinaries(); err != nil {
-			return err
-		}
-		return nil
+		return t.validateLocalBinaries()
 	}
 
 	if err := t.AcquireTestPackage(); err != nil {

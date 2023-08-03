@@ -110,6 +110,8 @@ func runE(cmd *cobra.Command, args []string) error {
 }
 
 // custom help info, includes usage()
+//
+//nolint:revive
 func help(cmd *cobra.Command, args []string) {
 	cmd.Println(usageLong)
 	cmd.Println()

@@ -29,7 +29,7 @@ import (
 
 	"k8s.io/klog/v2"
 
-	"sigs.k8s.io/boskos/client"
+	"sigs.k8s.io/kubetest2/internal/boskos/client"
 
 	"sigs.k8s.io/kubetest2/kubetest2-gce/deployer/options"
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
@@ -141,9 +141,6 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		klog.Fatalf("couldn't parse flagset for deployer struct: %s", err)
 	}
 
-	// initing the klog flags adds them to goflag.CommandLine
-	// they can then be added to the built pflag set
-	klog.InitFlags(nil)
 	flagSet.AddGoFlagSet(goflag.CommandLine)
 
 	// register flags and return
