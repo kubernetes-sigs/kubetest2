@@ -201,7 +201,6 @@ func (t *Tester) Execute() error {
 		return fmt.Errorf("failed to initialize tester: %v", err)
 	}
 
-	klog.InitFlags(nil)
 	fs.AddGoFlagSet(flag.CommandLine)
 
 	help := fs.BoolP("help", "h", false, "")

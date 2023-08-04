@@ -102,7 +102,6 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		return nil
 	}
 
-	klog.InitFlags(nil)
 	flags.AddGoFlagSet(flag.CommandLine)
 
 	return flags
