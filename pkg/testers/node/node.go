@@ -47,7 +47,7 @@ const (
 )
 
 type Tester struct {
-	RepoRoot                       string        `desc:"Absolute path to kubernetes repository root."`
+	RepoRoot                       string        `desc:"Absolute path to the kubernetes or provider-aws-test-infra repository root."`
 	GCPProject                     string        `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
 	GCPZone                        string        `desc:"GCP Zone to create VMs in."`
 	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
@@ -70,6 +70,8 @@ type Tester struct {
 	GCPProjectType                 string        `desc:"Explicitly indicate which project type to select from boskos."`
 	RuntimeConfig                  string        `desc:"The runtime configuration for the API server. Format: a list of key=value pairs."`
 	Timeout                        time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
+	DeleteInstances                bool          `desc:"Where to delete instances after running the test"`
+	NodeEnv                        string        `desc:"Additional metadata keys to add to a gce instance"`
 
 	// boskos struct field will be non-nil when the deployer is
 	// using boskos to acquire a GCP project
@@ -94,6 +96,7 @@ func NewDefaultTester() *Tester {
 		boskosHeartbeatClose:           make(chan struct{}),
 		GCPProjectType:                 "gce-project",
 		Provider:                       "gce",
+		DeleteInstances:                true,
 	}
 }
 
@@ -235,7 +238,6 @@ func (t *Tester) maybeSetupSSHKeys() {
 func (t *Tester) constructArgs() []string {
 	defaultArgs := []string{
 		"REMOTE=true",
-		"DELETE_INSTANCES=true",
 	}
 
 	argsFromFlags := []string{
@@ -247,6 +249,8 @@ func (t *Tester) constructArgs() []string {
 		// https://github.com/kubernetes/kubernetes/blob/96be00df69390ed41b8ec22facc43bcbb9c88aae/hack/make-rules/test-e2e-node.sh#L113
 		"ZONE=" + t.GCPZone,
 		"TEST_ARGS=" + t.TestArgs,
+		"NODE_ENV= " + t.NodeEnv,
+		"DELETE_INSTANCES=" + strconv.FormatBool(t.DeleteInstances),
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
 		"IMAGE_CONFIG_FILE=" + t.ImageConfigFile,
 		"IMAGE_CONFIG_DIR=" + t.ImageConfigDir,
