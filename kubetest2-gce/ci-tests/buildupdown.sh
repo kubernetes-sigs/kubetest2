@@ -24,9 +24,9 @@ cd "${REPO_ROOT}" &> /dev/null || exit 1
 
 make install
 make install-deployer-gce
+make install-tester-ginkgo
 
-# currently equivalent to /home/prow/go/src/github.com/kubernetes/cloud-provider-gcp
-K_REPO_ROOT="${REPO_ROOT}/../../kubernetes/cloud-provider-gcp"
+REPO_ROOT="${GOPATH}"/src/k8s.io/cloud-provider-gcp;
 
 # TODO(spiffxp): remove this when cloudprovider-gcp has a .bazelversion file
 export USE_BAZEL_VERSION=5.3.0
@@ -39,9 +39,26 @@ if [ "${CI}" == "true" ]; then
   export PATH="/tmp/use-bazelisk:${PATH}"
 fi
 
+if [[ -f "${REPO_ROOT}/ginko-test-package-version.env" ]]; then
+  TEST_PACKAGE_VERSION=$(cat "${REPO_ROOT}/ginko-test-package-version.env")
+  export TEST_PACKAGE_VERSION
+  echo "TEST_PACKAGE_VERSION set to ${TEST_PACKAGE_VERSION}"
+else
+  export TEST_PACKAGE_VERSION="v1.25.0"
+  echo "TEST_PACKAGE_VERSION - Falling back to v1.25.0"
+fi;
+
 kubetest2 gce \
-            -v 2 \
-            --repo-root "$K_REPO_ROOT" \
-            --build \
-            --up \
-            --down
+    -v=2 \
+    --repo-root="$REPO_ROOT" \
+    --build \
+    --up \
+    --down \
+    --test=ginkgo \
+    --master-size=e2-standard-2 \
+    --node-size=e2-standard-2 \
+    -- \
+    --test-package-version="${TEST_PACKAGE_VERSION}" \
+    --focus-regex='Secrets should be consumable via the environment' \
+    --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
+    --timeout=60m
