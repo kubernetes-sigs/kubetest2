@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
@@ -37,17 +38,18 @@ import (
 var GitTag string
 
 type Tester struct {
-	FlakeAttempts      int    `desc:"Make up to this many attempts to run each spec."`
-	GinkgoArgs         string `desc:"Additional arguments supported by the ginkgo binary."`
-	Parallel           int    `desc:"Run this many tests in parallel at once."`
-	SkipRegex          string `desc:"Regular expression of jobs to skip."`
-	FocusRegex         string `desc:"Regular expression of jobs to focus on."`
-	TestPackageVersion string `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
-	TestPackageBucket  string `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
-	TestPackageDir     string `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
-	TestPackageMarker  string `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
-	TestArgs           string `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
-	UseBuiltBinaries   bool   `desc:"Look for binaries in $KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
+	FlakeAttempts      int           `desc:"Make up to this many attempts to run each spec."`
+	GinkgoArgs         string        `desc:"Additional arguments supported by the ginkgo binary."`
+	Parallel           int           `desc:"Run this many tests in parallel at once."`
+	SkipRegex          string        `desc:"Regular expression of jobs to skip."`
+	FocusRegex         string        `desc:"Regular expression of jobs to focus on."`
+	TestPackageVersion string        `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageBucket  string        `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
+	TestPackageDir     string        `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
+	TestPackageMarker  string        `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
+	TestArgs           string        `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
+	UseBuiltBinaries   bool          `desc:"Look for binaries in $KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
+	Timeout            time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
 
 	kubeconfigPath string
 	runDir         string
@@ -74,17 +76,13 @@ func (t *Tester) Test() error {
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
 		"--report-dir=" + artifacts.BaseDir(),
+		"--ginkgo.timeout=" + t.Timeout.String(),
 	}
 
 	// some ginkgo flags and behaviors are not backwards compatible
 	switch v := t.ginkgoMajorVersion(); v {
-	case "1":
-		e2eTestArgs = append(e2eTestArgs,
-			"--ginkgo.flakeAttempts="+strconv.Itoa(t.FlakeAttempts),
-		)
 	case "2":
 		e2eTestArgs = append(e2eTestArgs,
-			"--ginkgo.timeout="+"24h",
 			"--ginkgo.flake-attempts="+strconv.Itoa(t.FlakeAttempts),
 		)
 	default:
@@ -247,6 +245,7 @@ func NewDefaultTester() *Tester {
 		TestPackageBucket: "kubernetes-release",
 		TestPackageDir:    "release",
 		TestPackageMarker: "latest.txt",
+		Timeout:           24 * time.Hour,
 	}
 }
 
