@@ -28,6 +28,7 @@ kubetest2 noop \
   --repo-root="${GOPATH}/src/k8s.io/kubernetes" \
   --gcp-zone=us-west1-b \
   --instance-type=e2-standard-2 \
+  --node-env=PULL_REFS="${PULL_REFS}" \
   --focus-regex="\[NodeConformance\]" \
   --test-args='--kubelet-flags="--cgroup-driver=systemd --runtime-cgroups=/system.slice/containerd.service"' \
   --image-config-file="${GOPATH}/src/k8s.io/test-infra/jobs/e2e_node/containerd/image-config-systemd.yaml"
