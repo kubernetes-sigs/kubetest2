@@ -68,6 +68,9 @@ type deployer struct {
 	// network is set for firewall rule creation, see buildEnv() and firewall.go
 	network string
 
+	// env is passed to buildEnv() function, many env variables are set by other flags
+	Env []string `desc:"A list on env variables to pass to the kube-*.sh scripts"`
+
 	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	RepoRoot                       string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
@@ -121,9 +124,10 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
 			CommonBuildOptions: &build.Options{
-				Builder:  &build.NoopBuilder{},
-				Stager:   &build.NoopStager{},
-				Strategy: "make",
+				Builder:         &build.NoopBuilder{},
+				Stager:          &build.NoopStager{},
+				Strategy:        "make",
+				TargetBuildArch: "linux/amd64",
 			},
 		},
 		kubeconfigPath:       filepath.Join(opts.RunDir(), "kubetest2-kubeconfig"),
