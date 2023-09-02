@@ -201,6 +201,14 @@ func (d *deployer) buildEnv() []string {
 		env = append(env, fmt.Sprintf("GCE_GLBC_IMAGE=%s", d.IngressGCEImage))
 	}
 
+	if d.CloudProvider != "" {
+		env = append(env, fmt.Sprintf("CLOUD_PROVIDER=%s", d.CloudProvider))
+	}
+
+	if d.FeatureGates != "" {
+		env = append(env, fmt.Sprintf("KUBE_FEATURE_GATES=%s", d.FeatureGates))
+	}
+
 	return env
 }
 
