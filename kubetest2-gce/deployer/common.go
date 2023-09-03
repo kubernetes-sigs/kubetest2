@@ -202,7 +202,7 @@ func (d *deployer) buildEnv() []string {
 	}
 
 	if d.CloudProvider != "" {
-		env = append(env, fmt.Sprintf("CLOUD_PROVIDER=%s", d.CloudProvider))
+		env = append(env, fmt.Sprintf("CLOUD_PROVIDER_FLAG=%s", d.CloudProvider))
 	}
 
 	if d.FeatureGates != "" {
