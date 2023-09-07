@@ -19,11 +19,13 @@ package build
 import (
 	"fmt"
 
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 type MakeBuilder struct {
-	RepoRoot string
+	RepoRoot        string
+	TargetBuildArch string
 }
 
 var _ Builder = &MakeBuilder{}
@@ -38,7 +40,9 @@ func (m *MakeBuilder) Build() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get version: %v", err)
 	}
-	cmd := exec.Command("make", target)
+	cmd := exec.Command("make", target,
+		fmt.Sprintf("KUBE_BUILD_PLATFORMS=%s", m.TargetBuildArch))
+	klog.Infof("running build %s using: KUBE_BUILD_PLATFORMS=%s", target, m.TargetBuildArch)
 	cmd.SetDir(m.RepoRoot)
 	setSourceDateEpoch(m.RepoRoot, cmd)
 	exec.InheritOutput(cmd)

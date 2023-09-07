@@ -38,6 +38,7 @@ type Options struct {
 	StageExtraGCPFiles bool   `flag:"-"`
 	VersionSuffix      string `flag:"-"`
 	UpdateLatest       bool   `flag:"~update-latest" desc:"Whether should upload the build number to the GCS"`
+	TargetBuildArch    string `flag:"~target-build-arch" desc:"Target architecture for the test artifacts for dockerized build"`
 	Builder
 	Stager
 }
@@ -58,7 +59,8 @@ func (o *Options) implementationFromStrategy() error {
 		o.Stager = bazel
 	case MakeStrategy:
 		o.Builder = &MakeBuilder{
-			RepoRoot: o.RepoRoot,
+			RepoRoot:        o.RepoRoot,
+			TargetBuildArch: o.TargetBuildArch,
 		}
 		o.Stager = &Krel{
 			RepoRoot:        o.RepoRoot,

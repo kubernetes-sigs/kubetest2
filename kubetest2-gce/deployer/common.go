@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -209,6 +210,18 @@ func (d *deployer) buildEnv() []string {
 		env = append(env, fmt.Sprintf("KUBE_FEATURE_GATES=%s", d.FeatureGates))
 	}
 
+	if d.BuildOptions.CommonBuildOptions.TargetBuildArch != "" {
+		env = append(env, fmt.Sprintf("KUBE_BUILD_PLATFORMS=%s", d.BuildOptions.CommonBuildOptions.TargetBuildArch))
+	}
+
+	if d.Env != nil {
+		for _, e := range d.Env {
+			param := strings.Split(e, "=")
+			if len(param) == 2 {
+				env = append(env, fmt.Sprintf("%s=%s", param[0], param[1]))
+			}
+		}
+	}
 	return env
 }
 
