@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/testers"
+	"sigs.k8s.io/kubetest2/pkg/testers/ginkgo/junitxml"
 )
 
 var GitTag string
@@ -105,6 +106,8 @@ func (t *Tester) Test() error {
 		t.e2eTestPath,
 		"--")
 	ginkgoArgs = append(ginkgoArgs, e2eTestArgs...)
+
+	defer junitxml.Clean()
 
 	klog.V(0).Infof("Running ginkgo test as %s %+v", t.ginkgoPath, ginkgoArgs)
 	cmd := exec.Command(t.ginkgoPath, ginkgoArgs...)
