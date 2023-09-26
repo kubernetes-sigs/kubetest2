@@ -34,14 +34,16 @@ import (
 var GitTag string
 
 type Tester struct {
-	Suites        string `desc:"Comma separated list of standard scale testing suites e.g. load, density"`
-	TestOverrides string `desc:"Comma separated list of paths to the config override files. The latter overrides take precedence over changes in former files."`
-	TestConfigs   string `desc:"Comma separated list of paths to test config files."`
-	Provider      string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
-	KubeConfig    string `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
-	RepoRoot      string `desc:"Path to repository root of kubernetes/perf-tests"`
-	ReportDir     string `desc:"Path to directory, where summaries files should be stored. If not specified, summaries are stored in $ARTIFACTS directory"`
-	Nodes         int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
+	Suites                    string `desc:"Comma separated list of standard scale testing suites e.g. load, density"`
+	TestOverrides             string `desc:"Comma separated list of paths to the config override files. The latter overrides take precedence over changes in former files."`
+	TestConfigs               string `desc:"Comma separated list of paths to test config files."`
+	Provider                  string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
+	KubeConfig                string `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
+	RepoRoot                  string `desc:"Path to repository root of kubernetes/perf-tests"`
+	ReportDir                 string `desc:"Path to directory, where summaries files should be stored. If not specified, summaries are stored in $ARTIFACTS directory"`
+	Nodes                     int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
+	EnablePrometheusServer    bool   `desc:"Whether to set-up the prometheus server in the cluster."`
+	PrometheusPvcStorageClass string `desc:"Storage class used with prometheus persistent volume claim."`
 }
 
 func NewDefaultTester() *Tester {
@@ -94,6 +96,13 @@ func (t *Tester) Test() error {
 		if to != "" {
 			args = append(args, "--testoverrides="+to)
 		}
+	}
+
+	if t.EnablePrometheusServer {
+		args = append(args, "--enable-prometheus-server")
+	}
+	if t.PrometheusPvcStorageClass != "" {
+		args = append(args, "--prometheus-pvc-storage-class="+t.PrometheusPvcStorageClass)
 	}
 
 	// TODO(amwat): get prebuilt binaries
