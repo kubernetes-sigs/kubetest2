@@ -36,10 +36,11 @@ kubetest2 gce \
     --target-build-arch=linux/amd64 \
     --master-size=e2-standard-2 \
     --node-size=e2-standard-2 \
-    --env=KUBE_IMAGE_FAMILY=ubuntu-2204-lts \
     --env=KUBE_MASTER_OS_DISTRIBUTION=ubuntu \
+    --env=KUBE_GCE_MASTER_IMAGE=ubuntu-2204-jammy-v20230531 \
     --env=KUBE_GCE_MASTER_PROJECT=ubuntu-os-cloud \
     --env=KUBE_NODE_OS_DISTRIBUTION=ubuntu \
+    --env=KUBE_GCE_NODE_IMAGE=ubuntu-2204-jammy-v20230531 \
     --env=KUBE_GCE_NODE_PROJECT=ubuntu-os-cloud \
     -- \
     --focus-regex='Secrets should be consumable via the environment' \
