@@ -50,6 +50,7 @@ type Tester struct {
 	TestArgs           string        `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
 	UseBuiltBinaries   bool          `desc:"Look for binaries in $KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
 	Timeout            time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
+	Env                []string      `desc:"List of env variables to pass to ginkgo libraries"`
 
 	kubeconfigPath string
 	runDir         string
@@ -108,6 +109,7 @@ func (t *Tester) Test() error {
 
 	klog.V(0).Infof("Running ginkgo test as %s %+v", t.ginkgoPath, ginkgoArgs)
 	cmd := exec.Command(t.ginkgoPath, ginkgoArgs...)
+	cmd.SetEnv(t.Env...)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }
@@ -246,6 +248,7 @@ func NewDefaultTester() *Tester {
 		TestPackageDir:    "release",
 		TestPackageMarker: "latest.txt",
 		Timeout:           24 * time.Hour,
+		Env:               nil,
 	}
 }
 
