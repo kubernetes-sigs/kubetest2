@@ -48,7 +48,7 @@ type Tester struct {
 	TestPackageDir     string        `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
 	TestPackageMarker  string        `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
 	TestArgs           string        `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
-	UseBuiltBinaries   bool          `desc:"Look for binaries in $KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
+	UseBuiltBinaries   bool          `desc:"Look for binaries in _rundir/$KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
 	Timeout            time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
 	Env                []string      `desc:"List of env variables to pass to ginkgo libraries"`
 
@@ -225,6 +225,11 @@ func (t *Tester) Execute() error {
 func (t *Tester) initKubetest2Info() error {
 	if dir, ok := os.LookupEnv("KUBETEST2_RUN_DIR"); ok {
 		t.runDir = dir
+		return nil
+	}
+	// ginkgo/e2e.test/kubectl can be found in rundir when they are built
+	if t.UseBuiltBinaries {
+		t.runDir = artifacts.RunDir()
 		return nil
 	}
 	// default to current working directory if for some reason the env is not set

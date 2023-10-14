@@ -45,4 +45,5 @@ kubetest2 gce \
     -- \
     --focus-regex='Secrets should be consumable via the environment' \
     --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
+    --use-built-binaries=true \
     --timeout=30m
