@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	stdexec "os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,19 +39,20 @@ import (
 var GitTag string
 
 type Tester struct {
-	FlakeAttempts      int           `desc:"Make up to this many attempts to run each spec."`
-	GinkgoArgs         string        `desc:"Additional arguments supported by the ginkgo binary."`
-	Parallel           int           `desc:"Run this many tests in parallel at once."`
-	SkipRegex          string        `desc:"Regular expression of jobs to skip."`
-	FocusRegex         string        `desc:"Regular expression of jobs to focus on."`
-	TestPackageVersion string        `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
-	TestPackageBucket  string        `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
-	TestPackageDir     string        `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
-	TestPackageMarker  string        `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
-	TestArgs           string        `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
-	UseBuiltBinaries   bool          `desc:"Look for binaries in _rundir/$KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
-	Timeout            time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
-	Env                []string      `desc:"List of env variables to pass to ginkgo libraries"`
+	FlakeAttempts       int           `desc:"Make up to this many attempts to run each spec."`
+	GinkgoArgs          string        `desc:"Additional arguments supported by the ginkgo binary."`
+	Parallel            int           `desc:"Run this many tests in parallel at once."`
+	SkipRegex           string        `desc:"Regular expression of jobs to skip."`
+	FocusRegex          string        `desc:"Regular expression of jobs to focus on."`
+	TestPackageVersion  string        `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageBucket   string        `desc:"The bucket which release tars will be downloaded from to acquire the test package. Defaults to the main kubernetes project bucket."`
+	TestPackageDir      string        `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
+	TestPackageMarker   string        `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
+	TestArgs            string        `desc:"Additional arguments supported by the e2e test framework (https://godoc.org/k8s.io/kubernetes/test/e2e/framework#TestContextType)."`
+	UseBuiltBinaries    bool          `desc:"Look for binaries in _rundir/$KUBETEST2_RUN_DIR instead of extracting from tars downloaded from GCS."`
+	UseBinariesFromPath bool          `desc:"Look for binaries in the $PATH instead of extracting from tars downloaded from GCS."`
+	Timeout             time.Duration `desc:"How long (in golang duration format) to wait for ginkgo tests to complete."`
+	Env                 []string      `desc:"List of env variables to pass to ginkgo libraries"`
 
 	kubeconfigPath string
 	runDir         string
@@ -143,6 +145,9 @@ func (t *Tester) pretestSetup() error {
 	if t.UseBuiltBinaries {
 		return t.validateLocalBinaries()
 	}
+	if t.UseBinariesFromPath {
+		return t.validateBinariesFromPath()
+	}
 
 	if err := t.AcquireTestPackage(); err != nil {
 		return fmt.Errorf("failed to get ginkgo test package from published releases: %s", err)
@@ -169,6 +174,26 @@ func (t *Tester) validateLocalBinaries() error {
 	t.e2eTestPath = filepath.Join(t.runDir, "e2e.test")
 	t.ginkgoPath = filepath.Join(t.runDir, "ginkgo")
 	t.kubectlPath = filepath.Join(t.runDir, "kubectl")
+	return nil
+}
+
+func (t *Tester) validateBinariesFromPath() error {
+	klog.V(2).Infof("checking for test binaries on PATH...")
+	for _, binary := range build.CommonTestBinaries {
+		path, err := stdexec.LookPath(binary)
+		if err != nil {
+			return fmt.Errorf("failed to validate binary %s from PATH: %w", binary, err)
+		}
+		klog.V(2).Infof("found existing %s at %s", binary, path)
+		switch binary {
+		case "e2e.test":
+			t.e2eTestPath = path
+		case "ginkgo":
+			t.ginkgoPath = path
+		case "kubectl":
+			t.kubectlPath = path
+		}
+	}
 	return nil
 }
 
@@ -223,6 +248,9 @@ func (t *Tester) Execute() error {
 
 // initializes relevant information from the well defined kubetest2 environment variables.
 func (t *Tester) initKubetest2Info() error {
+	if t.UseBuiltBinaries && t.UseBinariesFromPath {
+		return fmt.Errorf("--use-built-binaries and --use-binaries-from-path are mutually exclusive")
+	}
 	if dir, ok := os.LookupEnv("KUBETEST2_RUN_DIR"); ok {
 		t.runDir = dir
 		return nil
