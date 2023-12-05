@@ -33,14 +33,14 @@ const (
 	gceProjectResourceType = "gce-project"
 )
 
-func (d *deployer) init() error {
+func (d *Deployer) init() error {
 	var err error
 	d.doInit.Do(func() { err = d.initialize() })
 	return err
 }
 
 // initialize should only be called by init(), behind a sync.Once
-func (d *deployer) initialize() error {
+func (d *Deployer) initialize() error {
 	if d.commonOptions.ShouldBuild() {
 		if err := d.verifyBuildFlags(); err != nil {
 			return fmt.Errorf("init failed to check build flags: %s", err)
@@ -87,7 +87,7 @@ func (d *deployer) initialize() error {
 	return nil
 }
 
-func (d *deployer) buildEnv() []string {
+func (d *Deployer) buildEnv() []string {
 	// The base env currently does not inherit the current os env (except for PATH)
 	// because (for now) it doesn't have to. In future, this may have to change when
 	// support is added for k/k's kube-up.sh and kube-down.sh which support a wide
@@ -246,7 +246,7 @@ func getClusterIPRange(numNodes int) string {
 // returns the path to the binary, error if it doesn't exist
 // kubectl detection using legacy verify-get-kube-binaries is unreliable
 // https://github.com/kubernetes/kubernetes/blob/b10d82b93bad7a4e39b9d3f5c5e81defa3af68f0/cluster/kubectl.sh#L25-L26
-func (d *deployer) verifyKubectl() (string, error) {
+func (d *Deployer) verifyKubectl() (string, error) {
 	klog.V(2).Infof("checking locally built kubectl ...")
 	localKubectl := filepath.Join(d.commonOptions.RunDir(), "kubectl")
 	if _, err := os.Stat(localKubectl); err == nil {

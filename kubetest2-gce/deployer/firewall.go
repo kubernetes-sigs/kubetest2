@@ -26,15 +26,15 @@ import (
 // kube-up.sh builds NODE_TAG based on KUBE_GCE_INSTANCE_PREFIX which the deployer
 // sets as d.instacePrefix. This function replicates NODE_TAG string construction
 // because it is needed for firewall rules
-func (d *deployer) nodeTag() string {
+func (d *Deployer) nodeTag() string {
 	return fmt.Sprintf("%s-minion", d.instancePrefix)
 }
 
-func (d *deployer) nodePortRuleName() string {
+func (d *Deployer) nodePortRuleName() string {
 	return fmt.Sprintf("%s-nodeports", d.nodeTag())
 }
 
-func (d *deployer) createFirewallRuleNodePort() error {
+func (d *Deployer) createFirewallRuleNodePort() error {
 	cmd := exec.Command(
 		"gcloud", "compute", "firewall-rules", "create",
 		"--project", d.GCPProject,
@@ -51,7 +51,7 @@ func (d *deployer) createFirewallRuleNodePort() error {
 	return nil
 }
 
-func (d *deployer) deleteFirewallRuleNodePort() {
+func (d *Deployer) deleteFirewallRuleNodePort() {
 	cmd := exec.Command(
 		"gcloud", "compute", "firewall-rules", "delete",
 		"--project", d.GCPProject,

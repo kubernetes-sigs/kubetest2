@@ -37,7 +37,7 @@ var GitTag string
 // New implements deployer.New for kind
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
-	d := &deployer{
+	d := &Deployer{
 		commonOptions: opts,
 	}
 	// register flags and return
@@ -47,35 +47,35 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 // assert that New implements types.NewDeployer
 var _ types.NewDeployer = New
 
-type deployer struct {
+type Deployer struct {
 	// generic parts
 	commonOptions types.Options
 
 	KubeconfigPath string `flag:"kubeconfig" desc:"Absolute path to existing kubeconfig for cluster"`
 }
 
-func (d *deployer) Up() error {
+func (d *Deployer) Up() error {
 	return nil
 }
 
-func (d *deployer) Down() error {
+func (d *Deployer) Down() error {
 	return nil
 }
 
-func (d *deployer) IsUp() (up bool, err error) {
+func (d *Deployer) IsUp() (up bool, err error) {
 	return false, nil
 }
 
-func (d *deployer) DumpClusterLogs() error {
+func (d *Deployer) DumpClusterLogs() error {
 	return nil
 }
 
-func (d *deployer) Build() error {
+func (d *Deployer) Build() error {
 	// TODO: build should probably still exist with common options
 	return nil
 }
 
-func (d *deployer) Kubeconfig() (string, error) {
+func (d *Deployer) Kubeconfig() (string, error) {
 	// noop deployer is specifically used with an existing cluster and KUBECONFIG
 	if d.KubeconfigPath != "" {
 		return d.KubeconfigPath, nil
@@ -90,12 +90,12 @@ func (d *deployer) Kubeconfig() (string, error) {
 	return filepath.Join(home, ".kube", "config"), nil
 }
 
-func (d *deployer) Version() string {
+func (d *Deployer) Version() string {
 	return GitTag
 }
 
 // helper used to create & bind a flagset to the deployer
-func bindFlags(d *deployer) *pflag.FlagSet {
+func bindFlags(d *Deployer) *pflag.FlagSet {
 	flags, err := gpflag.Parse(d)
 	if err != nil {
 		klog.Fatalf("unable to generate flags from deployer")
@@ -108,4 +108,4 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 }
 
 // assert that deployer implements types.DeployerWithKubeconfig
-var _ types.DeployerWithKubeconfig = &deployer{}
+var _ types.DeployerWithKubeconfig = &Deployer{}

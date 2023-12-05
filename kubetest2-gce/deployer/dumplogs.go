@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) DumpClusterLogs() error {
+func (d *Deployer) DumpClusterLogs() error {
 	klog.V(1).Info("GCE deployer starting DumpClusterLogs()")
 
 	if err := d.init(); err != nil {
@@ -53,7 +53,7 @@ func (d *deployer) DumpClusterLogs() error {
 	return nil
 }
 
-func (d *deployer) makeLogsDir() error {
+func (d *Deployer) makeLogsDir() error {
 	_, err := os.Stat(d.logsDir)
 
 	if os.IsNotExist(err) {
@@ -86,7 +86,7 @@ func (d *deployer) makeLogsDir() error {
 	return fmt.Errorf("cluster logs directory %s already exists, please clean up manually or use the overwrite flag before continuing", d.logsDir)
 }
 
-func (d *deployer) sshDump() error {
+func (d *Deployer) sshDump() error {
 	env := d.buildEnv()
 
 	args := []string{
@@ -105,7 +105,7 @@ func (d *deployer) sshDump() error {
 	return nil
 }
 
-func (d *deployer) kubectlDump() error {
+func (d *Deployer) kubectlDump() error {
 	env := d.buildEnv()
 	outfile, err := os.Create(filepath.Join(d.logsDir, "cluster-info.log"))
 	if err != nil {

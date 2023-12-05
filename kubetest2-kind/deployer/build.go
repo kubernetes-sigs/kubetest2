@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
-func (d *deployer) Build() error {
+func (d *Deployer) Build() error {
 	args := []string{
 		"build", "node-image",
 	}

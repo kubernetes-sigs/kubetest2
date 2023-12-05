@@ -30,7 +30,7 @@ func TestSetRepoPathIfNotSet(t *testing.T) {
 	cases := []struct {
 		name string
 
-		initialDeployer  deployer
+		initialDeployer  Deployer
 		expectedRepoPath string
 	}{
 		{
@@ -39,7 +39,7 @@ func TestSetRepoPathIfNotSet(t *testing.T) {
 		},
 		{
 			name: "set preset repo path",
-			initialDeployer: deployer{
+			initialDeployer: Deployer{
 				RepoRoot: "/test/path",
 			},
 			expectedRepoPath: "/test/path",

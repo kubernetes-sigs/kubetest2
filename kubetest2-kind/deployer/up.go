@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
-func (d *deployer) IsUp() (up bool, err error) {
+func (d *Deployer) IsUp() (up bool, err error) {
 	// naively assume that if the api server reports nodes, the cluster is up
 	lines, err := exec.CombinedOutputLines(
 		exec.Command("kubectl", "get", "nodes", "-o=name"),
@@ -38,7 +38,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 	return len(lines) > 0, nil
 }
 
-func (d *deployer) Up() error {
+func (d *Deployer) Up() error {
 	args := []string{
 		"create", "cluster",
 		"--name", d.ClusterName,

@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) Down() error {
+func (d *Deployer) Down() error {
 	klog.V(1).Info("GCE deployer starting Down()")
 
 	if err := d.init(); err != nil {
@@ -70,7 +70,7 @@ func (d *deployer) Down() error {
 	return nil
 }
 
-func (d *deployer) verifyDownFlags() error {
+func (d *Deployer) verifyDownFlags() error {
 	if err := d.setRepoPathIfNotSet(); err != nil {
 		return err
 	}

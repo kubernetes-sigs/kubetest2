@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
-func (d *deployer) Build() error {
+func (d *Deployer) Build() error {
 	klog.V(1).Info("GCE deployer starting Build()")
 
 	if err := d.init(); err != nil {
@@ -91,7 +91,7 @@ func (d *deployer) Build() error {
 	return nil
 }
 
-func (d *deployer) setRepoPathIfNotSet() error {
+func (d *Deployer) setRepoPathIfNotSet() error {
 	if d.RepoRoot != "" {
 		return nil
 	}
@@ -107,7 +107,7 @@ func (d *deployer) setRepoPathIfNotSet() error {
 }
 
 // verifyBuildFlags only checks flags that are needed for Build
-func (d *deployer) verifyBuildFlags() error {
+func (d *Deployer) verifyBuildFlags() error {
 	if err := d.setRepoPathIfNotSet(); err != nil {
 		return err
 	}

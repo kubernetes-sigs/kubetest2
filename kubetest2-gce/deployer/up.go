@@ -32,7 +32,7 @@ const (
 	ciPublicKeyEnv  = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
-func (d *deployer) IsUp() (up bool, err error) {
+func (d *Deployer) IsUp() (up bool, err error) {
 	klog.V(1).Info("GCE deployer starting IsUp()")
 
 	if err := d.init(); err != nil {
@@ -63,7 +63,7 @@ func (d *deployer) IsUp() (up bool, err error) {
 	return len(lines) > 0, nil
 }
 
-func (d *deployer) Up() error {
+func (d *Deployer) Up() error {
 	klog.V(1).Info("GCE deployer starting Up()")
 
 	if err := d.init(); err != nil {
@@ -143,7 +143,7 @@ func enableComputeAPI(project string) error {
 	return nil
 }
 
-func (d *deployer) verifyUpFlags() error {
+func (d *Deployer) verifyUpFlags() error {
 	if d.NumNodes < 1 {
 		return fmt.Errorf("number of nodes must be at least 1")
 	}

@@ -38,7 +38,7 @@ var GitTag string
 // New implements deployer.New for kind
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// create a deployer object and set fields that are not flag controlled
-	d := &deployer{
+	d := &Deployer{
 		commonOptions: opts,
 		logsDir:       filepath.Join(artifacts.BaseDir(), "logs"),
 	}
@@ -49,7 +49,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 // assert that New implements types.NewDeployer
 var _ types.NewDeployer = New
 
-type deployer struct {
+type Deployer struct {
 	// generic parts
 	commonOptions types.Options
 	// kind specific details
@@ -63,7 +63,7 @@ type deployer struct {
 	logsDir string
 }
 
-func (d *deployer) Kubeconfig() (string, error) {
+func (d *Deployer) Kubeconfig() (string, error) {
 	if d.KubeconfigPath != "" {
 		return d.KubeconfigPath, nil
 	}
@@ -74,12 +74,12 @@ func (d *deployer) Kubeconfig() (string, error) {
 	return filepath.Join(home, ".kube", "config"), nil
 }
 
-func (d *deployer) Version() string {
+func (d *Deployer) Version() string {
 	return GitTag
 }
 
 // helper used to create & bind a flagset to the deployer
-func bindFlags(d *deployer) *pflag.FlagSet {
+func bindFlags(d *Deployer) *pflag.FlagSet {
 	flags, err := gpflag.Parse(d)
 	if err != nil {
 		klog.Fatalf("unable to generate flags from deployer")
@@ -92,7 +92,7 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 }
 
 // assert that deployer implements types.DeployerWithKubeconfig
-var _ types.DeployerWithKubeconfig = &deployer{}
+var _ types.DeployerWithKubeconfig = &Deployer{}
 
 // well-known kind related constants
 const kindDefaultBuiltImageName = "kindest/node:latest"

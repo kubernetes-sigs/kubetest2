@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
-func (d *deployer) DumpClusterLogs() error {
+func (d *Deployer) DumpClusterLogs() error {
 	args := []string{
 		"export", "logs",
 		"--name", d.ClusterName,

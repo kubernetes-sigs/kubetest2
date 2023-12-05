@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/process"
 )
 
-func (d *deployer) Down() error {
+func (d *Deployer) Down() error {
 	args := []string{
 		"delete", "cluster",
 		"--name", d.ClusterName,

@@ -42,7 +42,7 @@ const Name = "gce"
 
 var GitTag string
 
-type deployer struct {
+type Deployer struct {
 	// generic parts
 	commonOptions types.Options
 
@@ -120,7 +120,7 @@ func pseudoUniqueSubstring(uuid string) string {
 
 // New implements deployer.New for gce
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
-	d := &deployer{
+	d := &Deployer{
 		commonOptions: opts,
 		BuildOptions: &options.BuildOptions{
 			CommonBuildOptions: &build.Options{
@@ -144,7 +144,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 
 	flagSet, err := gpflag.Parse(d)
 	if err != nil {
-		klog.Fatalf("couldn't parse flagset for deployer struct: %s", err)
+		klog.Fatalf("couldn't parse flagset for Deployer struct: %s", err)
 	}
 
 	flagSet.AddGoFlagSet(goflag.CommandLine)
@@ -157,17 +157,17 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 var _ types.NewDeployer = New
 
 // assert that deployer implements types.Deployer
-var _ types.Deployer = &deployer{}
+var _ types.Deployer = &Deployer{}
 
-func (d *deployer) Provider() string {
+func (d *Deployer) Provider() string {
 	return Name
 }
 
-func (d *deployer) Version() string {
+func (d *Deployer) Version() string {
 	return GitTag
 }
 
-func (d *deployer) Kubeconfig() (string, error) {
+func (d *Deployer) Kubeconfig() (string, error) {
 	_, err := os.Stat(d.kubeconfigPath)
 	if os.IsNotExist(err) {
 		return "", fmt.Errorf("kubeconfig does not exist at: %s", d.kubeconfigPath)
