@@ -123,6 +123,14 @@ type DeployerWithVersion interface {
 	Version() string
 }
 
+// DeployerWithInit adds the ability to define initialization behavior
+type DeployerWithInit interface {
+	Deployer
+
+	// Init initializes the deployer. This will be called prior to any other lifecycle action.
+	Init() error
+}
+
 // Tester defines the "interface" between kubetest2 and a tester
 // The tester is executed as a separate binary during the Test() phase
 type Tester struct {
