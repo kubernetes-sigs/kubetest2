@@ -26,11 +26,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
+	"github.com/go-resty/resty/v2"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
-	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
 // AcquireTestPackage obtains three test binaries and places them in $KUBETEST2_RUN_DIR.
@@ -40,19 +39,14 @@ import (
 func (t *Tester) AcquireTestPackage() error {
 	// first, get the name of the latest release (e.g. v1.20.0-alpha.0)
 	if t.TestPackageVersion == "" {
-		cmd := exec.Command(
-			"gsutil",
-			"cat",
-			fmt.Sprintf("gs://%s/%s/%s", t.TestPackageBucket, t.TestPackageDir, t.TestPackageMarker),
-		)
-		lines, err := exec.OutputLines(cmd)
+		resp, err := resty.New().R().Get(fmt.Sprintf("%s/%s/%s", t.TestPackageURL, t.TestPackageDir, t.TestPackageMarker))
 		if err != nil {
 			return fmt.Errorf("failed to get latest release name: %s", err)
 		}
-		if len(lines) == 0 {
+		if resp.String() == "" {
 			return fmt.Errorf("getting latest release name had no output")
 		}
-		t.TestPackageVersion = lines[0]
+		t.TestPackageVersion = resp.String()
 
 		klog.V(1).Infof("Test package version was not specified. Defaulting to version from %s: %s", t.TestPackageMarker, t.TestPackageVersion)
 	}
@@ -153,9 +147,9 @@ func (t *Tester) extractBinaries(downloadPath string) error {
 // else downloads it from GCS
 func (t *Tester) ensureKubectl(downloadPath string) error {
 
-	kubectlPathInGCS := fmt.Sprintf(
-		"gs://%s/%s/%s/bin/%s/%s/kubectl",
-		t.TestPackageBucket,
+	kubectlPathInURL := fmt.Sprintf(
+		"%s/%s/%s/bin/%s/%s/kubectl",
+		t.TestPackageURL,
 		t.TestPackageDir,
 		t.TestPackageVersion,
 		runtime.GOOS,
@@ -163,7 +157,7 @@ func (t *Tester) ensureKubectl(downloadPath string) error {
 	)
 	if _, err := os.Stat(downloadPath); err == nil {
 		klog.V(0).Infof("Found existing kubectl at %v", downloadPath)
-		err := t.compareSHA(downloadPath, kubectlPathInGCS)
+		err := t.compareSHA(downloadPath, kubectlPathInURL)
 		if err == nil {
 			klog.V(0).Infof("Validated hash for existing kubectl at %v", downloadPath)
 			return nil
@@ -171,9 +165,8 @@ func (t *Tester) ensureKubectl(downloadPath string) error {
 		klog.Warning(err)
 	}
 
-	cmd := exec.Command("gsutil", "cp", kubectlPathInGCS, downloadPath)
-	exec.InheritOutput(cmd)
-	if err := cmd.Run(); err != nil {
+	_, err := resty.New().R().SetOutput(downloadPath).Get(kubectlPathInURL)
+	if err != nil {
 		return fmt.Errorf("failed to download kubectl for release %s: %s", t.TestPackageVersion, err)
 	}
 	if err := os.Chmod(downloadPath, 0700); err != nil {
@@ -187,9 +180,9 @@ func (t *Tester) ensureKubectl(downloadPath string) error {
 // else downloads it from GCS
 func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 
-	releaseTarPathInGCS := fmt.Sprintf(
-		"gs://%s/%s/%s/%s",
-		t.TestPackageBucket,
+	releaseTarPathInURL := fmt.Sprintf(
+		"%s/%s/%s/%s",
+		t.TestPackageURL,
 		t.TestPackageDir,
 		t.TestPackageVersion,
 		releaseTar,
@@ -197,7 +190,7 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 
 	if _, err := os.Stat(downloadPath); err == nil {
 		klog.V(0).Infof("Found existing tar at %v", downloadPath)
-		err := t.compareSHA(downloadPath, releaseTarPathInGCS)
+		err := t.compareSHA(downloadPath, releaseTarPathInURL)
 		if err == nil {
 			klog.V(0).Infof("Validated hash for existing tar at %v", downloadPath)
 			return nil
@@ -205,26 +198,19 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 		klog.Warning(err)
 	}
 
-	cmd := exec.Command("gsutil", "cp",
-		releaseTarPathInGCS,
-		downloadPath,
-	)
-	exec.InheritOutput(cmd)
-	if err := cmd.Run(); err != nil {
+	_, err := resty.New().R().SetOutput(downloadPath).Get(releaseTarPathInURL)
+	if err != nil {
 		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, t.TestPackageVersion, err)
 	}
 	return nil
 }
 
 func (t *Tester) compareSHA(downloadPath string, gcsFilePath string) error {
-	cmd := exec.Command("gsutil", "cat",
-		fmt.Sprintf("%s.sha256", gcsFilePath),
-	)
-	expectedSHABytes, err := exec.Output(cmd)
+	resp, err := resty.New().R().Get(fmt.Sprintf("%s.sha256", gcsFilePath))
 	if err != nil {
 		return fmt.Errorf("failed to get sha256 for file %s for release %s: %s", gcsFilePath, t.TestPackageVersion, err)
 	}
-	expectedSHA := strings.TrimSuffix(string(expectedSHABytes), "\n")
+	expectedSHA := resp.String()
 	actualSHA, err := sha256sum(downloadPath)
 	if err != nil {
 		return fmt.Errorf("failed to compute sha256 for %q: %v", downloadPath, err)

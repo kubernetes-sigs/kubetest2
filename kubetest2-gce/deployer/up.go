@@ -19,12 +19,15 @@ package deployer
 import (
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/fs"
+	"sigs.k8s.io/kubetest2/pkg/util"
 )
 
 const (
@@ -70,6 +73,37 @@ func (d *deployer) Up() error {
 		return fmt.Errorf("up failed to init: %s", err)
 	}
 
+	env := d.buildEnv()
+	// if --build isn't passed, fetch the kubernetes binaries
+	if !d.commonOptions.ShouldBuild() {
+		script := filepath.Join(d.RepoRoot, "cluster", "get-kube.sh")
+		klog.V(2).Infof("About to run script at: %s", script)
+		kubeURL, err := util.ParseKubernetesMarker(d.KubernetesVersion)
+		if err != nil {
+			return fmt.Errorf("failed to resolve kubernetes version marker: %s", err)
+		}
+		version := path.Base(kubeURL)
+		releaseURL, found := strings.CutSuffix(kubeURL, "/"+version)
+		if !found {
+			releaseURL = "https://dl.k8s.io/release"
+		}
+
+		cmd := exec.Command(script)
+		env = append(env,
+			fmt.Sprintf("KUBERNETES_RELEASE_URL=%s", releaseURL),
+			fmt.Sprintf("KUBERNETES_RELEASE=%s", version),
+			fmt.Sprintf("KUBE_ROOT=%s", d.RepoRoot+"/kubernetes"),
+			"KUBERNETES_SKIP_CONFIRM=y",
+			"KUBERNETES_SKIP_CREATE_CLUSTER=y",
+			"KUBERNETES_DOWNLOAD_TESTS=n",
+		)
+		cmd.SetEnv(env...)
+		exec.InheritOutput(cmd)
+
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("error encountered during %s: %s", script, err)
+		}
+	}
 	path, err := d.verifyKubectl()
 	if err != nil {
 		return err
@@ -91,7 +125,6 @@ func (d *deployer) Up() error {
 
 	maybeSetupSSHKeys()
 
-	env := d.buildEnv()
 	script := filepath.Join(d.RepoRoot, "cluster", "kube-up.sh")
 	klog.V(2).Infof("About to run script at: %s", script)
 
