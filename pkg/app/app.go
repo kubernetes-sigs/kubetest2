@@ -129,6 +129,14 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 
 	klog.Infof("ID for this run: %q", opts.RunID())
 
+	// If the deployer has an initialization routine, run it
+	if dWithInit, ok := d.(types.DeployerWithInit); ok {
+		if err := dWithInit.Init(); err != nil {
+			// we do not continue to up / test etc. if initialization fails
+			return err
+		}
+	}
+
 	// build if specified
 	if opts.ShouldBuild() {
 		if err := writer.WrapStep("Build", d.Build); err != nil {
