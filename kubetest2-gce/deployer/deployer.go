@@ -81,6 +81,7 @@ type deployer struct {
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed, defaults to http://boskos.test-pods.svc.cluster.local."`
 	LegacyMode                     bool   `desc:"Set if the provided repo root is the kubernetes/kubernetes repo and not kubernetes/cloud-provider-gcp."`
 	NumNodes                       int    `desc:"The number of nodes in the cluster."`
+	KubernetesVersion              string `desc:"The kubernetes version to use in the cluster"`
 
 	EnableCacheMutationDetector bool   `desc:"Sets the environment variable ENABLE_CACHE_MUTATION_DETECTOR=true during deployment. This should cause a panic if anything mutates a shared informer cache."`
 	RuntimeConfig               string `desc:"Sets the KUBE_RUNTIME_CONFIG environment variable during deployment."`
@@ -138,6 +139,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		network:                        "kt2-" + pseudoUniqueSubstring(opts.RunID()),
 		BoskosAcquireTimeoutSeconds:    5 * 60,
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
+		KubernetesVersion:              "https://dl.k8s.io/release/latest.txt",
 		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
 		NumNodes:                       3,
 	}
