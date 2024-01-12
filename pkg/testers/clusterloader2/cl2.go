@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
 	"k8s.io/klog/v2"
 
@@ -44,6 +45,7 @@ type Tester struct {
 	Nodes                     int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
 	EnablePrometheusServer    bool   `desc:"Whether to set-up the prometheus server in the cluster."`
 	PrometheusPvcStorageClass string `desc:"Storage class used with prometheus persistent volume claim."`
+	ExtraArgs                 string `flag:"~extra-args" desc:"Additional arguments supported by clusterloader2 (https://github.com/kubernetes/perf-tests/blob/master/clusterloader2/cmd/clusterloader.go)."`
 }
 
 func NewDefaultTester() *Tester {
@@ -104,6 +106,11 @@ func (t *Tester) Test() error {
 	if t.PrometheusPvcStorageClass != "" {
 		args = append(args, "--prometheus-pvc-storage-class="+t.PrometheusPvcStorageClass)
 	}
+	parsedExtraArgs, err := shellquote.Split(t.ExtraArgs)
+	if err != nil {
+		return fmt.Errorf("error parsing --extra-args: %v", err)
+	}
+	args = append(args, parsedExtraArgs...)
 
 	// TODO(amwat): get prebuilt binaries
 	cmd := exec.Command("go", append(cmdArgs, args...)...)
