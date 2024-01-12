@@ -125,6 +125,12 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		if err := junitRunner.Close(); err != nil && result == nil {
 			result = err
 		}
+		// If the deployer has an Finish func, run it
+		if dWithFinish, ok := d.(types.DeployerWithFinish); ok {
+			if err := dWithFinish.Finish(); err != nil {
+				result = err
+			}
+		}
 	}()
 
 	klog.Infof("ID for this run: %q", opts.RunID())
