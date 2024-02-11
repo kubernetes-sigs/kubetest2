@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/types"
+	"sigs.k8s.io/kubetest2/pkg/util"
 )
 
 // Name is the name of the deployer
@@ -98,27 +99,6 @@ type deployer struct {
 	IngressGCEImage string `desc:"Sets the ingress-gce image used for the Ingress and Loadbalancer controller."`
 }
 
-// pseudoUniqueSubstring returns a substring of a UUID
-// that can be reasonably used in resource names
-// where length is constrained
-// e.g https://cloud.google.com/compute/docs/naming-resources
-// but still retain as much uniqueness as possible
-// also easily lets us tie it back to a run
-func pseudoUniqueSubstring(uuid string) string {
-	// both KUBETEST2_RUN_ID and PROW_JOB_ID uuids are generated
-	// following RFC 4122 https://tools.ietf.org/html/rfc4122
-	// e.g. 09a2565a-7ac6-11eb-a603-2218f636630c
-	// extract the first 13 characters (09a2565a-7ac6) as they are the ones that depend on
-	// timestamp and has the best avalanche effect (https://en.wikipedia.org/wiki/Avalanche_effect)
-	// as compared to the other bytes
-	// 13 characters is also <= the no. of character being used previously
-	const maxResourceNamePrefixLength = 13
-	if len(uuid) <= maxResourceNamePrefixLength {
-		return uuid
-	}
-	return uuid[:maxResourceNamePrefixLength]
-}
-
 // New implements deployer.New for gce
 func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	d := &deployer{
@@ -135,8 +115,8 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		logsDir:              filepath.Join(artifacts.BaseDir(), "cluster-logs"),
 		boskosHeartbeatClose: make(chan struct{}),
 		// names need to start with an alphabet
-		instancePrefix:                 "kt2-" + pseudoUniqueSubstring(opts.RunID()),
-		network:                        "kt2-" + pseudoUniqueSubstring(opts.RunID()),
+		instancePrefix:                 "kt2-" + util.PseudoUniqueSubstring(opts.RunID()),
+		network:                        "kt2-" + util.PseudoUniqueSubstring(opts.RunID()),
 		BoskosAcquireTimeoutSeconds:    5 * 60,
 		BoskosHeartbeatIntervalSeconds: 5 * 60,
 		KubernetesVersion:              "https://dl.k8s.io/release/latest.txt",
@@ -149,6 +129,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		klog.Fatalf("couldn't parse flagset for deployer struct: %s", err)
 	}
 
+	// initing the klog flags adds them to goflag.CommandLine
+	// they can then be added to the built pflag set
+	klog.InitFlags(nil)
 	flagSet.AddGoFlagSet(goflag.CommandLine)
 
 	// register flags and return

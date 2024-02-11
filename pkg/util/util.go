@@ -46,3 +46,24 @@ func ParseKubernetesMarker(version string) (string, error) {
 	}
 	return "", fmt.Errorf("unexpected kubernetes version: %v", version)
 }
+
+// PseudoUniqueSubstring returns a substring of a UUID
+// that can be reasonably used in resource names
+// where length is constrained
+// e.g https://cloud.google.com/compute/docs/naming-resources
+// but still retain as much uniqueness as possible
+// also easily lets us tie it back to a run
+func PseudoUniqueSubstring(uuid string) string {
+	// both KUBETEST2_RUN_ID and PROW_JOB_ID uuids are generated
+	// following RFC 4122 https://tools.ietf.org/html/rfc4122
+	// e.g. 09a2565a-7ac6-11eb-a603-2218f636630c
+	// extract the first 13 characters (09a2565a-7ac6) as they are the ones that depend on
+	// timestamp and has the best avalanche effect (https://en.wikipedia.org/wiki/Avalanche_effect)
+	// as compared to the other bytes
+	// 13 characters is also <= the no. of character being used previously
+	const maxResourceNamePrefixLength = 13
+	if len(uuid) <= maxResourceNamePrefixLength {
+		return uuid
+	}
+	return uuid[:maxResourceNamePrefixLength]
+}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package deployer
+package util
 
 import "testing"
 
@@ -45,7 +45,7 @@ func TestPseudoUniqueSubstring(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actualSubstring := pseudoUniqueSubstring(tc.uuid)
+			actualSubstring := PseudoUniqueSubstring(tc.uuid)
 			if actualSubstring != tc.expectedSubstring {
 				t.Errorf("invalid substring: expected %s, but got %s", tc.expectedSubstring, actualSubstring)
 			}

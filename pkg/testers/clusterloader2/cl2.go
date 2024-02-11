@@ -126,6 +126,9 @@ func (t *Tester) Execute() error {
 		return fmt.Errorf("failed to initialize tester: %v", err)
 	}
 
+	// initing the klog flags adds them to goflag.CommandLine
+	// they can then be added to the built pflag set
+	klog.InitFlags(nil)
 	fs.AddGoFlagSet(flag.CommandLine)
 
 	help := fs.BoolP("help", "h", false, "")

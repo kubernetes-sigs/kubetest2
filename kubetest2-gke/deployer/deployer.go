@@ -170,6 +170,9 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 	// register flags
 	fs := bindFlags(d)
 
+	// initing the klog flags adds them to goflag.CommandLine
+	// they can then be added to the built pflag set
+	klog.InitFlags(nil)
 	fs.AddGoFlagSet(flag.CommandLine)
 	return d, fs
 }
