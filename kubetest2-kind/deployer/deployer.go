@@ -86,6 +86,9 @@ func bindFlags(d *deployer) *pflag.FlagSet {
 		return nil
 	}
 
+	// initing the klog flags adds them to goflag.CommandLine
+	// they can then be added to the built pflag set
+	klog.InitFlags(nil)
 	flags.AddGoFlagSet(flag.CommandLine)
 
 	return flags
