@@ -30,6 +30,7 @@ OS_ARCHES=(
   linux_amd64
   linux_arm64
   darwin_amd64
+  darwin_arm64
 )
 
 build_os_arch() {
