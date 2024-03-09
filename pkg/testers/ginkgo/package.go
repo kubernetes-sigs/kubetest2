@@ -198,6 +198,7 @@ func (t *Tester) ensureReleaseTar(downloadPath, releaseTar string) error {
 		klog.Warning(err)
 	}
 
+	klog.V(0).Infof("Downloading test tar ball from: %s", releaseTarPathInURL)
 	_, err := resty.New().R().SetOutput(downloadPath).Get(releaseTarPathInURL)
 	if err != nil {
 		return fmt.Errorf("failed to download release tar %s for release %s: %s", releaseTar, t.TestPackageVersion, err)
