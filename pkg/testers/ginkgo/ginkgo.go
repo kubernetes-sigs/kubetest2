@@ -99,7 +99,9 @@ func (t *Tester) Test() error {
 
 	klog.V(0).Infof("Running ginkgo test as %s %+v", t.ginkgoPath, ginkgoArgs)
 	cmd := exec.Command(t.ginkgoPath, ginkgoArgs...)
-	cmd.SetEnv(t.Env...)
+	env := os.Environ()
+	env = append(env, t.Env...)
+	cmd.SetEnv(env...)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }
