@@ -28,8 +28,6 @@ make install-tester-ginkgo
 
 REPO_ROOT="${GOPATH}"/src/k8s.io/cloud-provider-gcp;
 
-# TODO(spiffxp): remove this when cloudprovider-gcp has a .bazelversion file
-export USE_BAZEL_VERSION=5.3.0
 # TODO(spiffxp): remove this when gce-build-up-down job updated to do this,
 #                or when bazel 5.3.0 is preinstalled on kubekins image
 if [ "${CI}" == "true" ]; then
