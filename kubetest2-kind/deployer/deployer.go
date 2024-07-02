@@ -54,6 +54,7 @@ type deployer struct {
 	commonOptions types.Options
 	// kind specific details
 	NodeImage      string `flag:"image-name" desc:"the image name to use for build and up"`
+	BaseImage      string `flag:"base-image" desc:"the base image name to use for the build"`
 	ClusterName    string `flag:"cluster-name" desc:"the kind cluster --name"`
 	BuildType      string `desc:"--type for kind build node-image"`
 	ConfigPath     string `flag:"config" desc:"--config for kind create cluster"`
