@@ -1,16 +1,18 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 reviewers:
-- MushuEE
-- spiffxp
+- aojea
 - richackard
 - upodroid
 - dims
 approvers:
-- MushuEE
-- michelle192837 # chair
-- xmcqueen # chair
+- aojea
 - jbpratt # chair
+- michelle192837 # chair
+- upodroid
+- xmcqueen # chair
 emeritus_approvers:
 - amwat
 - BenTheElder
+- MushuEE
+- spiffxp
