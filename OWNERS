@@ -7,9 +7,10 @@ reviewers:
 - dims
 approvers:
 - aojea
-- michelle192837 # chair
-- xmcqueen # chair
 - jbpratt # chair
+- michelle192837 # chair
+- upodroid
+- xmcqueen # chair
 emeritus_approvers:
 - amwat
 - BenTheElder
