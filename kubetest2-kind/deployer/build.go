@@ -35,6 +35,9 @@ func (d *deployer) Build() error {
 	if d.KubeRoot != "" {
 		args = append(args, "--kube-root", d.KubeRoot)
 	}
+	if d.BaseImage != "" {
+		args = append(args, "--base-image", d.BaseImage)
+	}
 	// set the explicitly specified image name if set
 	if d.NodeImage != "" {
 		args = append(args, "--image", d.NodeImage)
