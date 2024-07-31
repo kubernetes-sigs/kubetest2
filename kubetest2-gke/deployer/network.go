@@ -152,8 +152,9 @@ func (d *Deployer) CreateNetwork() error {
 	// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
 	//   (Here we consider the first project to be the host project and the rest be service projects)
 	//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
+	// Additionally, for network stack type different from IPv4, the subnet mode must be custom too.
 	subnetMode := "auto"
-	if len(d.Projects) > 1 {
+	if len(d.Projects) > 1 || d.StackType != networkStackTypeIPv4 {
 		subnetMode = "custom"
 	}
 	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.Network,
@@ -162,9 +163,15 @@ func (d *Deployer) CreateNetwork() error {
 		// Assume error implies non-existent.
 		// TODO(chizhg): find a more reliable way to check if the network exists or not.
 		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.Network)
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.Network,
-			"--project="+d.Projects[0],
-			"--subnet-mode="+subnetMode)); err != nil {
+		args := []string{"compute", "networks", "create", d.Network, "--project=" + d.Projects[0], "--subnet-mode=" + subnetMode}
+
+		if d.StackType == networkStackTypeIPv4IPv6 {
+			// Currently dual stack networks only use an internal IP address range. If needed, this switch can be offered
+			// through a kubetest flag.
+			args = append(args, "--enable-ula-internal-ipv6")
+		}
+
+		if err := runWithOutput(exec.Command("gcloud", args...)); err != nil {
 			return err
 		}
 	}
