@@ -49,6 +49,11 @@ const (
 	gceStockoutErrorPattern = ".*does not have enough resources available to fulfill.*"
 )
 
+const (
+	networkStackTypeIPv4     = "IPv4"
+	networkStackTypeIPv4IPv6 = "IPv4_IPv6"
+)
+
 type privateClusterAccessLevel string
 
 const (
@@ -199,7 +204,8 @@ func NewDeployer(opts types.Options) *Deployer {
 			BoskosProjectsRequested:        []int{1},
 		},
 		NetworkOptions: &options.NetworkOptions{
-			Network: "default",
+			Network:   "default",
+			StackType: networkStackTypeIPv4,
 		},
 		ClusterOptions: &options.ClusterOptions{
 			Environment: "prod",
