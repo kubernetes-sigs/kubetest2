@@ -59,7 +59,7 @@ type deployer struct {
 	BuildType      string `desc:"--type for kind build node-image"`
 	ConfigPath     string `flag:"config" desc:"--config for kind create cluster"`
 	KubeconfigPath string `flag:"kubeconfig" desc:"--kubeconfig flag for kind create cluster"`
-	KubeRoot       string `desc:"--kube-root for kind build node-image"`
+	KubeRoot       string `desc:"the Kubernetes source for kind build node-image"`
 
 	logsDir string
 }

@@ -29,11 +29,11 @@ func (d *deployer) Build() error {
 	args := []string{
 		"build", "node-image",
 	}
+	if d.KubeRoot != "" {
+		args = append(args, d.KubeRoot)
+	}
 	if d.BuildType != "" {
 		args = append(args, "--type", d.BuildType)
-	}
-	if d.KubeRoot != "" {
-		args = append(args, "--kube-root", d.KubeRoot)
 	}
 	if d.BaseImage != "" {
 		args = append(args, "--base-image", d.BaseImage)
