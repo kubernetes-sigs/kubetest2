@@ -42,6 +42,10 @@ func (d *Deployer) Down() error {
 		return boskos.Release(d.boskos, d.Projects, d.boskosHeartbeatClose)
 	}
 
+	if err := d.DumpClusterLogs(); err != nil {
+		klog.Warningf("Dumping cluster logs at the beginning of Down() failed: %s", err)
+	}
+
 	d.DeleteClusters(d.retryCount)
 
 	numDeletedFWRules, errCleanFirewalls := d.CleanupNetworkFirewalls(d.Projects[0], d.Network)

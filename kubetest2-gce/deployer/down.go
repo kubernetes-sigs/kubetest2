@@ -32,6 +32,10 @@ func (d *deployer) Down() error {
 		return fmt.Errorf("down failed to init: %s", err)
 	}
 
+	if err := d.DumpClusterLogs(); err != nil {
+		klog.Warningf("Dumping cluster logs at the beginning of Down() failed: %s", err)
+	}
+
 	path, err := d.verifyKubectl()
 	if err != nil {
 		return err
