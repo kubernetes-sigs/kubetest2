@@ -36,6 +36,10 @@ func (d *Deployer) Down() error {
 		return nil
 	}
 
+	if err := d.DumpClusterLogs(); err != nil {
+		klog.Warningf("Dumping cluster logs at the end of Up() failed: %v", err)
+	}
+
 	// If the GCP projects are acquired from Boskos, release the projects and
 	// rely on boskos-janitor to do clean-ups for them.
 	if d.totalBoskosProjectsRequested > 0 {
