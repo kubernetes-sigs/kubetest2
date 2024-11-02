@@ -28,6 +28,10 @@ import (
 func (d *deployer) Down() error {
 	klog.V(1).Info("GCE deployer starting Down()")
 
+	if err := d.DumpClusterLogs(); err != nil {
+		klog.Warningf("Dumping cluster logs at the begin of Down() failed: %s", err)
+	}
+
 	if err := d.init(); err != nil {
 		return fmt.Errorf("down failed to init: %s", err)
 	}
