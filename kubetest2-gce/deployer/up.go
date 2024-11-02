@@ -117,12 +117,6 @@ func (d *deployer) Up() error {
 		}
 	}
 
-	defer func() {
-		if err := d.DumpClusterLogs(); err != nil {
-			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
-		}
-	}()
-
 	maybeSetupSSHKeys()
 
 	script := filepath.Join(d.RepoRoot, "cluster", "kube-up.sh")
@@ -133,19 +127,31 @@ func (d *deployer) Up() error {
 	exec.InheritOutput(cmd)
 
 	if err := cmd.Run(); err != nil {
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
+		}
 		return fmt.Errorf("error encountered during %s: %s", script, err)
 	}
 
 	if isUp, err := d.IsUp(); err != nil {
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
+		}
 		klog.Warningf("failed to check if cluster is up: %s", err)
 	} else if isUp {
 		klog.V(1).Infof("cluster reported as up")
 	} else {
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
+		}
 		klog.Errorf("cluster reported as down")
 	}
 
 	klog.V(2).Info("about to create nodeport firewall rule")
 	if err := d.createFirewallRuleNodePort(); err != nil {
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %s", err)
+		}
 		return fmt.Errorf("failed to create firewall rule: %s", err)
 	}
 
