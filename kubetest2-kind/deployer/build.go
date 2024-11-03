@@ -18,11 +18,20 @@ package deployer
 
 import (
 	"os"
+	"fmt"
+	"path/filepath"
+	"runtime"
+
 
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/build"
 	"sigs.k8s.io/kubetest2/pkg/process"
+	"sigs.k8s.io/kubetest2/pkg/exec"
+	"sigs.k8s.io/kubetest2/pkg/fs"
+)
+const (
+	target = "all"
 )
 
 func (d *deployer) Build() error {
@@ -51,6 +60,36 @@ func (d *deployer) Build() error {
 	if err := process.ExecJUnit("kind", args, os.Environ()); err != nil {
 		return err
 	}
+	klog.V(0).Infof("Build(): build e2e requirements...\n")
+	e2ePath := "test/e2e/e2e.test"
+	kubectlPath := "cmd/kubectl"
+	ginkgoPath := "vendor/github.com/onsi/ginkgo/v2/ginkgo"
+	
+	// Ginkgo v1 is used by Kubernetes 1.24 and earlier, fallback if v2 is not available.
+	_, err := os.Stat(ginkgoPath)
+	if err != nil {
+		ginkgoPath = "vendor/github.com/onsi/ginkgo/ginkgo"
+	}
+
+	// make sure we have e2e requirements
+	cmd := exec.Command("make", target,
+		fmt.Sprintf("WHAT=%s %s %s", kubectlPath, e2ePath, ginkgoPath))
+	cmd.SetDir(d.KubeRoot)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
+	//move files
+	const dockerizedOutput = "_output/dockerized"
+	for _, binary := range build.CommonTestBinaries {
+		source := filepath.Join(d.KubeRoot,"_output/bin", binary)
+		dest := filepath.Join(d.KubeRoot, dockerizedOutput, "bin", runtime.GOOS, runtime.GOARCH, binary)
+		if err := fs.CopyFile(source, dest); err != nil {
+			klog.Warningf("failed to copy %s to %s: %v", source, dest, err)
+		}
+	}
+
 	build.StoreCommonBinaries(d.KubeRoot, d.commonOptions.RunDir())
 	return nil
 }
