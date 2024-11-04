@@ -65,12 +65,6 @@ func (d *deployer) Build() error {
 	kubectlPath := "cmd/kubectl"
 	ginkgoPath := "vendor/github.com/onsi/ginkgo/v2/ginkgo"
 
-	// Ginkgo v1 is used by Kubernetes 1.24 and earlier, fallback if v2 is not available.
-	_, err := os.Stat(ginkgoPath)
-	if err != nil {
-		ginkgoPath = "vendor/github.com/onsi/ginkgo/ginkgo"
-	}
-
 	// make sure we have e2e requirements
 	cmd := exec.Command("make", target,
 		fmt.Sprintf("WHAT=%s %s %s", kubectlPath, e2ePath, ginkgoPath))
