@@ -38,24 +38,26 @@ func (d *Deployer) Up() error {
 		return err
 	}
 
-	defer func() {
-		if d.RepoRoot == "" {
-			klog.Warningf("repo-root not supplied, skip dumping cluster logs")
-			return
-		}
-		if err := d.DumpClusterLogs(); err != nil {
-			klog.Warningf("Dumping cluster logs at the end of Up() failed: %v", err)
-		}
-	}()
-
 	if err := d.CreateNetwork(); err != nil {
 		return err
 	}
 	if err := d.CreateClusters(); err != nil {
+		if d.RepoRoot == "" {
+			klog.Warningf("repo-root not supplied, skip dumping cluster logs")
+		}
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %v", err)
+		}
 		return fmt.Errorf("error creating the clusters: %w", err)
 	}
 
 	if err := d.TestSetup(); err != nil {
+		if d.RepoRoot == "" {
+			klog.Warningf("repo-root not supplied, skip dumping cluster logs")
+		}
+		if err := d.DumpClusterLogs(); err != nil {
+			klog.Warningf("Dumping cluster logs at the end of Up() failed: %v", err)
+		}
 		return fmt.Errorf("error running setup for the tests: %w", err)
 	}
 

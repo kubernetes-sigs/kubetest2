@@ -25,6 +25,9 @@ import (
 )
 
 func (d *deployer) Down() error {
+	if err := d.DumpClusterLogs(); err != nil {
+		klog.Warningf("Dumping cluster logs at the start of Down() failed: %v", err)
+	}
 	args := []string{
 		"delete", "cluster",
 		"--name", d.ClusterName,
