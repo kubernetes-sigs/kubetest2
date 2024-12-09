@@ -18,5 +18,4 @@ linters:
   - gofmt
   - revive
   - misspell
-  - exportloopref
   - unparam
