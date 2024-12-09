@@ -18,13 +18,13 @@ package deployer
 
 import (
 	"fmt"
+	"math"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/pkg/math"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/boskos"
@@ -50,7 +50,7 @@ func (d *Deployer) Initialize() error {
 		d.ClusterVersion = d.LegacyClusterVersion
 	}
 	if d.Kubetest2CommonOptions.ShouldUp() {
-		d.totalTryCount = math.Max(len(d.Regions), len(d.Zones))
+		d.totalTryCount = int(math.Max(float64(len(d.Regions)), float64(len(d.Zones))))
 
 		if err := d.VerifyUpFlags(); err != nil {
 			return fmt.Errorf("init failed to verify flags for up: %w", err)
