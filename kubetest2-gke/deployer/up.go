@@ -19,12 +19,12 @@ package deployer
 import (
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/pkg/math"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/klog/v2"
 
@@ -67,8 +67,8 @@ func (d *Deployer) Up() error {
 func (d *Deployer) CreateClusters() error {
 	klog.V(2).Infof("Environment: %v", os.Environ())
 
-	totalTryCount := math.Max(len(d.Regions), len(d.Zones))
-	for retryCount := 0; retryCount < totalTryCount; retryCount++ {
+	totalTryCount := math.Max(float64(len(d.Regions)), float64(len(d.Zones)))
+	for retryCount := 0; retryCount < int(totalTryCount); retryCount++ {
 		d.retryCount = retryCount
 		shouldRetry, err := d.tryCreateClusters(retryCount)
 		if !shouldRetry {
