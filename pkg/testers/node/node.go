@@ -52,6 +52,7 @@ type Tester struct {
 	GCPZone                        string        `desc:"GCP Zone to create VMs in."`
 	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
 	FocusRegex                     string        `desc:"Regular expression of jobs to focus on."`
+	ContainerRuntimeEndpoint       string        `desc:"remote container endpoint to connect to. Defaults to containerd"`
 	TestArgs                       string        `desc:"A space-separated list of arguments to pass to node e2e test."`
 	BoskosAcquireTimeoutSeconds    int           `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int           `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
@@ -251,6 +252,7 @@ func (t *Tester) constructArgs() []string {
 		"CLOUDSDK_CORE_PROJECT=" + t.GCPProject,
 		// https://github.com/kubernetes/kubernetes/blob/96be00df69390ed41b8ec22facc43bcbb9c88aae/hack/make-rules/test-e2e-node.sh#L113
 		"ZONE=" + t.GCPZone,
+		"CONTAINER_RUNTIME_ENDPOINT=" + t.ContainerRuntimeEndpoint,
 		"TEST_ARGS=" + t.TestArgs,
 		"NODE_ENV= " + t.NodeEnv,
 		"DELETE_INSTANCES=" + strconv.FormatBool(t.DeleteInstances),
