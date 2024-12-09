@@ -70,10 +70,10 @@ func (t *Tester) Test() error {
 	sweets := strings.Split(t.Suites, ",")
 	for _, sweet := range sweets {
 		if s := suite.GetSuite(sweet); s != nil {
-			if s.TestConfigs != nil && len(s.TestConfigs) > 0 {
+			if len(s.TestConfigs) > 0 {
 				testConfigs = append(testConfigs, s.TestConfigs...)
 			}
-			if s.TestOverrides != nil && len(s.TestOverrides) > 0 {
+			if len(s.TestOverrides) > 0 {
 				testOverrides = append(testOverrides, s.TestOverrides...)
 			}
 		}

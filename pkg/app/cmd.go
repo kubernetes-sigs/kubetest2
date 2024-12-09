@@ -100,7 +100,7 @@ func runE(
 		testerUsageCmd.SetStderr(&stderr)
 		testerUsage, err := exec.Output(testerUsageCmd)
 		if err != nil {
-			return fmt.Errorf(stderr.String())
+			return fmt.Errorf("%s", stderr.String())
 		}
 
 		usage.testerUsage = string(testerUsage)

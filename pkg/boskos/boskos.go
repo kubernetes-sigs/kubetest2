@@ -73,13 +73,13 @@ func Acquire(boskosClient *client.Client, resourceType string, timeout, heartbea
 // startBoskosHeartbeat starts a goroutine that sends periodic updates to boskos
 // about the provided resource until the channel is closed. This prevents
 // reaper from taking the resource from the deployer while it is still in use.
-func startBoskosHeartbeat(boskosClient *client.Client, resource *common.Resource, interval time.Duration, close chan struct{}) {
+func startBoskosHeartbeat(boskosClient *client.Client, resource *common.Resource, interval time.Duration, heartbeatClose chan struct{}) {
 	go func(c *client.Client, resource *common.Resource) {
 		klog.V(2).Info("boskos hearbeat starting")
 
 		for {
 			select {
-			case <-close:
+			case <-heartbeatClose:
 				klog.V(2).Info("Boskos heartbeat func received signal to close")
 				return
 			case <-time.NewTicker(interval).C:
