@@ -53,6 +53,7 @@ type Tester struct {
 	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
 	FocusRegex                     string        `desc:"Regular expression of jobs to focus on."`
 	TestArgs                       string        `desc:"A space-separated list of arguments to pass to node e2e test."`
+	GinkgoFlags                    string        `desc:"A space-separated list of arguments to pass to ginkgo."`
 	BoskosAcquireTimeoutSeconds    int           `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int           `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string        `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
@@ -252,6 +253,7 @@ func (t *Tester) constructArgs() []string {
 		// https://github.com/kubernetes/kubernetes/blob/96be00df69390ed41b8ec22facc43bcbb9c88aae/hack/make-rules/test-e2e-node.sh#L113
 		"ZONE=" + t.GCPZone,
 		"TEST_ARGS=" + t.TestArgs,
+		"GINKGO_FLAGS= " + t.GinkgoFlags,
 		"NODE_ENV= " + t.NodeEnv,
 		"DELETE_INSTANCES=" + strconv.FormatBool(t.DeleteInstances),
 		"PARALLELISM=" + strconv.Itoa(t.Parallelism),
