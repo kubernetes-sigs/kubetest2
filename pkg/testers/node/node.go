@@ -53,6 +53,7 @@ type Tester struct {
 	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
 	FocusRegex                     string        `desc:"Regular expression of jobs to focus on."`
 	TestArgs                       string        `desc:"A space-separated list of arguments to pass to node e2e test."`
+	LabelFilter                    string        `desc:"Label filter arguments to be passed to ginkgo."`
 	BoskosAcquireTimeoutSeconds    int           `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int           `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
 	BoskosLocation                 string        `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed"`
@@ -267,6 +268,7 @@ func (t *Tester) constructArgs() []string {
 		"USE_DOCKERIZED_BUILD=" + strconv.FormatBool(t.UseDockerizedBuild),
 		"TARGET_BUILD_ARCH=" + t.TargetBuildArch,
 		"TIMEOUT=" + t.Timeout.String(),
+		"LABEL_FILTER=" + t.LabelFilter,
 	}
 	if t.RuntimeConfig != "" {
 		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
