@@ -268,7 +268,7 @@ func (t *Tester) constructArgs() []string {
 		"USE_DOCKERIZED_BUILD=" + strconv.FormatBool(t.UseDockerizedBuild),
 		"TARGET_BUILD_ARCH=" + t.TargetBuildArch,
 		"TIMEOUT=" + t.Timeout.String(),
-		"LABEL_FILTER= " + t.LabelFilter,
+		"LABEL_FILTER=" + t.LabelFilter,
 	}
 	if t.RuntimeConfig != "" {
 		argsFromFlags = append(argsFromFlags, "RUNTIME_CONFIG="+t.RuntimeConfig)
