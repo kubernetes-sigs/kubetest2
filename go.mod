@@ -4,6 +4,8 @@ go 1.22.8
 
 toolchain go1.22.10
 
+replace go.opencensus.io => github.com/census-instrumentation/opencensus-go v0.24.0
+
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-resty/resty/v2 v2.16.2
