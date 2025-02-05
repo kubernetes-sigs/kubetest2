@@ -28,7 +28,7 @@ To install kubetest2 and all reference deployers and testers:
 To install a specific deployer:
 `go install sigs.k8s.io/kubetest2/kubetest2-DEPLOYER@latest` (DEPLOYER can be `gce`, `gke`, etc.)
 
-To install a sepcific tester:
+To install a specific tester:
 `go install sigs.k8s.io/kubetest2/kubetest2-tester-TESTER@latest` (TESTER can be `ginkgo`, `exec`, etc.)
 
 ## Usage
