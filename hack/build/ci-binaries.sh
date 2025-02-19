@@ -29,6 +29,7 @@ make clean
 OS_ARCHES=(
   linux_amd64
   linux_arm64
+  linux_ppc64le
   darwin_amd64
   darwin_arm64
 )
