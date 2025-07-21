@@ -1,11 +1,12 @@
 # See https://cloud.google.com/cloud-build/docs/build-config
 options:
   substitution_option: ALLOW_LOOSE
-  machineType: 'E2_HIGHCPU_8'
+  machineType: 'E2_HIGHCPU_32'
 steps:
 - name: gcr.io/k8s-staging-test-infra/kubekins-e2e:latest-master
   env:
   - PULL_BASE_SHA=$_PULL_BASE_SHA
+  timeout: 7200s
   entrypoint: hack/ci/push-binaries/push-binaries.sh
 substitutions:
   _GIT_TAG: '12345'
