@@ -27,12 +27,13 @@ import (
 )
 
 var (
-	noneReleaseChannel    = "None"
-	rapidReleaseChannel   = "rapid"
-	regularReleaseChannel = "regular"
-	stableReleaseChannel  = "stable"
+	noneReleaseChannel     = "None"
+	rapidReleaseChannel    = "rapid"
+	regularReleaseChannel  = "regular"
+	stableReleaseChannel   = "stable"
+	extendedReleaseChannel = "extended"
 
-	validReleaseChannels = []string{noneReleaseChannel, rapidReleaseChannel, regularReleaseChannel, stableReleaseChannel}
+	validReleaseChannels = []string{noneReleaseChannel, rapidReleaseChannel, regularReleaseChannel, stableReleaseChannel, extendedReleaseChannel}
 )
 
 func validateVersion(version string) error {

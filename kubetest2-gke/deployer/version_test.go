@@ -104,6 +104,11 @@ func TestValidateReleaseChannel(t *testing.T) {
 			valid:          true,
 		},
 		{
+			desc:           "extended release channel is valid",
+			releaseChannel: "extended",
+			valid:          true,
+		},
+		{
 			desc:           "latest release channel is invalid",
 			releaseChannel: "latest",
 			valid:          false,
