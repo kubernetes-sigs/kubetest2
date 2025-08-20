@@ -141,14 +141,14 @@ func (d *Deployer) clustersSetenv(location string) error {
 			locations = append(locations, location)
 		}
 	}
-	if err := os.Setenv("CLUSTER_PROJECTS", strings.Join(projects, ",")); err != nil {
-		return fmt.Errorf("error setting CLUSTER_PROJECTS: %v", err)
+	if err := os.Setenv("GKE_CLUSTER_PROJECTS", strings.Join(projects, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_PROJECTS: %v", err)
 	}
-	if err := os.Setenv("CLUSTER_NAMES", strings.Join(names, ",")); err != nil {
-		return fmt.Errorf("error setting CLUSTER_NAMES: %v", err)
+	if err := os.Setenv("GKE_CLUSTER_NAMES", strings.Join(names, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_NAMES: %v", err)
 	}
-	if err := os.Setenv("CLUSTER_LOCATIONS", strings.Join(locations, ",")); err != nil {
-		return fmt.Errorf("error setting CLUSTER_LOCATIONS: %v", err)
+	if err := os.Setenv("GKE_CLUSTER_LOCATIONS", strings.Join(locations, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_LOCATIONS: %v", err)
 	}
 	return nil
 }
