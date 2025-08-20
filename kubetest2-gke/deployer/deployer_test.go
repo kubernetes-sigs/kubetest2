@@ -53,6 +53,41 @@ func TestLocationFlag(t *testing.T) {
 	}
 }
 
+func TestLocation(t *testing.T) {
+	testCases := []struct {
+		regions    []string
+		zones      []string
+		retryCount int
+		expected   string
+	}{
+		{
+			regions:    []string{"us-central1"},
+			zones:      []string{},
+			retryCount: 0,
+			expected:   "us-central1",
+		},
+		{
+			regions:    []string{},
+			zones:      []string{"us-central1-c"},
+			retryCount: 0,
+			expected:   "us-central1-c",
+		},
+		{
+			regions:    []string{"us-central1", "us-east"},
+			zones:      []string{},
+			retryCount: 1,
+			expected:   "us-east",
+		},
+	}
+
+	for _, tc := range testCases {
+		got := location(tc.regions, tc.zones, tc.retryCount)
+		if got != tc.expected {
+			t.Errorf("expected %q but got %q", tc.expected, got)
+		}
+	}
+}
+
 func TestRegionFromLocation(t *testing.T) {
 	testCases := []struct {
 		regions    []string

@@ -239,6 +239,14 @@ func locationFlag(regions, zones []string, retryCount int) string {
 	return "--region=" + regions[retryCount]
 }
 
+// location builds a location from the provided zone/region.
+func location(regions, zones []string, retryCount int) string {
+	if len(zones) != 0 {
+		return zones[retryCount]
+	}
+	return regions[retryCount]
+}
+
 // regionFromLocation computes the region from the specified zone/region
 // used by some commands (such as subnets), which do not support zones.
 func regionFromLocation(regions, zones []string, retryCount int) string {

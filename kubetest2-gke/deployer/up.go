@@ -121,7 +121,36 @@ func (d *Deployer) tryCreateClusters(retryCount int) (shouldRetry bool, err erro
 		}
 	}
 
+	if err == nil {
+		err = d.clustersSetenv(location(d.Regions, d.Zones, retryCount))
+	}
+
 	return
+}
+
+// clustersSetenv sets environment variables identifying the created clusters.
+func (d *Deployer) clustersSetenv(location string) error {
+	projects, names, locations := []string{}, []string{}, []string{}
+	for i := range d.Projects {
+		project := d.Projects[i]
+		clusters := d.projectClustersLayout[project]
+		for j := range clusters {
+			cluster := clusters[j]
+			projects = append(projects, project)
+			names = append(names, cluster.name)
+			locations = append(locations, location)
+		}
+	}
+	if err := os.Setenv("GKE_CLUSTER_PROJECTS", strings.Join(projects, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_PROJECTS: %v", err)
+	}
+	if err := os.Setenv("GKE_CLUSTER_NAMES", strings.Join(names, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_NAMES: %v", err)
+	}
+	if err := os.Setenv("GKE_CLUSTER_LOCATIONS", strings.Join(locations, ",")); err != nil {
+		return fmt.Errorf("error setting GKE_CLUSTER_LOCATIONS: %v", err)
+	}
+	return nil
 }
 
 // isRetryableError checks if the error happens during cluster creation can be potentially solved by retrying or not.
