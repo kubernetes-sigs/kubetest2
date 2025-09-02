@@ -46,4 +46,4 @@ export -f build_os_arch
 
 # NOTE: disable SC2016 because we _intend_ for these to evaluate later
 # shellcheck disable=SC2016
-printf '%s\0' "${OS_ARCHES[@]}" | xargs -0 -n 1 -P "${PARALLELISM:-0}" bash -c 'build_os_arch $0'
+printf '%s\0' "${OS_ARCHES[@]}" | xargs -0 -n 1 -P "${PARALLELISM:-2}" bash -c 'build_os_arch $0'
