@@ -42,7 +42,7 @@ func (rpb *Krel) Stage(version string) error {
 	}
 	re := regexp.MustCompile(`^gs://([\w-]+)/(devel|ci)(/.*)?`)
 	mat := re.FindStringSubmatch(rpb.StageLocation)
-	if mat == nil || len(mat) < 4 {
+	if len(mat) < 4 {
 		return fmt.Errorf("invalid stage location: %v. Use gs://<bucket>/<ci|devel>/<optional-suffix>", rpb.StageLocation)
 	}
 
