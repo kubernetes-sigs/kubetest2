@@ -65,7 +65,7 @@ func (t *Tester) Execute() error {
 	}
 
 	t.argv = os.Args[1:]
-	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+	if err := testers.WriteVersionToMetadata(GitTag, ""); err != nil {
 		return err
 	}
 	return t.Test()

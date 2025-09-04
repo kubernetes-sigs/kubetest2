@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/metadata"
 )
 
-func WriteVersionToMetadata(version string) error {
+func WriteVersionToMetadata(version string, k8sVersion string) error {
 	var meta *metadata.CustomJSON
 	// check existing metadata and initialize it if it exists
 	metadataPath := filepath.Join(artifacts.BaseDir(), "metadata.json")
@@ -53,6 +53,12 @@ func WriteVersionToMetadata(version string) error {
 
 	if err := meta.Add("tester-version", version); err != nil {
 		return err
+	}
+
+	if k8sVersion != "" {
+		if err := meta.Add("job-version", k8sVersion); err != nil {
+			return err
+		}
 	}
 
 	metadataJSON, err := os.Create(metadataPath)
