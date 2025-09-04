@@ -179,7 +179,7 @@ func (t *Tester) Execute() error {
 			}
 		}
 	}()
-	if err := testers.WriteVersionToMetadata(GitTag); err != nil {
+	if err := testers.WriteVersionToMetadata(GitTag, ""); err != nil {
 		return err
 	}
 	return t.Test()
