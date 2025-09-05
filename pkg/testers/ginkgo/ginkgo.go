@@ -63,11 +63,11 @@ type Tester struct {
 
 // Test runs the test
 func (t *Tester) Test() error {
-	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion); err != nil {
+	if err := t.pretestSetup(); err != nil {
 		return err
 	}
 
-	if err := t.pretestSetup(); err != nil {
+	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion); err != nil {
 		return err
 	}
 

@@ -48,7 +48,7 @@ func (t *Tester) AcquireTestPackage() error {
 		}
 		t.TestPackageVersion = resp.String()
 
-		klog.V(1).Infof("Test package version was not specified. Defaulting to version from %s: %s", t.TestPackageMarker, t.TestPackageVersion)
+		klog.V(0).Infof("Test package version was not specified. Defaulting to version from %s: %s", t.TestPackageMarker, t.TestPackageVersion)
 	}
 
 	releaseTar := fmt.Sprintf("kubernetes-test-%s-%s.tar.gz", runtime.GOOS, runtime.GOARCH)
