@@ -124,6 +124,8 @@ func toReleaseChannel(channelName string) (string, error) {
 		return regularReleaseChannel, nil
 	case "STABLE":
 		return stableReleaseChannel, nil
+	case "EXTENDED":
+		return extendedReleaseChannel, nil
 	default:
 		return "", fmt.Errorf("selected unknown release channel: %s", channelName)
 	}
