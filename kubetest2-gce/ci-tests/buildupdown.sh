@@ -55,7 +55,9 @@ kubetest2 gce \
     --test=ginkgo \
     --master-size=e2-standard-2 \
     --node-size=e2-standard-2 \
+    --env=KUBE_IMAGE_FAMILY=cos-121-lts \
     -- \
+    --provider=gce \
     --test-package-version="${TEST_PACKAGE_VERSION}" \
     --focus-regex='Secrets should be consumable via the environment' \
     --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
