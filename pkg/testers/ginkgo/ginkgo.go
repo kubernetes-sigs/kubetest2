@@ -41,6 +41,8 @@ type Tester struct {
 	GinkgoArgs          string        `desc:"Additional arguments supported by the ginkgo binary."`
 	Parallel            int           `desc:"Run this many tests in parallel at once."`
 	SkipRegex           string        `desc:"Regular expression of jobs to skip."`
+	Provider            string        `desc:"The cluster provider. This is passed to the e2e.test binary as --provider. If empty, the e2e.test default of 'skeleton' is used."`
+	LabelFilter         string        `desc:"Label filter to pass to ginkgo --label-filter."`
 	FocusRegex          string        `desc:"Regular expression of jobs to focus on."`
 	TestPackageURL      string        `desc:"The url to download a kubernetes test package from."`
 	TestPackageVersion  string        `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
@@ -76,6 +78,8 @@ func (t *Tester) Test() error {
 		"--kubectl-path=" + t.kubectlPath,
 		"--ginkgo.skip=" + t.SkipRegex,
 		"--ginkgo.focus=" + t.FocusRegex,
+		"--ginkgo.label-filter=" + t.LabelFilter,
+		"--provider=" + t.Provider,
 		"--report-dir=" + artifacts.BaseDir(),
 		"--ginkgo.timeout=" + t.Timeout.String(),
 	}
