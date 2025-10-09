@@ -29,10 +29,6 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 )
 
-const (
-	gceProjectResourceType = "gce-project"
-)
-
 func (d *deployer) init() error {
 	var err error
 	d.doInit.Do(func() { err = d.initialize() })
@@ -63,7 +59,7 @@ func (d *deployer) initialize() error {
 
 			resource, err := boskos.Acquire(
 				d.boskos,
-				gceProjectResourceType,
+				d.BoskosResourceType,
 				time.Duration(d.BoskosAcquireTimeoutSeconds)*time.Second,
 				time.Duration(d.BoskosHeartbeatIntervalSeconds)*time.Second,
 				d.boskosHeartbeatClose,
