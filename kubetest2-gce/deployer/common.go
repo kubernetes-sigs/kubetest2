@@ -21,7 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"regexp"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -216,9 +216,11 @@ func (d *deployer) buildEnv() []string {
 
 	if d.Env != nil {
 		for _, e := range d.Env {
-			param := strings.Split(e, "=")
-			if len(param) == 2 {
-				env = append(env, fmt.Sprintf("%s=%s", param[0], param[1]))
+			// Required for vars like NODE_ACCELERATORS=type=nvidia-l4,count=2
+			regex := regexp.MustCompile(`([^=]+)=(.*)`)
+			param := regex.FindStringSubmatch(e)
+			if len(param) == 3 {
+				env = append(env, fmt.Sprintf("%s=%s", param[1], param[2]))
 			}
 		}
 	}
