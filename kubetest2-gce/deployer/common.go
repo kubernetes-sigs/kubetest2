@@ -146,6 +146,9 @@ func (d *deployer) buildEnv() []string {
 	// target the right network
 	env = append(env, fmt.Sprintf("NETWORK=%s", d.network))
 
+	// NODE_ACCELERATORS is used by kube-up.sh script to set type and number of GPUs
+	env = append(env, fmt.Sprintf("NODE_ACCELERATORS=%s", d.NodeAccelerators))
+
 	if d.EnableCacheMutationDetector {
 		env = append(env, "ENABLE_CACHE_MUTATION_DETECTOR=true")
 	}
