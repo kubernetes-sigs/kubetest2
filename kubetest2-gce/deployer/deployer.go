@@ -74,6 +74,7 @@ type deployer struct {
 
 	BoskosAcquireTimeoutSeconds    int    `desc:"How long (in seconds) to hang on a request to Boskos to acquire a resource before erroring."`
 	BoskosHeartbeatIntervalSeconds int    `desc:"How often (in seconds) to send a heartbeat to Boskos to hold the acquired resource. 0 means no heartbeat."`
+	BoskosResourceType             string `desc:"If using boskos to acquire a GCP project, the type of project to acquire. If unset, defaults to 'gce-project'."`
 	RepoRoot                       string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
 	GCPProject                     string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
 	GCPZone                        string `desc:"GCP Zone to create VMs in. If unset, kube-up.sh and kube-down.sh defaults apply."`
@@ -122,6 +123,7 @@ func New(opts types.Options) (types.Deployer, *pflag.FlagSet) {
 		KubernetesVersion:              "https://dl.k8s.io/release/latest.txt",
 		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
 		NumNodes:                       3,
+		BoskosResourceType:             "gce-project",
 	}
 
 	flagSet, err := gpflag.Parse(d)
