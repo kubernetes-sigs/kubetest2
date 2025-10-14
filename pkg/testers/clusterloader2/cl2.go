@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
@@ -35,17 +34,17 @@ import (
 var GitTag string
 
 type Tester struct {
-	Suites                    string `desc:"Comma separated list of standard scale testing suites e.g. load, density"`
-	TestOverrides             string `desc:"Comma separated list of paths to the config override files. The latter overrides take precedence over changes in former files."`
-	TestConfigs               string `desc:"Comma separated list of paths to test config files."`
-	Provider                  string `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
-	KubeConfig                string `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
-	RepoRoot                  string `desc:"Path to repository root of kubernetes/perf-tests"`
-	ReportDir                 string `desc:"Path to directory, where summaries files should be stored. If not specified, summaries are stored in $ARTIFACTS directory"`
-	Nodes                     int    `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
-	EnablePrometheusServer    bool   `desc:"Whether to set-up the prometheus server in the cluster."`
-	PrometheusPvcStorageClass string `desc:"Storage class used with prometheus persistent volume claim."`
-	ExtraArgs                 string `flag:"~extra-args" desc:"Additional arguments supported by clusterloader2 (https://github.com/kubernetes/perf-tests/blob/master/clusterloader2/cmd/clusterloader.go)."`
+	Suites                    []string `desc:"List of standard scale testing suites e.g. load, density"`
+	TestOverrides             []string `desc:"List of paths to the config override files. The latter overrides take precedence over changes in former files."`
+	TestConfigs               []string `desc:"List of paths to test config files."`
+	Provider                  string   `desc:"The type of cluster provider used (e.g gke, gce, skeleton)"`
+	KubeConfig                string   `desc:"Path to kubeconfig. If specified will override the path exposed by the kubetest2 deployer."`
+	RepoRoot                  string   `desc:"Path to repository root of kubernetes/perf-tests"`
+	ReportDir                 string   `desc:"Path to directory, where summaries files should be stored. If not specified, summaries are stored in $ARTIFACTS directory"`
+	Nodes                     int      `desc:"Number of nodes in the cluster. 0 will auto-detect schedulable nodes."`
+	EnablePrometheusServer    bool     `desc:"Whether to set-up the prometheus server in the cluster."`
+	PrometheusPvcStorageClass string   `desc:"Storage class used with prometheus persistent volume claim."`
+	ExtraArgs                 string   `flag:"~extra-args" desc:"Additional arguments supported by clusterloader2 (https://github.com/kubernetes/perf-tests/blob/master/clusterloader2/cmd/clusterloader.go)."`
 }
 
 func NewDefaultTester() *Tester {
@@ -64,11 +63,14 @@ func (t *Tester) Test() error {
 	}
 
 	var testConfigs, testOverrides []string
-	testConfigs = append(testConfigs, strings.Split(t.TestConfigs, ",")...)
-	testOverrides = append(testOverrides, strings.Split(t.TestOverrides, ",")...)
+	if len(t.TestConfigs) > 0 {
+		testConfigs = append(testConfigs, t.TestConfigs...)
+	}
+	if len(t.TestOverrides) > 0 {
+		testOverrides = append(testOverrides, t.TestOverrides...)
+	}
 
-	sweets := strings.Split(t.Suites, ",")
-	for _, sweet := range sweets {
+	for _, sweet := range t.Suites {
 		if s := suite.GetSuite(sweet); s != nil {
 			if len(s.TestConfigs) > 0 {
 				testConfigs = append(testConfigs, s.TestConfigs...)
