@@ -24,6 +24,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
@@ -214,6 +215,8 @@ func NewDeployer(opts types.Options) *Deployer {
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
 
 			RetryableErrorPatterns: []string{gceStockoutErrorPattern},
+
+			DownTimeout: 1 * time.Hour,
 		},
 		localLogsDir: filepath.Join(artifacts.BaseDir(), "logs"),
 	}
