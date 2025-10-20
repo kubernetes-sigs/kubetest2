@@ -60,7 +60,7 @@ type ClusterOptions struct {
 
 	RetryableErrorPatterns []string `flag:"~retryable-error-patterns" desc:"Comma separated list of regex match patterns for retryable errors during cluster creation."`
 
-	DownTimeout time.Duration `flag:"~down-timeout" desc:"Timeout for gcloud container clusters delete call. Defaults to 1 hour which matches gcloud's default. (default 1h0m0s))."`
+	DownTimeout time.Duration `flag:"~down-timeout" desc:"Timeout for gcloud container clusters delete call."`
 }
 
 func (uo *ClusterOptions) Validate() error {

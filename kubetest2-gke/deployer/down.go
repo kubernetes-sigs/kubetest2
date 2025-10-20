@@ -84,10 +84,13 @@ func (d *Deployer) DeleteClusters(retryCount int) {
 }
 
 func (d *Deployer) DeleteCluster(project, loc string, cluster cluster) {
+	args := []string{"clusters", "delete", "-q", cluster.name,
+		"--project=" + project, loc}
+	if d.DownTimeout > 0 {
+		args = append(args, fmt.Sprintf("--timeout=%d", int(d.DownTimeout.Seconds())))
+	}
 	if err := runWithOutput(exec.Command(
-		"gcloud", containerArgs("clusters", "delete", "-q", cluster.name,
-			"--project="+project, fmt.Sprintf("--timeout=%d", int(d.DownTimeout.Seconds())),
-			loc)...)); err != nil {
+		"gcloud", containerArgs(args...)...)); err != nil {
 		klog.Errorf("Error deleting cluster: %v", err)
 	}
 }
