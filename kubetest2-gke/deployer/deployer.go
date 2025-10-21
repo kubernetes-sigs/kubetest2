@@ -57,6 +57,13 @@ const (
 	unrestricted privateClusterAccessLevel = "unrestricted"
 )
 
+type subnetMode string
+
+const (
+	auto   subnetMode = "auto"
+	custom subnetMode = "custom"
+)
+
 var (
 	// poolRe matches instance group URLs of the form `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gke-some-cluster-some-pool-90fcb815-grp`
 	// or `https://www.googleapis.com/compute/v1/projects/some-project/zones/a-zone/instanceGroupManagers/gk3-some-cluster-some-pool-90fcb815-grp` for GKE in Autopilot mode.
