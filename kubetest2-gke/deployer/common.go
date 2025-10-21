@@ -120,7 +120,6 @@ func (d *Deployer) Initialize() error {
 
 	// build extra node pool specs.
 	for i, np := range d.ExtraNodePool {
-		klog.V(2).Infof("np: %v\n", np)
 		// defaults
 		enp := &extraNodepool{
 			Index:       i,
