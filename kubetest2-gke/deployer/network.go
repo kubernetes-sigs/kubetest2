@@ -73,6 +73,15 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		if err := validateSubnetRanges(d.SubnetworkRanges); err != nil {
 			return err
 		}
+
+		if d.SubnetMode != "" && d.SubnetMode != string(custom) {
+			return fmt.Errorf("the subnet-mode must be one of %v for multi-project profile", []string{"", string(custom)})
+		}
+	} else {
+		// Verify for single-project profile
+		if d.SubnetMode != "" && d.SubnetMode != string(auto) && d.SubnetMode != string(custom) {
+			return fmt.Errorf("--subnet-mode must be one of %v", []string{"", string(auto), string(custom)})
+		}
 	}
 
 	return d.internalizeNetworkFlags(numProjects)
@@ -148,18 +157,23 @@ func (d *Deployer) internalizeNetworkFlags(numProjects int) error {
 
 func (d *Deployer) CreateNetwork() error {
 	// Create network if it doesn't exist.
-	// For single project profile, the subnet-mode could be auto for simplicity.
-	// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
-	//   (Here we consider the first project to be the host project and the rest be service projects)
-	//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
-	subnetMode := "auto"
-	if len(d.Projects) > 1 {
-		subnetMode = "custom"
-	}
 	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.Network,
 		"--project="+d.Projects[0],
 		"--format=value(name)")) != nil {
 		// Assume error implies non-existent.
+		subnetMode := d.SubnetMode
+		if subnetMode == "" {
+			// For single project profile, the subnet-mode could be auto for simplicity.
+			// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
+			//   (Here we consider the first project to be the host project and the rest be service projects)
+			//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
+			if len(d.Projects) > 1 {
+				subnetMode = "custom"
+			} else {
+				subnetMode = "auto"
+			}
+		}
+
 		// TODO(chizhg): find a more reliable way to check if the network exists or not.
 		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.Network)
 		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.Network,
