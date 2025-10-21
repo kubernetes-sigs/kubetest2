@@ -222,7 +222,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	}
 
 	if d.WindowsEnabled {
-		args := d.createNodePoolCommand(project, cluster, locationArg, "windows-pool", d.WindowsImageType, d.WindowsMachineType, d.WindowsNumNodes)
+		args := d.createNodePoolCommand(project, cluster, locationArg, "windows-pool", d.WindowsImageType, d.WindowsMachineType, d.WindowsNumNodes, d.WindowsExtraArgs)
 		output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
 		if err != nil {
 			return fmt.Errorf("error creating windows node-pool: %v, output: %q", err, output)
@@ -239,7 +239,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	for _, enp := range d.extraNodePoolSpecs {
 		enp := enp
 		eg.Go(func() error {
-			args := d.createNodePoolCommand(project, cluster, locationArg, enp.Name, enp.ImageType, enp.MachineType, enp.NumNodes)
+			args := d.createNodePoolCommand(project, cluster, locationArg, enp.Name, enp.ImageType, enp.MachineType, enp.NumNodes, enp.ExtraArgs)
 			output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
 			if err != nil {
 				return fmt.Errorf("error creating nodepool %q: %v, output: %q", enp.Name, err, output)
@@ -273,7 +273,7 @@ func (d *Deployer) createCommand() []string {
 	return fs
 }
 
-func (d *Deployer) createNodePoolCommand(project string, cluster cluster, locationArg, nodePoolName, imageType string, machineType string, numNodes int) []string {
+func (d *Deployer) createNodePoolCommand(project string, cluster cluster, locationArg, nodePoolName, imageType string, machineType string, numNodes int, extraArgs []string) []string {
 	fs := make([]string, 0)
 	fs = append(fs, "container", "node-pools", "create", nodePoolName)
 	fs = append(fs, "--quiet")
@@ -287,6 +287,7 @@ func (d *Deployer) createNodePoolCommand(project string, cluster cluster, locati
 		fs = append(fs, "--machine-type="+machineType)
 	}
 	fs = append(fs, "--num-nodes="+strconv.Itoa(numNodes))
+	fs = append(fs, extraArgs...)
 
 	return fs
 }

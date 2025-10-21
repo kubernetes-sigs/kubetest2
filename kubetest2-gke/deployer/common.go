@@ -127,6 +127,7 @@ func (d *Deployer) Initialize() error {
 			MachineType: d.MachineType,
 			ImageType:   d.ImageType,
 			NumNodes:    1, // default nodepool size.
+			ExtraArgs:   []string{},
 		}
 
 		if err := buildExtraNodePoolOptions(np, enp); err != nil {
@@ -185,7 +186,7 @@ func buildExtraNodePoolOptions(np string, enp *extraNodepool) error {
 			}
 			enp.NumNodes = n
 		default:
-			return fmt.Errorf("unknown parameter: %q", k)
+			enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
 		}
 	}
 	return validateExtraNodepoolOptions(enp)
