@@ -16,7 +16,10 @@ limitations under the License.
 
 package options
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type ExtraNodePoolOptions struct {
 	Name        string
@@ -56,6 +59,8 @@ type ClusterOptions struct {
 	ExtraNodePool             []string `flag:"~extra-nodepool" desc:"create an extra nodepool. repeat the flag for another nodepool. options as key=value&key=value... supported options are name,machine-type,image-type,num-nodes. "`
 
 	RetryableErrorPatterns []string `flag:"~retryable-error-patterns" desc:"Comma separated list of regex match patterns for retryable errors during cluster creation."`
+
+	DownTimeout time.Duration `flag:"~down-timeout" desc:"Timeout for gcloud container clusters delete call."`
 }
 
 func (uo *ClusterOptions) Validate() error {
