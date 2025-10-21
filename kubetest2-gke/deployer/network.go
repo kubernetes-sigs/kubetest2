@@ -75,12 +75,12 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		}
 
 		if d.SubnetMode != "" && d.SubnetMode != string(custom) {
-			return fmt.Errorf("the subnet-mode must be one of %v for multi-project profile", []string{"", string(custom)})
+			return fmt.Errorf("the subnet-mode must be one of %v for multi-project profile, got: %s", []string{"", string(custom)}, d.SubnetMode)
 		}
 	} else {
 		// Verify for single-project profile
 		if d.SubnetMode != "" && d.SubnetMode != string(auto) && d.SubnetMode != string(custom) {
-			return fmt.Errorf("--subnet-mode must be one of %v", []string{"", string(auto), string(custom)})
+			return fmt.Errorf("--subnet-mode must be one of %v, got: %s", []string{"", string(auto), string(custom)}, d.SubnetMode)
 		}
 	}
 
