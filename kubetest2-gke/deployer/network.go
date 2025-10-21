@@ -168,9 +168,9 @@ func (d *Deployer) CreateNetwork() error {
 			//   (Here we consider the first project to be the host project and the rest be service projects)
 			//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
 			if len(d.Projects) > 1 {
-				subnetMode = "custom"
+				subnetMode = string(custom)
 			} else {
-				subnetMode = "auto"
+				subnetMode = string(auto)
 			}
 		}
 
