@@ -31,6 +31,7 @@ type ExtraNodePoolOptions struct {
 type ClusterOptions struct {
 	Environment string `flag:"~environment" desc:"Container API endpoint to use, one of 'test', 'staging', 'prod', or a custom https:// URL. Defaults to prod if not provided"`
 
+	GcloudCommand      string `flag:"~gcloud-command" desc:"gcloud command used to create a cluster. Modify if you need to pass custom gcloud to create cluster. Defaults to gcloud if not provied"`
 	GcloudCommandGroup string `flag:"~gcloud-command-group" desc:"gcloud command group, can be one of empty, alpha, beta."`
 	Autopilot          bool   `flag:"~autopilot" desc:"Whether to create GKE Autopilot clusters or not."`
 	GcloudExtraFlags   string `flag:"~gcloud-extra-flags" desc:"Extra gcloud flags to pass when creating the clusters."`

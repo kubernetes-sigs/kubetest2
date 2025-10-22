@@ -215,7 +215,7 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 	args = append(args, subNetworkArgs...)
 	args = append(args, privateClusterArgs...)
 	args = append(args, cluster.name)
-	output, err := runWithOutputAndReturn(exec.Command("gcloud", args...))
+	output, err := runWithOutputAndReturn(exec.Command(d.GcloudCommand, args...))
 	if err != nil {
 		//parse output for match with regex error
 		return fmt.Errorf("error creating cluster: %v, output: %q", err, output)
