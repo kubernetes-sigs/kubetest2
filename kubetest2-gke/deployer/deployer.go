@@ -209,6 +209,7 @@ func NewDeployer(opts types.Options) *Deployer {
 			// Leave ClusterVersion as empty to use the default cluster version.
 			ClusterVersion:    "",
 			FirewallRuleAllow: defaultFirewallRuleAllow,
+			GcloudCommand:     "gcloud",
 
 			WindowsNumNodes:    defaultWindowsNodePool.Nodes,
 			WindowsMachineType: defaultWindowsNodePool.MachineType,
