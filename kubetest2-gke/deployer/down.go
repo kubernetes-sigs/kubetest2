@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -55,11 +56,13 @@ func (d *Deployer) Down() error {
 		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
 	}
 
-	if err := d.TeardownNetwork(); err != nil {
-		return err
-	}
-	if err := d.DeleteSubnets(d.retryCount); err != nil {
-		return err
+	errNat := d.CleanupNat()
+	errNetwork := d.TeardownNetwork()
+	errSubnets := d.DeleteSubnets(d.retryCount)
+
+	errs := errors.Join(errNat, errNetwork, errSubnets)
+	if errs != nil {
+		return errs
 	}
 	return d.DeleteNetwork()
 }
