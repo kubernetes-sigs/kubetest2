@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -59,14 +60,9 @@ func (d *Deployer) Down() error {
 	errNetwork := d.TeardownNetwork()
 	errSubnets := d.DeleteSubnets(d.retryCount)
 
-	if errNat != nil {
-		return errNat
-	}
-	if errNetwork != nil {
-		return errNetwork
-	}
-	if errSubnets != nil {
-		return errSubnets
+	errs := errors.Join(errNat, errNetwork, errSubnets)
+	if errs != nil {
+		return errs
 	}
 	return d.DeleteNetwork()
 }
