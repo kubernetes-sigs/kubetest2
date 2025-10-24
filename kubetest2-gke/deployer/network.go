@@ -228,7 +228,7 @@ func (d *Deployer) DeleteSubnets(retryCount int) error {
 }
 
 func (d *Deployer) DeleteNetwork() error {
-	if d.Network == "default" || d.RemoveNetwork == false {
+	if d.Network == "default" || !d.RemoveNetwork {
 		return nil
 	}
 
