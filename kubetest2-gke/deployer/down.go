@@ -17,7 +17,6 @@ limitations under the License.
 package deployer
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
