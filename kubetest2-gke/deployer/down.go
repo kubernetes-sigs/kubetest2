@@ -56,14 +56,18 @@ func (d *Deployer) Down() error {
 		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
 	}
 
-	errNat := d.CleanupNat()
-	errNetwork := d.TeardownNetwork()
-	errSubnets := d.DeleteSubnets(d.retryCount)
-
-	errs := errors.Join(errNat, errNetwork, errSubnets)
-	if errs != nil {
-		return errs
+	if err := d.CleanupNat(); err != nil {
+		klog.Errorf("Error cleaning-up nat: %v", err)
 	}
+
+	if err := d.TeardownNetwork(); err != nil {
+		klog.Errorf("Error tearing-down network: %v", err)
+	}
+
+	if err := d.DeleteSubnets(d.retryCount); err != nil {
+		klog.Errorf("Error deleting subnets: %v", err)
+	}
+
 	return d.DeleteNetwork()
 }
 
