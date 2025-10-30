@@ -23,7 +23,7 @@ type NetworkOptions struct {
 	PrivateClusterMasterIPRanges []string `flag:"~private-cluster-master-ip-range" desc:"Private cluster master IP ranges. It should be IPv4 CIDR(s), and its length must be the same as the number of clusters if private cluster is requested."`
 	SubnetworkRanges             []string `flag:"~subnetwork-ranges" desc:"Subnetwork ranges as required for shared VPC setup as described in https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets. For multi-project profile, it is required and should be in the format of 10.0.4.0/22 10.0.32.0/20 10.4.0.0/14,172.16.4.0/22 172.16.16.0/20 172.16.4.0/22, where the subnetworks configuration for different project are separated by comma, and the ranges of each subnetwork configuration is separated by space."`
 	EnableULAInternalIPv6        bool     `flag:"~enable-ula-internal-ipv6" desc:"Enable Unique Local IPv6 Addresses (ULA). Adds the --enable-ula-internal-ipv6 flag to the gcloud compute networks create command"`
-	SubnetMode                   string   `flag:"~subnet-mode" desc:"Subnet creation mode of the GKE cluster network (default 'auto' for single-project, and 'custom' for multi-project use cases)."`
+	UseCustomSubnetMode          bool     `flag:"~use-custom-subnet-mode" desc:"Use '--subnet-mode=custom' when creating the network. Effective only for single-project deployments, as multi-project deployments always use 'custom' mode. Defaults to false."`
 
 	RemoveNetwork bool `flag:"~remove-network" desc:"At the end of the test remove non-default network that was used by cluster. The 'default' network is never deleted. Defaults to true if not provided."`
 }
