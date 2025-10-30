@@ -75,7 +75,7 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		}
 
 		if !d.UseCustomSubnetMode {
-			return errors.New("multi-project deployments have to use custom subnet mode")
+			return errors.New("the 'auto' subnet mode cannot be used for multi-project profile")
 		}
 	}
 
