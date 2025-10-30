@@ -199,8 +199,9 @@ func NewDeployer(opts types.Options) *Deployer {
 			BoskosProjectsRequested:        []int{1},
 		},
 		NetworkOptions: &options.NetworkOptions{
-			Network:       "default",
-			RemoveNetwork: true,
+			Network:             "default",
+			UseCustomSubnetMode: false,
+			RemoveNetwork:       true,
 		},
 		ClusterOptions: &options.ClusterOptions{
 			Environment: "prod",
