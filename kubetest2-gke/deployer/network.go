@@ -162,9 +162,16 @@ func (d *Deployer) CreateNetwork() error {
 		// Assume error implies non-existent.
 		// TODO(chizhg): find a more reliable way to check if the network exists or not.
 		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.Network)
-		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "create", d.Network,
+		createNetworkCommand := []string{
+			"gcloud", "compute", "networks", "create",
+			d.Network,
 			"--project="+d.Projects[0],
-			"--subnet-mode="+subnetMode)); err != nil {
+			"--subnet-mode="+subnetMode
+		}
+		if d.EnableULAInternalIPv6 {
+			createNetworkCommand = append(createNetworkCommand, "--enable-ula-internal-ipv6")
+		}
+		if err := runWithOutput(exec.Command(createNetworkCommand[0], createNetworkCommand[1:]...)); err != nil {
 			return err
 		}
 	}
