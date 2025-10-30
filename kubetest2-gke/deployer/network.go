@@ -165,8 +165,8 @@ func (d *Deployer) CreateNetwork() error {
 		createNetworkCommand := []string{
 			"gcloud", "compute", "networks", "create",
 			d.Network,
-			"--project="+d.Projects[0],
-			"--subnet-mode="+subnetMode
+			"--project=" + d.Projects[0],
+			"--subnet-mode=" + subnetMode,
 		}
 		if d.EnableULAInternalIPv6 {
 			createNetworkCommand = append(createNetworkCommand, "--enable-ula-internal-ipv6")
