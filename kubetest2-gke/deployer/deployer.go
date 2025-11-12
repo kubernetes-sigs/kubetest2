@@ -102,6 +102,7 @@ type extraNodepool struct {
 	MachineType string
 	ImageType   string
 	NumNodes    int
+	ExtraArgs   []string
 }
 
 type Deployer struct {

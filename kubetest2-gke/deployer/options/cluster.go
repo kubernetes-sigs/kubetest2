@@ -26,6 +26,7 @@ type ExtraNodePoolOptions struct {
 	MachineType string
 	ImageType   string
 	NumNodes    int
+	ExtraArgs   []string
 }
 
 type ClusterOptions struct {
@@ -50,13 +51,14 @@ type ClusterOptions struct {
 	WorkloadIdentityEnabled bool     `flag:"~enable-workload-identity" desc:"Whether enable workload identity for the cluster or not. See the details in https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity."`
 	FirewallRuleAllow       string   `desc:"A list of protocols and ports whose traffic will be allowed for the firewall rules created for the cluster."`
 
-	WindowsEnabled     bool   `flag:"~enable-windows" desc:"Whether enable Windows node pool in the cluster or not."`
-	WindowsNumNodes    int    `flag:"~windows-num-nodes" desc:"For use with gcloud commands to specify the number of nodes for Windows node pools in the cluster."`
-	WindowsMachineType string `flag:"~windows-machine-type" desc:"For use with gcloud commands to specify the machine type for Windows node in the cluster."`
-	WindowsImageType   string `flag:"~windows-image-type" desc:"The Windows image type to use for the cluster."`
+	WindowsEnabled     bool     `flag:"~enable-windows" desc:"Whether enable Windows node pool in the cluster or not."`
+	WindowsNumNodes    int      `flag:"~windows-num-nodes" desc:"For use with gcloud commands to specify the number of nodes for Windows node pools in the cluster."`
+	WindowsMachineType string   `flag:"~windows-machine-type" desc:"For use with gcloud commands to specify the machine type for Windows node in the cluster."`
+	WindowsImageType   string   `flag:"~windows-image-type" desc:"The Windows image type to use for the cluster."`
+	WindowsExtraArgs   []string `flag:"~windows-extra-args" desc:"Extra flags separated by comma to pass when creating the Windows node pool."`
 
 	NodePoolCreateConcurrency int      `flag:"~nodepool-create-concurrency" desc:"Number of nodepools to create concurrently, default is 1"`
-	ExtraNodePool             []string `flag:"~extra-nodepool" desc:"create an extra nodepool. repeat the flag for another nodepool. options as key=value&key=value... supported options are name,machine-type,image-type,num-nodes. "`
+	ExtraNodePool             []string `flag:"~extra-nodepool" desc:"create an extra nodepool. repeat the flag for another nodepool. options as key=value&key=value... required options are name,machine-type,image-type,num-nodes."`
 
 	RetryableErrorPatterns []string `flag:"~retryable-error-patterns" desc:"Comma separated list of regex match patterns for retryable errors during cluster creation."`
 
