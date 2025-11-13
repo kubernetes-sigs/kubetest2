@@ -25,4 +25,5 @@ type NetworkOptions struct {
 	EnableULAInternalIPv6        bool     `flag:"~enable-ula-internal-ipv6" desc:"Enable Unique Local IPv6 Addresses (ULA). Adds the --enable-ula-internal-ipv6 flag to the gcloud compute networks create command"`
 
 	RemoveNetwork bool `flag:"~remove-network" desc:"At the end of the test remove non-default network that was used by cluster. The 'default' network is never deleted. Defaults to true if not provided."`
+	CreateNat     bool `flag:"~create-nat" desc:"Configure Cloud NAT allowing outbound connections in cluster with private nodes."`
 }
