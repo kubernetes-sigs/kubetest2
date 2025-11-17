@@ -73,6 +73,10 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		if err := validateSubnetRanges(d.SubnetworkRanges); err != nil {
 			return err
 		}
+
+		if !d.UseCustomSubnetMode {
+			return errors.New("the 'auto' subnet mode cannot be used for multi-project profile")
+		}
 	}
 
 	return d.internalizeNetworkFlags(numProjects)
@@ -148,18 +152,18 @@ func (d *Deployer) internalizeNetworkFlags(numProjects int) error {
 
 func (d *Deployer) CreateNetwork() error {
 	// Create network if it doesn't exist.
-	// For single project profile, the subnet-mode could be auto for simplicity.
-	// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
-	//   (Here we consider the first project to be the host project and the rest be service projects)
-	//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
-	subnetMode := "auto"
-	if len(d.Projects) > 1 {
-		subnetMode = "custom"
-	}
 	if runWithNoOutput(exec.Command("gcloud", "compute", "networks", "describe", d.Network,
 		"--project="+d.Projects[0],
 		"--format=value(name)")) != nil {
 		// Assume error implies non-existent.
+		// For single project profile, the subnet-mode could be auto for simplicity.
+		// For multiple projects profile, the subnet-mode must be custom and should only be created in the host project.
+		//   (Here we consider the first project to be the host project and the rest be service projects)
+		//   Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
+		subnetMode := "auto"
+		if d.UseCustomSubnetMode || len(d.Projects) > 1 {
+			subnetMode = string("custom")
+		}
 		// TODO(chizhg): find a more reliable way to check if the network exists or not.
 		klog.V(1).Infof("Couldn't describe network %q, assuming it doesn't exist and creating it", d.Network)
 		createNetworkCommand := []string{

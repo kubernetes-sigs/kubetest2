@@ -201,6 +201,7 @@ func NewDeployer(opts types.Options) *Deployer {
 		},
 		NetworkOptions: &options.NetworkOptions{
 			Network:               "default",
+			UseCustomSubnetMode:   false,
 			RemoveNetwork:         true,
 			EnableULAInternalIPv6: false,
 		},
