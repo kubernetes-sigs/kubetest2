@@ -24,6 +24,7 @@ import (
 
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
+	"github.com/spf13/pflag"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -57,7 +58,7 @@ func NewDefaultTester() *Tester {
 }
 
 // Test runs the test
-func (t *Tester) Test() error {
+func (t *Tester) Test(fs *pflag.FlagSet) error {
 	if t.RepoRoot == "" {
 		return fmt.Errorf("required path to kubernetes/perf-tests repository")
 	}
@@ -91,6 +92,11 @@ func (t *Tester) Test() error {
 		"--kubeconfig=" + t.KubeConfig,
 		"--report-dir=" + t.ReportDir,
 	}
+
+	if verbosity := fs.Lookup("v"); verbosity != nil {
+		args = append(args, "--v="+verbosity.Value.String())
+	}
+
 	for _, tc := range testConfigs {
 		if tc != "" {
 			args = append(args, "--testconfig="+tc)
@@ -146,7 +152,7 @@ func (t *Tester) Execute() error {
 	if err := testers.WriteVersionToMetadata(GitTag, ""); err != nil {
 		return err
 	}
-	return t.Test()
+	return t.Test(fs)
 }
 
 func Main() {
