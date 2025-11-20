@@ -26,4 +26,5 @@ type NetworkOptions struct {
 	UseCustomSubnetMode          bool     `flag:"~use-custom-subnet-mode" desc:"Use '--subnet-mode=custom' when creating the network. Effective only for single-project deployments, as multi-project deployments always use 'custom' mode. Defaults to false."`
 
 	RemoveNetwork bool `flag:"~remove-network" desc:"At the end of the test remove non-default network that was used by cluster. The 'default' network is never deleted. Defaults to true if not provided."`
+	CreateNat     bool `flag:"~create-nat" desc:"Configure Cloud NAT allowing outbound connections in cluster with private nodes."`
 }
