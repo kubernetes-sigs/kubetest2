@@ -254,7 +254,12 @@ func (d *Deployer) CreateCluster(project string, cluster cluster, subNetworkArgs
 func (d *Deployer) createCommand() []string {
 	// Use the --create-command flag if it's explicitly specified.
 	if d.CreateCommandFlag != "" {
-		return strings.Fields(d.CreateCommandFlag)
+		fs := make([]string, 0)
+		if d.GcloudCommandGroup != "" {
+			fs = append(fs, d.GcloudCommandGroup)
+		}
+		fs = append(fs, strings.Fields(d.CreateCommandFlag)...)
+		return fs
 	}
 
 	fs := make([]string, 0)
