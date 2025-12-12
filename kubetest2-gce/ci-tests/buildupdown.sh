@@ -52,6 +52,7 @@ kubetest2 gce \
     --build \
     --up \
     --down \
+    --strategy=bazel \
     --test=ginkgo \
     --master-size=e2-standard-2 \
     --node-size=e2-standard-2 \
