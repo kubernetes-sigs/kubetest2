@@ -19,7 +19,6 @@ package deployer
 import (
 	"fmt"
 	"os"
-	"path"
 	"strings"
 
 	"k8s.io/klog/v2"
@@ -65,14 +64,13 @@ func (d *deployer) Build() error {
 
 		var cmd exec.Cmd
 		// determine the build system for kubernetes/cloud-provider-gcp
-		if _, err := os.Stat(path.Join(d.RepoRoot, "Makefile")); err == nil {
-			// For releases that uses Makefile
+		switch d.BuildOptions.CommonBuildOptions.Strategy {
+		case "make":
 			cmd = exec.Command("make", "release-tars")
-		} else if _, err := os.Stat(path.Join(d.RepoRoot, "BUILD")); err == nil {
-			// For releases that uses Bazel
+		case "bazel":
 			cmd = exec.Command("bazel", "build", "//release:release-tars")
-		} else {
-			return fmt.Errorf("cannot determine build system")
+		default:
+			return fmt.Errorf("unsupported build strategy: %s", d.BuildOptions.CommonBuildOptions.Strategy)
 		}
 
 		exec.InheritOutput(cmd)

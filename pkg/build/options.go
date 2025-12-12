@@ -24,8 +24,8 @@ import (
 type BuildAndStageStrategy string //nolint:revive
 
 const (
-	// bazelStrategy builds and (optionally) stages using bazel
-	bazelStrategy BuildAndStageStrategy = "bazel"
+	// BazelStrategy builds and (optionally) stages using bazel
+	BazelStrategy BuildAndStageStrategy = "bazel"
 	// MakeStrategy builds using make and (optionally) stages using krel
 	MakeStrategy BuildAndStageStrategy = "make"
 )
@@ -49,7 +49,7 @@ func (o *Options) Validate() error {
 
 func (o *Options) implementationFromStrategy() error {
 	switch BuildAndStageStrategy(o.Strategy) {
-	case bazelStrategy:
+	case BazelStrategy:
 		bazel := &Bazel{
 			RepoRoot:      o.RepoRoot,
 			StageLocation: o.StageLocation,
