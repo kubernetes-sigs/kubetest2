@@ -66,7 +66,7 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 				"--project="+project,
 				"--filter=metadata.created-by:"+d.instanceGroups[project][clusterName][0].path,
 				"--limit=1",
-				"--format=get(tags.items)"))
+				"--format=get[delimiter=','](tags.items)"))
 			if err != nil {
 				return fmt.Errorf("instances list failed: %s", execError(err))
 			}
