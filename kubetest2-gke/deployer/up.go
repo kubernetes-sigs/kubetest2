@@ -334,6 +334,9 @@ func (d *Deployer) TestSetup() error {
 	if err := d.EnsureFirewallRules(); err != nil {
 		return err
 	}
+	if err := d.EnsureNat(); err != nil {
+		return err
+	}
 	d.testPrepared = true
 	return nil
 }
