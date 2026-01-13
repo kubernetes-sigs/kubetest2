@@ -139,6 +139,18 @@ func TestBuildExtraNodePoolOptions(t *testing.T) {
 			expectedError: "%!s(<nil>)",
 		},
 		{
+			name: "valid nodepool with extra flags",
+			np:   "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type&num-nodes=2&disk-size=30GB&no-enable-autoupgrade",
+			expectedNodepool: extraNodepool{
+				Name:        "extra-nodepool",
+				MachineType: "test-machine-type",
+				ImageType:   "test-image-type",
+				NumNodes:    2,
+				ExtraArgs:   []string{"--disk-size=30GB", "--no-enable-autoupgrade"},
+			},
+			expectedError: "%!s(<nil>)",
+		},
+		{
 			name:          "num-nodes not set",
 			np:            "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type",
 			expectedError: "num-nodes must be > 0",
