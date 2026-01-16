@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -158,5 +159,70 @@ func TestAssertNoOverlaps(t *testing.T) {
 				t.Errorf("test case should have failed, but passed: %q", tc.ranges)
 			}
 		}
+	}
+}
+
+func TestBuildExtraSubnetOptions(t *testing.T) {
+	testCases := []struct {
+		name           string
+		s              string
+		expectedSubnet extraSubnet
+		expectedError  string
+	}{
+		{
+			name: "valid subnet",
+			s:    "name=extra-subnet&network=test-network&range=10.0.0.0/14",
+			expectedSubnet: extraSubnet{
+				Name:    "extra-subnet",
+				Network: "test-network",
+				Range:   "10.0.0.0/14",
+			},
+			expectedError: "%!s(<nil>)",
+		},
+		{
+			name:          "undefined name",
+			s:             "network=test-network&range=10.0.0.0%2f14",
+			expectedError: "name required",
+		},
+		{
+			name:          "undefined range",
+			s:             "name=extra-subnet&network=test-network",
+			expectedError: "range required",
+		},
+		{
+			name: "valid subnet with extra flags",
+			s:    "name=extra-subnet&network=test-network&range=10.0.0.0/14&region=us-central1&enable-private-ip-google-access",
+			expectedSubnet: extraSubnet{
+				Name:      "extra-subnet",
+				Network:   "test-network",
+				Range:     "10.0.0.0/14",
+				ExtraArgs: []string{"--region=us-central1", "--enable-private-ip-google-access"},
+			},
+			expectedError: "%!s(<nil>)",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			es := extraSubnet{}
+			err := buildExtraSubnetOptions(tc.s, &es)
+			if fmt.Sprintf("%s", err) != tc.expectedError {
+				t.Logf("unexpected error: want %q, got %q", tc.expectedError, fmt.Errorf("%s", err))
+				t.Fail()
+			}
+			if err != nil {
+				return
+			}
+
+			if !cmp.Equal(es, tc.expectedSubnet) {
+				fmt.Printf("es: %v\n", es)
+				fmt.Printf("tc.expectedSubnet: %v\n", tc.expectedSubnet)
+				t.Logf("unexpected extra subnet, got(+), want(-): %s",
+					cmp.Diff(tc.expectedSubnet, es))
+				t.Fail()
+			}
+		})
+
 	}
 }
