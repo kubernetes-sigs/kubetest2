@@ -236,7 +236,6 @@ func buildExtraSubnetOptions(s string, es *extraSubnet) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("values: %v\n", values)
 	for k := range values {
 		switch k {
 		case "name":
