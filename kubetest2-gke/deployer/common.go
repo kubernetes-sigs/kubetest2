@@ -139,6 +139,26 @@ func (d *Deployer) Initialize() error {
 		klog.V(1).Infof("parsed extra nodepool spec %q: %v", np, enp)
 	}
 
+	// build extra subnet specs.
+	for i, s := range d.ExtraSubnet {
+		// defaults
+		es := &extraSubnet{
+			Index:     i,
+			Name:      fmt.Sprintf("extra-subnet-%d", i),
+			Network:   d.Network,
+			Range:     "",
+			ExtraArgs: []string{},
+		}
+
+		if err := buildExtraSubnetOptions(s, es); err != nil {
+			return fmt.Errorf("invalid extra subnet spec %q", s)
+		}
+
+		d.extraSubnetSpecs = append(d.extraSubnetSpecs, es)
+
+		klog.V(1).Infof("parsed extra subnet spec %q: %v", s, es)
+	}
+
 	// Prepare the GCP environment for the following operations.
 	return d.PrepareGcpIfNeeded(d.Projects[0])
 }
@@ -208,5 +228,43 @@ func validateExtraNodepoolOptions(enp *extraNodepool) error {
 	if enp.NumNodes <= 0 {
 		return fmt.Errorf("num-nodes must be > 0")
 	}
+	return nil
+}
+
+func buildExtraSubnetOptions(s string, es *extraSubnet) error {
+	values, err := url.ParseQuery(s)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("values: %v\n", values)
+	for k := range values {
+		switch k {
+		case "name":
+			es.Name = values.Get("name")
+		case "network":
+			es.Network = values.Get("network")
+		case "range":
+			es.Range = values.Get("range")
+		default:
+			v := values.Get(k)
+			if v == "" {
+				es.ExtraArgs = append(es.ExtraArgs, fmt.Sprintf("--%v", k))
+			} else {
+				es.ExtraArgs = append(es.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
+			}
+		}
+	}
+	return validateExtraSubnetOptions(es)
+}
+
+func validateExtraSubnetOptions(es *extraSubnet) error {
+	if es.Name == "" {
+		return fmt.Errorf("name required")
+	}
+
+	if es.Range == "" {
+		return fmt.Errorf("range required")
+	}
+
 	return nil
 }
