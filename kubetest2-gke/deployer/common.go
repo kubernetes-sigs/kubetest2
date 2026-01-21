@@ -206,7 +206,12 @@ func buildExtraNodePoolOptions(np string, enp *extraNodepool) error {
 			}
 			enp.NumNodes = n
 		default:
-			enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
+			v := values.Get(k)
+			if v == "" {
+				enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v", k))
+			} else {
+				enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
+			}
 		}
 	}
 	return validateExtraNodepoolOptions(enp)
