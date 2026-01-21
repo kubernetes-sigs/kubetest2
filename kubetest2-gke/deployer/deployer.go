@@ -105,6 +105,14 @@ type extraNodepool struct {
 	ExtraArgs   []string
 }
 
+type extraSubnet struct {
+	Index     int
+	Name      string
+	Network   string
+	Range     string
+	ExtraArgs []string
+}
+
 type Deployer struct {
 	// generic parts
 	Kubetest2CommonOptions types.Options
@@ -124,6 +132,9 @@ type Deployer struct {
 
 	// extra node pools to create, per cluster.
 	extraNodePoolSpecs []*extraNodepool
+
+	// extra subnets to create
+	extraSubnetSpecs []*extraSubnet
 
 	kubecfgPath  string
 	testPrepared bool

@@ -79,6 +79,15 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		}
 	}
 
+	for _, s := range d.ExtraSubnet {
+		// defaults
+		es := &extraSubnet{}
+
+		if err := buildExtraSubnetOptions(s, es); err != nil {
+			return fmt.Errorf("invalid extra subnet spec %q: %v", s, err)
+		}
+	}
+
 	return d.internalizeNetworkFlags(numProjects)
 }
 
@@ -185,42 +194,57 @@ func (d *Deployer) CreateNetwork() error {
 func (d *Deployer) CreateSubnets() error {
 	// Create subnetworks for the service projects to work with shared VPC if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#creating_a_network_and_two_subnets
-	if len(d.Projects) == 1 {
-		return nil
-	}
 	hostProject := d.Projects[0]
-	for i, nr := range d.subnetworkRangesInternal[d.retryCount] {
-		serviceProject := d.Projects[i+1]
-		parts := strings.Split(nr, " ")
-		// The subnetwork name is in the format of `[main_network]-[service_project_id]`.
-		subnetName := d.Network + "-" + serviceProject
+	if len(d.Projects) > 1 {
+		for i, nr := range d.subnetworkRangesInternal[d.retryCount] {
+			serviceProject := d.Projects[i+1]
+			parts := strings.Split(nr, " ")
+			// The subnetwork name is in the format of `[main_network]-[service_project_id]`.
+			subnetName := d.Network + "-" + serviceProject
+			createSubnetCommand := []string{
+				"gcloud", "compute", "networks", "subnets", "create",
+				subnetName,
+				"--project=" + hostProject,
+				"--region=" + regionFromLocation(d.Regions, d.Zones, d.retryCount),
+				"--network=" + d.Network,
+				"--range=" + parts[0],
+				"--secondary-range",
+				fmt.Sprintf("%s-services=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
+			}
+			// Enabling `Private Google Access` on the subnet is needed for private
+			// cluster nodes to reach storage.googleapis.com.
+			if d.PrivateClusterAccessLevel != "" {
+				createSubnetCommand = append(createSubnetCommand, "--enable-private-ip-google-access")
+			}
+			if err := runWithOutput(exec.Command(createSubnetCommand[0], createSubnetCommand[1:]...)); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, es := range d.extraSubnetSpecs {
 		createSubnetCommand := []string{
-			"gcloud", "compute", "networks", "subnets", "create",
-			subnetName,
+			"gcloud", "compute", "networks", "subnets", "create", es.Name,
 			"--project=" + hostProject,
 			"--region=" + regionFromLocation(d.Regions, d.Zones, d.retryCount),
-			"--network=" + d.Network,
-			"--range=" + parts[0],
-			"--secondary-range",
-			fmt.Sprintf("%s-services=%s,%s-pods=%s", subnetName, parts[1], subnetName, parts[2]),
+			"--network=" + es.Network,
+			"--range=" + es.Range,
 		}
-		// Enabling `Private Google Access` on the subnet is needed for private
-		// cluster nodes to reach storage.googleapis.com.
-		if d.PrivateClusterAccessLevel != "" {
-			createSubnetCommand = append(createSubnetCommand, "--enable-private-ip-google-access")
-		}
-		if err := runWithOutput(exec.Command(createSubnetCommand[0], createSubnetCommand[1:]...)); err != nil {
-			return err
+		createSubnetCommand = append(createSubnetCommand, es.ExtraArgs...)
+		output, err := runWithOutputAndReturn(exec.Command(createSubnetCommand[0], createSubnetCommand[1:]...))
+		if err != nil {
+			return fmt.Errorf("error creating subnet %q: %v, output: %q", es.Name, err, output)
 		}
 	}
+
 	return nil
 }
 
 func (d *Deployer) DeleteSubnets(retryCount int) error {
 	// Delete the subnetworks if it's a multi-project profile.
 	// Reference: https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-shared-vpc#deleting_the_shared_network
-	if len(d.Projects) >= 1 {
-		hostProject := d.Projects[0]
+	hostProject := d.Projects[0]
+	if len(d.Projects) > 1 {
 		for i := 1; i < len(d.Projects); i++ {
 			serviceProject := d.Projects[i]
 			subnetName := d.Network + "-" + serviceProject
@@ -232,6 +256,19 @@ func (d *Deployer) DeleteSubnets(retryCount int) error {
 			)); err != nil {
 				return err
 			}
+		}
+	}
+
+	for _, es := range d.extraSubnetSpecs {
+		deleteSubnetCommand := []string{
+			"gcloud", "compute", "networks", "subnets", "delete", es.Name,
+			"--project=" + hostProject,
+			"--region=" + regionFromLocation(d.Regions, d.Zones, retryCount),
+			"--quiet",
+		}
+		output, err := runWithOutputAndReturn(exec.Command(deleteSubnetCommand[0], deleteSubnetCommand[1:]...))
+		if err != nil {
+			return fmt.Errorf("error deleting subnet %q: %v, output: %q", es.Name, err, output)
 		}
 	}
 
