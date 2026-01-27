@@ -22,7 +22,6 @@ set -o xtrace
 make install
 make install-deployer-kind
 make install-tester-ginkgo
-go install sigs.k8s.io/kind@v0.24.0
 
 cd "${GOPATH}/src/k8s.io/kubernetes"
 
