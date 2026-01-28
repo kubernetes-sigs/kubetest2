@@ -25,6 +25,7 @@ type NetworkOptions struct {
 	EnableULAInternalIPv6        bool     `flag:"~enable-ula-internal-ipv6" desc:"Enable Unique Local IPv6 Addresses (ULA). Adds the --enable-ula-internal-ipv6 flag to the gcloud compute networks create command"`
 	UseCustomSubnetMode          bool     `flag:"~use-custom-subnet-mode" desc:"Use '--subnet-mode=custom' when creating the network. Effective only for single-project deployments, as multi-project deployments always use 'custom' mode. Defaults to false."`
 	ExtraSubnet                  []string `flag:"~extra-subnet" desc:"create an extra subnet. repeat the flag for another subnet. options as key=value&key=value..."`
+	SshProxyInstanceName         string   `flag:"~ssh-proxy-instance-name" desc:"If set, will result in proxing the ssh connections via the provided instance name while running tests. It works only with one project and one cluster."`
 
 	RemoveNetwork bool `flag:"~remove-network" desc:"At the end of the test remove non-default network that was used by cluster. The 'default' network is never deleted. Defaults to true if not provided."`
 }
