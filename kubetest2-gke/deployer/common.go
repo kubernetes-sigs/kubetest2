@@ -230,9 +230,6 @@ func validateExtraNodepoolOptions(enp *extraNodepool) error {
 		return fmt.Errorf("image-type required")
 	}
 
-	if enp.NumNodes <= 0 {
-		return fmt.Errorf("num-nodes must be > 0")
-	}
 	return nil
 }
 
