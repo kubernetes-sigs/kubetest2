@@ -44,7 +44,11 @@ func (m *CustomJSON) Add(key, value string) error {
 	if m.data == nil {
 		m.data = map[string]string{}
 	}
-	if _, exists := m.data[key]; exists {
+	if existingValue, exists := m.data[key]; exists {
+		// If the value matches, it's okay (e.g., multiple testers writing same version)
+		if existingValue == value {
+			return nil
+		}
 		return fmt.Errorf("key %s already exists in the metadata", key)
 	}
 	m.data[key] = value

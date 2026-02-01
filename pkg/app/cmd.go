@@ -69,8 +69,9 @@ func runE(
 	// NOTE: unknown flags are forwarded to the deployer as arguments
 	kubetest2Flags.ParseErrorsWhitelist.UnknownFlags = true
 
-	// parse arguments, splitting out test args (after the `--`)
-	deployerArgs, testerArgs := splitArgs(args)
+	// parse arguments, extracting deployer args and tester specifications
+	// Format: kubetest2 <deployer> [deployer-flags] --test=<tester1> -- [tester1-args] --test=<tester2> -- [tester2-args] ...
+	deployerArgs, testerSpecs := splitArgs(args)
 
 	// setup usage metadata for deffered usage printing
 	usage := &usage{
@@ -83,31 +84,46 @@ func runE(
 	// We will later show this + usage if there is one
 	parseError := kubetest2Flags.Parse(deployerArgs)
 
-	// now that we've parsed flags we can look up the tester
-	tester := types.Tester{}
-	if opts.test != "" {
-		testerPath, err := shim.FindTester(opts.test)
-		if err != nil {
-			return fmt.Errorf("unable to find tester %v: %v", opts.test, err)
+	// now that we've parsed flags we can look up the testers
+	var testers types.Testers
+	if len(testerSpecs) > 0 {
+		var testerUsages []string
+		for i, spec := range testerSpecs {
+			testerPath, err := shim.FindTester(spec.name)
+			if err != nil {
+				return fmt.Errorf("unable to find tester %v: %v", spec.name, err)
+			}
+
+			// Get tester usage by running it with --help
+			var helpArgs []string
+			helpArgs = append(helpArgs, "--help")
+			helpArgs = append(helpArgs, spec.args...)
+			testerUsageCmd := exec.Command(testerPath, helpArgs...)
+			var stderr bytes.Buffer
+			testerUsageCmd.SetStderr(&stderr)
+			testerUsage, err := exec.Output(testerUsageCmd)
+			if err != nil {
+				return fmt.Errorf("%s", stderr.String())
+			}
+
+			testerUsages = append(testerUsages, fmt.Sprintf("Tester %d (%s):\n%s", i+1, spec.name, string(testerUsage)))
+
+			testers = append(testers, types.Tester{
+				TesterName: spec.name,
+				TesterPath: testerPath,
+				TesterArgs: spec.args,
+			})
 		}
 
-		// Get tester usage by running it with --help
-		var helpArgs []string
-		helpArgs = append(helpArgs, "--help")
-		helpArgs = append(helpArgs, testerArgs...)
-		testerUsageCmd := exec.Command(testerPath, helpArgs...)
-		var stderr bytes.Buffer
-		testerUsageCmd.SetStderr(&stderr)
-		testerUsage, err := exec.Output(testerUsageCmd)
-		if err != nil {
-			return fmt.Errorf("%s", stderr.String())
+		usage.testerUsage = strings.Join(testerUsages, "\n")
+		var testerNames []string
+		for _, spec := range testerSpecs {
+			testerNames = append(testerNames, spec.name)
 		}
+		usage.testerName = strings.Join(testerNames, ", ")
 
-		usage.testerUsage = string(testerUsage)
-		usage.testerName = opts.test
-
-		tester.TesterPath = testerPath
-		tester.TesterArgs = testerArgs
+		// Set opts.test for ShouldTest() to work
+		opts.test = testerNames
 	}
 
 	// instantiate the deployer
@@ -162,23 +178,95 @@ func runE(
 	}
 
 	// run RealMain, which contains all of the logic beyond the CLI boilerplate
-	return RealMain(opts, deployer, tester)
+	return RealMain(opts, deployer, testers)
 }
 
-// splitArgs splits args into deployerArgs and testerArgs at the first bare `--`
-func splitArgs(args []string) ([]string, []string) {
-	// first split into args and test args
-	testArgs := []string{}
-	for i := range args {
-		if args[i] == "--" {
-			if i+1 < len(args) {
-				testArgs = args[i+1:]
-			}
-			args = args[:i]
+// testerSpec holds a tester name and its arguments
+type testerSpec struct {
+	name string
+	args []string
+}
+
+// splitArgs parses args into deployer args and tester specifications.
+// Supports inline tester syntax: --test=<name> -- [args...] --test=<name2> -- [args2...]
+//
+// Example: kubetest2 kind --up --down --test=exec -- ./test.sh --test=ginkgo -- --focus=foo
+// Returns: (["--up", "--down"], [{name: "exec", args: ["./test.sh"]}, {name: "ginkgo", args: ["--focus=foo"]}])
+func splitArgs(args []string) ([]string, []testerSpec) {
+	var deployerArgs []string
+	var testers []testerSpec
+
+	i := 0
+	// Collect deployer args until we hit --test= or --
+	for i < len(args) {
+		arg := args[i]
+
+		// Check for --test=name or --test name
+		if arg == "--test" && i+1 < len(args) {
+			// --test name format - skip both and start tester parsing
 			break
 		}
+		if strings.HasPrefix(arg, "--test=") {
+			// --test=name format - start tester parsing
+			break
+		}
+		if arg == "--" {
+			// Old-style separator without inline --test - this means we have old syntax
+			// which isn't supported in the new inline mode
+			break
+		}
+
+		deployerArgs = append(deployerArgs, arg)
+		i++
 	}
-	return args, testArgs
+
+	// Now parse tester specifications
+	for i < len(args) {
+		arg := args[i]
+
+		var testerName string
+
+		// Check for --test=name or --test name
+		if arg == "--test" && i+1 < len(args) {
+			testerName = args[i+1]
+			i += 2
+		} else if strings.HasPrefix(arg, "--test=") {
+			testerName = strings.TrimPrefix(arg, "--test=")
+			i++
+		} else if arg == "--" {
+			// Skip bare -- separators
+			i++
+			continue
+		} else {
+			// Unexpected arg - could be args for a previous tester if we haven't hit -- yet
+			// or deployer args that appeared after --test
+			// For robustness, skip it
+			i++
+			continue
+		}
+
+		// Look for optional -- separator and collect args
+		var testerArgs []string
+
+		// Check if next arg is --
+		if i < len(args) && args[i] == "--" {
+			i++ // skip the --
+
+			// Collect args until we hit another --test= or end
+			for i < len(args) {
+				nextArg := args[i]
+				if nextArg == "--test" || strings.HasPrefix(nextArg, "--test=") {
+					break
+				}
+				testerArgs = append(testerArgs, nextArg)
+				i++
+			}
+		}
+
+		testers = append(testers, testerSpec{name: testerName, args: testerArgs})
+	}
+
+	return deployerArgs, testers
 }
 
 // options holds flag values and implements deployer.Options
@@ -187,7 +275,7 @@ type options struct {
 	build               bool
 	up                  bool
 	down                bool
-	test                string
+	test                []string
 	skipTestJUnitReport bool
 	runid               string
 	rundirInArtifacts   bool
@@ -199,7 +287,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.build, "build", false, "build kubernetes")
 	flags.BoolVar(&o.up, "up", false, "provision the test cluster")
 	flags.BoolVar(&o.down, "down", false, "tear down the test cluster")
-	flags.StringVar(&o.test, "test", "", "test type to run, if unset no tests will run")
+	// NOTE: --test is parsed manually in splitArgs to support inline syntax: --test=<name> -- [args...]
 	flags.BoolVar(&o.skipTestJUnitReport, "skip-test-junit-report", false, "skip reporting the test step as a JUnit test case, "+
 		"should be set to true when solely relying on the tester binary to generate it's own junit.")
 	var defaultRunID string
@@ -233,7 +321,7 @@ func (o *options) ShouldDown() bool {
 }
 
 func (o *options) ShouldTest() bool {
-	return o.test != ""
+	return len(o.test) > 0
 }
 
 func (o *options) SkipTestJUnitReport() bool {
@@ -297,7 +385,10 @@ func (u *usage) String() string {
 	s := fmt.Sprintf(
 		strings.TrimPrefix(`
 Usage:
-  kubetest2 %s [Flags] [DeployerFlags] -- [TesterArgs]
+  kubetest2 %s [Flags] [DeployerFlags] --test=<tester> -- [TesterArgs] [--test=<tester2> -- [Tester2Args] ...]
+
+  Multiple testers can be specified inline, each with its own arguments:
+    --test=exec -- ./my-script.sh --test=ginkgo -- --focus-regex='...'
 
 Flags:
 %s

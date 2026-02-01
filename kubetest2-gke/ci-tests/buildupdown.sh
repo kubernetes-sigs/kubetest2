@@ -62,11 +62,19 @@ function main() {
     --boskos-resource-type gce-project \
     --num-clusters "${NUM_CLUSTERS}" \
     --num-nodes 1 \
+    --cluster-version=1.34 \
     --zone us-central1-c,us-west1-a,us-east1-b \
     --network ci-tests-network \
     --up \
     --down \
-    --test=exec -- "${REPO_ROOT}/kubetest2-gke/ci-tests/test.sh"
+    --test=exec -- "${REPO_ROOT}/kubetest2-gke/ci-tests/test.sh" \
+    --test=ginkgo \
+    -- \
+    --test-package-url=https://dl.k8s.io \
+    --test-package-marker=stable-1.34.txt \
+    --focus-regex='Secrets should be consumable via the environment' \
+    --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
+    --timeout=30m
 }
 
 main "$@"
