@@ -23,6 +23,7 @@ import (
 	stdexec "os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kballard/go-shellquote"
@@ -166,7 +167,20 @@ func (t *Tester) validateLocalBinaries() error {
 	t.e2eTestPath = filepath.Join(t.runDir, "e2e.test")
 	t.ginkgoPath = filepath.Join(t.runDir, "ginkgo")
 	t.kubectlPath = filepath.Join(t.runDir, "kubectl")
+	// Get version from e2e.test binary
+	t.TestPackageVersion = t.getE2ETestVersion()
 	return nil
+}
+
+// getE2ETestVersion runs e2e.test --version and returns the output
+func (t *Tester) getE2ETestVersion() string {
+	cmd := stdexec.Command(t.e2eTestPath, "--version")
+	output, err := cmd.Output()
+	if err != nil {
+		klog.V(2).Infof("failed to get e2e.test version: %v", err)
+		return ""
+	}
+	return strings.TrimSpace(string(output))
 }
 
 func (t *Tester) validateBinariesFromPath() error {
@@ -186,6 +200,8 @@ func (t *Tester) validateBinariesFromPath() error {
 			t.kubectlPath = path
 		}
 	}
+	// Get version from e2e.test binary
+	t.TestPackageVersion = t.getE2ETestVersion()
 	return nil
 }
 
