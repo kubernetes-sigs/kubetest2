@@ -29,7 +29,7 @@ import (
 // setupBastion prepares KUBE_SSH_BASTION env variable with the hostname of some public node of the cluster that could be sshed into. Some Kubernetes e2e tests need it.
 // setupBastion supports only one project with only one cluster. It returns error if this condition is not met.
 func (d *Deployer) setupBastion() error {
-	if d.SshProxyInstanceName == "" {
+	if d.SSHProxyInstanceName == "" {
 		return nil
 	}
 
@@ -65,17 +65,17 @@ func (d *Deployer) setupBastion() error {
 		instanceGroups = slice
 	}
 
-	if err := setupBastion(project, instanceGroups, d.SshProxyInstanceName); err != nil {
+	if err := setupBastion(project, instanceGroups, d.SSHProxyInstanceName); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func setupBastion(project string, instanceGroups []*ig, sshProxyInstanceName string) error {
+func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName string) error {
 	var filtersToTry []string
 	// Use exact name first, VM does not have to belong to the cluster
-	exactFilter := "name=" + sshProxyInstanceName
+	exactFilter := "name=" + SSHProxyInstanceName
 	filtersToTry = append(filtersToTry, exactFilter)
 	// As a fallback - use proxy instance name as a regex but check only cluster nodes
 	var igFilters []string
@@ -85,7 +85,7 @@ func setupBastion(project string, instanceGroups []*ig, sshProxyInstanceName str
 	}
 	// Match VM name or wildcard passed by kubetest parameters
 	fuzzyFilter := fmt.Sprintf("(name ~ %s) AND (%s)",
-		sshProxyInstanceName,
+		SSHProxyInstanceName,
 		strings.Join(igFilters, " OR "))
 	filtersToTry = append(filtersToTry, fuzzyFilter)
 
@@ -113,7 +113,7 @@ func setupBastion(project string, instanceGroups []*ig, sshProxyInstanceName str
 		break
 	}
 	if bastion == "" {
-		return fmt.Errorf("proxy instance %q not found", sshProxyInstanceName)
+		return fmt.Errorf("proxy instance %q not found", SSHProxyInstanceName)
 	}
 	log.Printf("Found proxy instance %q", bastion)
 
@@ -130,20 +130,20 @@ func setupBastion(project string, instanceGroups []*ig, sshProxyInstanceName str
 	return nil
 }
 
-func setKubeShhBastionEnv(project, zone, sshProxyInstanceName string) error {
+func setKubeShhBastionEnv(project, zone, SSHProxyInstanceName string) error {
 	value, err := exec.Output(exec.Command(
 		"gcloud", "compute", "instances", "describe",
-		sshProxyInstanceName,
+		SSHProxyInstanceName,
 		"--project="+project,
 		"--zone="+zone,
 		"--format=get(networkInterfaces[0].accessConfigs[0].natIP)"))
 	if err != nil {
 		return fmt.Errorf("failed to get the external IP address of the '%s' instance: %w",
-			sshProxyInstanceName, err)
+			SSHProxyInstanceName, err)
 	}
 	address := strings.TrimSpace(string(value))
 	if address == "" {
-		return fmt.Errorf("instance '%s' doesn't have an external IP address", sshProxyInstanceName)
+		return fmt.Errorf("instance '%s' doesn't have an external IP address", SSHProxyInstanceName)
 	}
 	address += ":22"
 	if err := os.Setenv("KUBE_SSH_BASTION", address); err != nil {
