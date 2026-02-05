@@ -28,4 +28,5 @@ type NetworkOptions struct {
 	SshProxyInstanceName         string   `flag:"~ssh-proxy-instance-name" desc:"If set, will result in proxing the ssh connections via the provided instance name while running tests. It works only with one project and one cluster."`
 
 	RemoveNetwork bool `flag:"~remove-network" desc:"At the end of the test remove non-default network that was used by cluster. The 'default' network is never deleted. Defaults to true if not provided."`
+	CreateNat     bool `flag:"~create-nat" desc:"Configure Cloud NAT allowing outbound connections in cluster with private nodes."`
 }

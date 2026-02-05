@@ -17,6 +17,7 @@ limitations under the License.
 package deployer
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -55,13 +56,27 @@ func (d *Deployer) Down() error {
 		klog.V(1).Infof("Deleted %d network firewall rules", numDeletedFWRules)
 	}
 
-	if err := d.TeardownNetwork(); err != nil {
-		return err
+	errCleanNat := d.CleanupNat()
+	if errCleanNat != nil {
+		klog.Errorf("Error cleaning up NAT: %v", errCleanNat)
 	}
-	if err := d.DeleteSubnets(d.retryCount); err != nil {
-		return err
+
+	errTeardownNetwork := d.TeardownNetwork()
+	if errTeardownNetwork != nil {
+		klog.Errorf("Error tearing down network: %v", errTeardownNetwork)
 	}
-	return d.DeleteNetwork()
+
+	errDeleteSubnets := d.DeleteSubnets(d.retryCount)
+	if errDeleteSubnets != nil {
+		klog.Errorf("Error deleting subnets: %v", errDeleteSubnets)
+	}
+
+	errDeleteNetwork := d.DeleteNetwork()
+	if errDeleteNetwork != nil {
+		klog.Errorf("Error deleting network: %v", errDeleteNetwork)
+	}
+
+	return errors.Join(errCleanFirewalls, errCleanNat, errTeardownNetwork, errDeleteSubnets, errDeleteNetwork)
 }
 
 func (d *Deployer) DeleteClusters(retryCount int) {

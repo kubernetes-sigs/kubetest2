@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestClusterVersion(t *testing.T) {
@@ -151,9 +152,9 @@ func TestBuildExtraNodePoolOptions(t *testing.T) {
 			expectedError: "%!s(<nil>)",
 		},
 		{
-			name:          "num-nodes not set",
-			np:            "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type",
-			expectedError: "num-nodes must be > 0",
+			name:          "num-nodes less than 0",
+			np:            "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type&num-nodes=-1",
+			expectedError: "num-nodes must be a positive integer, got -1",
 		},
 		{
 			name:          "undefined name",
@@ -184,8 +185,8 @@ func TestBuildExtraNodePoolOptions(t *testing.T) {
 			if err != nil {
 				return
 			}
-
-			if !cmp.Equal(enp, tc.expectedNodepool) {
+			sorter := cmpopts.SortSlices(func(a, b string) bool { return a < b })
+			if !cmp.Equal(enp, tc.expectedNodepool, sorter) {
 				t.Logf("unexpected extra nodepool, got(+), want(-): %s",
 					cmp.Diff(tc.expectedNodepool, enp))
 				t.Fail()
