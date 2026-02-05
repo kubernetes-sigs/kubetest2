@@ -118,9 +118,11 @@ func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName str
 	log.Printf("Found proxy instance %q", bastion)
 
 	log.Printf("Adding NAT access config if not present")
-	runWithNoOutput(exec.Command("gcloud", "compute", "instances", "add-access-config", bastion,
+	if err := runWithNoOutput(exec.Command("gcloud", "compute", "instances", "add-access-config", bastion,
 		"--zone="+zone,
-		"--project="+project))
+		"--project="+project)); err != nil {
+		log.Printf("error adding NAT access config: %s", execError(err))
+	}
 
 	// Set KUBE_SSH_BASTION env parameter
 	err := setKubeShhBastionEnv(project, zone, bastion)
