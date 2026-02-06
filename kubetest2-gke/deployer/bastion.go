@@ -17,7 +17,6 @@ limitations under the License.
 package deployer
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -27,52 +26,28 @@ import (
 )
 
 // setupBastion prepares KUBE_SSH_BASTION env variable with the hostname of some public node of the cluster that could be sshed into. Some Kubernetes e2e tests need it.
-// setupBastion supports only one project with only one cluster. It returns error if this condition is not met.
 func (d *Deployer) setupBastion() error {
 	if d.SSHProxyInstanceName == "" {
 		return nil
 	}
 
-	if len(d.instanceGroups) == 0 {
-		return errors.New("instanceGroups map is empty, expected exactly one project")
-	}
-	if len(d.instanceGroups) > 1 {
-		return fmt.Errorf("instanceGroups map contains multiple projects (%d), expected exactly one", len(d.instanceGroups))
-	}
-
-	var project string
-	var clusterMap map[string][]*ig
-
-	// This loop runs only once due to the length check above
-	for projectName, cm := range d.instanceGroups {
-		project = projectName
-		clusterMap = cm
-	}
+	hostProject := d.Projects[0]
+	clusterMap := d.instanceGroups[hostProject]
 
 	if clusterMap == nil {
-		return fmt.Errorf("instanceGroups map has nil cluster map for project %s", project)
-	}
-	if len(clusterMap) == 0 {
-		return errors.New("cluster map is empty, expected exactly one cluster")
-	}
-	if len(clusterMap) > 1 {
-		return fmt.Errorf("cluster map contains multiple clusters (%d), expected exactly one", len(clusterMap))
+		return fmt.Errorf("instanceGroups map has nil cluster map for project %s", hostProject)
 	}
 
-	var instanceGroups []*ig
-	// This loop runs only once
-	for _, slice := range clusterMap {
-		instanceGroups = slice
+	for _, instanceGroups := range clusterMap {
+		if trySetupBastion(hostProject, instanceGroups, d.SSHProxyInstanceName) {
+			return nil
+		}
 	}
 
-	if err := setupBastion(project, instanceGroups, d.SSHProxyInstanceName); err != nil {
-		return err
-	}
-
-	return nil
+	return fmt.Errorf("Failed to setup bastion. Refer to logs above for more information.")
 }
 
-func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName string) error {
+func trySetupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName string) bool {
 	var filtersToTry []string
 	// Use exact name first, VM does not have to belong to the cluster
 	exactFilter := "name=" + SSHProxyInstanceName
@@ -98,7 +73,8 @@ func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName str
 			"--format=value(name,zone)",
 			"--project="+project))
 		if err != nil {
-			return fmt.Errorf("listing instances failed: %s", execError(err))
+			log.Printf("listing instances failed: %s", execError(err))
+			return false
 		}
 		if len(output) == 0 {
 			continue
@@ -107,13 +83,15 @@ func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName str
 		// Proxy instance found
 		fields := strings.Split(strings.TrimSpace(string(instances[0])), "\t")
 		if len(fields) != 2 {
-			return fmt.Errorf("error parsing instances list output %q", output)
+			log.Printf("error parsing instances list output %q", output)
+			return false
 		}
 		bastion, zone = fields[0], fields[1]
 		break
 	}
 	if bastion == "" {
-		return fmt.Errorf("proxy instance %q not found", SSHProxyInstanceName)
+		log.Printf("proxy instance %q not found", SSHProxyInstanceName)
+		return false
 	}
 	log.Printf("Found proxy instance %q", bastion)
 
@@ -127,9 +105,10 @@ func setupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName str
 	// Set KUBE_SSH_BASTION env parameter
 	err := setKubeShhBastionEnv(project, zone, bastion)
 	if err != nil {
-		return fmt.Errorf("setting KUBE_SSH_BASTION variable failed: %s", execError(err))
+		log.Printf("setting KUBE_SSH_BASTION variable failed: %s", execError(err))
+		return false
 	}
-	return nil
+	return true
 }
 
 func setKubeShhBastionEnv(project, zone, SSHProxyInstanceName string) error {
