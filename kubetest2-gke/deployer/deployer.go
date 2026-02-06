@@ -215,6 +215,7 @@ func NewDeployer(opts types.Options) *Deployer {
 			UseCustomSubnetMode:   false,
 			RemoveNetwork:         true,
 			EnableULAInternalIPv6: false,
+			SSHProxyInstanceName:  "",
 		},
 		ClusterOptions: &options.ClusterOptions{
 			Environment: "prod",
