@@ -47,7 +47,7 @@ func Main(deployerName string, newDeployer types.NewDeployer) {
 
 // RealMain contains nearly all of the application logic / control flow
 // beyond the command line boilerplate
-func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result error) {
+func RealMain(opts types.Options, d types.Deployer, testers types.Testers) (result error) {
 	/*
 		Now for the core kubetest2 logic:
 		 - build
@@ -172,13 +172,11 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
-	// and finally test, if a test was specified
+	// and finally test, if tests were specified
 	if opts.ShouldTest() {
-		test := exec.Command(tester.TesterPath, tester.TesterArgs...)
-		exec.InheritOutput(test)
-
+		// Build common environment for all testers
 		envsForTester := os.Environ()
-		// We expose both ARIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
+		// We expose both ARTIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
 		// also add run_dir to $PATH for locally built binaries
 		updatedPath := opts.RunDir() + string(filepath.ListSeparator) + os.Getenv("PATH")
 		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "PATH", updatedPath))
@@ -192,24 +190,36 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 			if kconfig, err := dWithKubeconfig.Kubeconfig(); err == nil {
 				envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBECONFIG", kconfig))
 			}
-
-		}
-		test.SetEnv(envsForTester...)
-
-		var testErr error
-		if !opts.SkipTestJUnitReport() {
-			testErr = writer.WrapStep("Test", test.Run)
-		} else {
-			testErr = test.Run()
 		}
 
-		if dWithPostTester, ok := d.(types.DeployerWithPostTester); ok {
-			if err := dWithPostTester.PostTest(testErr); err != nil {
-				return err
+		// Run each tester in sequence
+		for i, tester := range testers {
+			// Use "Test" for single tester, "Test-<name>" for multiple testers
+			testerName := "Test"
+			if len(testers) > 1 {
+				testerName = fmt.Sprintf("Test-%s", tester.TesterName)
 			}
-		}
-		if testErr != nil {
-			return testErr
+			klog.Infof("Running tester %d (%s): %s", i+1, tester.TesterName, tester.TesterPath)
+
+			test := exec.Command(tester.TesterPath, tester.TesterArgs...)
+			exec.InheritOutput(test)
+			test.SetEnv(envsForTester...)
+
+			var testErr error
+			if !opts.SkipTestJUnitReport() {
+				testErr = writer.WrapStep(testerName, test.Run)
+			} else {
+				testErr = test.Run()
+			}
+
+			if dWithPostTester, ok := d.(types.DeployerWithPostTester); ok {
+				if err := dWithPostTester.PostTest(testErr); err != nil {
+					return err
+				}
+			}
+			if testErr != nil {
+				return testErr
+			}
 		}
 	}
 

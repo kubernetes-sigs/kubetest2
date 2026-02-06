@@ -104,7 +104,7 @@ func runE(cmd *cobra.Command, args []string) error {
 	}
 
 	env := os.Environ()
-	version := fmt.Sprintf("kubetest2 version %s", GitTag)
+	version := fmt.Sprintf("v2-%s", GitTag)
 	env = append(env, fmt.Sprintf("KUBETEST2_VERSION=%s", version))
 	return process.Exec(deployer, args[1:], env)
 }

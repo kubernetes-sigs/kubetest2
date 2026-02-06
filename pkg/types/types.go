@@ -142,6 +142,10 @@ type DeployerWithFinish interface {
 // Tester defines the "interface" between kubetest2 and a tester
 // The tester is executed as a separate binary during the Test() phase
 type Tester struct {
+	TesterName string
 	TesterPath string
 	TesterArgs []string
 }
+
+// Testers is a slice of Tester configurations, allowing multiple testers to be run
+type Testers []Tester

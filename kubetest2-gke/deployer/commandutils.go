@@ -58,15 +58,6 @@ func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
 		return err
 	}
 
-	if err := runWithOutput(exec.RawCommand("gcloud config set project " + projectID)); err != nil {
-		return fmt.Errorf("failed to set project %s: %w", projectID, err)
-	}
-
-	// gcloud creds may have changed
-	if err := activateServiceAccount(d.GCPServiceAccount); err != nil {
-		return err
-	}
-
 	if !d.GCPSSHKeyIgnored {
 		// Ensure ssh keys exist
 		klog.V(1).Info("Checking existing of GCP ssh keys...")
@@ -82,14 +73,6 @@ func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
 
 	//TODO(RonWeber): kubemark
 	return nil
-}
-
-// Activate service account if set or do nothing.
-func activateServiceAccount(path string) error {
-	if path == "" {
-		return nil
-	}
-	return runWithOutput(exec.RawCommand("gcloud auth activate-service-account --key-file=" + path))
 }
 
 // Get the project number for the given project ID.
