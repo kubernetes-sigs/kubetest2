@@ -32,25 +32,11 @@ func (d *Deployer) setupBastion() error {
 	}
 
 	hostProject := d.Projects[0]
-	clusterMap := d.instanceGroups[hostProject]
+	instanceGroups := flattenInstanceGroups(d.instanceGroups[hostProject])
 
-	if clusterMap == nil {
-		return fmt.Errorf("instanceGroups map has nil cluster map for project %s", hostProject)
-	}
-
-	for _, instanceGroups := range clusterMap {
-		if trySetupBastion(hostProject, instanceGroups, d.SSHProxyInstanceName) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("Failed to setup bastion. Refer to logs above for more information.")
-}
-
-func trySetupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName string) bool {
 	var filtersToTry []string
 	// Use exact name first, VM does not have to belong to the cluster
-	exactFilter := "name=" + SSHProxyInstanceName
+	exactFilter := "name=" + d.SSHProxyInstanceName
 	filtersToTry = append(filtersToTry, exactFilter)
 	// As a fallback - use proxy instance name as a regex but check only cluster nodes
 	var igFilters []string
@@ -60,7 +46,7 @@ func trySetupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName 
 	}
 	// Match VM name or wildcard passed by kubetest parameters
 	fuzzyFilter := fmt.Sprintf("(name ~ %s) AND (%s)",
-		SSHProxyInstanceName,
+		d.SSHProxyInstanceName,
 		strings.Join(igFilters, " OR "))
 	filtersToTry = append(filtersToTry, fuzzyFilter)
 
@@ -71,10 +57,9 @@ func trySetupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName 
 		output, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
 			"--filter="+filter,
 			"--format=value(name,zone)",
-			"--project="+project))
+			"--project="+hostProject))
 		if err != nil {
-			log.Printf("listing instances failed: %s", execError(err))
-			return false
+			return fmt.Errorf("listing instances failed: %s", execError(err))
 		}
 		if len(output) == 0 {
 			continue
@@ -83,32 +68,37 @@ func trySetupBastion(project string, instanceGroups []*ig, SSHProxyInstanceName 
 		// Proxy instance found
 		fields := strings.Split(strings.TrimSpace(string(instances[0])), "\t")
 		if len(fields) != 2 {
-			log.Printf("error parsing instances list output %q", output)
-			return false
+			return fmt.Errorf("error parsing instances list output %q", output)
 		}
 		bastion, zone = fields[0], fields[1]
 		break
 	}
 	if bastion == "" {
-		log.Printf("proxy instance %q not found", SSHProxyInstanceName)
-		return false
+		return fmt.Errorf("proxy instance %q not found", d.SSHProxyInstanceName)
 	}
 	log.Printf("Found proxy instance %q", bastion)
 
 	log.Printf("Adding NAT access config if not present")
 	if err := runWithNoOutput(exec.Command("gcloud", "compute", "instances", "add-access-config", bastion,
 		"--zone="+zone,
-		"--project="+project)); err != nil {
+		"--project="+hostProject)); err != nil {
 		log.Printf("error adding NAT access config: %s", execError(err))
 	}
 
 	// Set KUBE_SSH_BASTION env parameter
-	err := setKubeShhBastionEnv(project, zone, bastion)
+	err := setKubeShhBastionEnv(hostProject, zone, bastion)
 	if err != nil {
-		log.Printf("setting KUBE_SSH_BASTION variable failed: %s", execError(err))
-		return false
+		return fmt.Errorf("setting KUBE_SSH_BASTION variable failed: %s", execError(err))
 	}
-	return true
+	return nil
+}
+
+func flattenInstanceGroups(clusterMap map[string][]*ig) []*ig {
+	var instanceGroups []*ig
+	for _, instanceGroup := range clusterMap {
+		instanceGroups = append(instanceGroups, instanceGroup...)
+	}
+	return instanceGroups
 }
 
 func setKubeShhBastionEnv(project, zone, SSHProxyInstanceName string) error {
