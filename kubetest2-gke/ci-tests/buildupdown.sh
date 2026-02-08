@@ -43,30 +43,44 @@ function main() {
     shift
   done
 
-  NUM_CLUSTERS=0
   case "${CLUSTER_TOPOLOGY}" in
     "singlecluster")
-      NUM_CLUSTERS=1
+      kubetest2 gke \
+        -v 2 \
+        --boskos-resource-type gce-project \
+        --num-clusters=1 \
+        --num-nodes 1 \
+        --cluster-version=1.34 \
+        --zone us-central1-c \
+        --network ci-tests-network \
+        --up \
+        --down \
+        --pre-test-cmd="${REPO_ROOT}/kubetest2-gke/ci-tests/test.sh" \
+        --test=ginkgo \
+        -- \
+        --test-package-url=https://dl.k8s.io \
+        --test-package-marker=stable-1.34.txt \
+        --focus-regex='Secrets should be consumable via the environment' \
+        --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
+        --timeout=30m
       ;;
     "multicluster")
-      NUM_CLUSTERS=2
+      kubetest2 gke \
+        -v 2 \
+        --boskos-resource-type gce-project \
+        --num-clusters=2 \
+        --num-nodes 1 \
+        --zone us-central1-c,us-west1-a,us-east1-b \
+        --network ci-tests-network \
+        --up \
+        --down \
+        --test=exec -- "${REPO_ROOT}/kubetest2-gke/ci-tests/test.sh"
       ;;
     *)
       echo "Invalid cluster topology ${CLUSTER_TOPOLOGY}"
       exit 1
       ;;
   esac
-
-  kubetest2 gke \
-    -v 2 \
-    --boskos-resource-type gce-project \
-    --num-clusters "${NUM_CLUSTERS}" \
-    --num-nodes 1 \
-    --zone us-central1-c,us-west1-a,us-east1-b \
-    --network ci-tests-network \
-    --up \
-    --down \
-    --test=exec -- "${REPO_ROOT}/kubetest2-gke/ci-tests/test.sh"
 }
 
 main "$@"

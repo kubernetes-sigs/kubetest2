@@ -62,12 +62,11 @@ func (d *deployer) Build() error {
 	}
 	klog.V(0).Infof("Build(): build e2e requirements...\n")
 	e2ePath := "test/e2e/e2e.test"
-	kubectlPath := "cmd/kubectl"
 	ginkgoPath := "vendor/github.com/onsi/ginkgo/v2/ginkgo"
 
 	// make sure we have e2e requirements
 	cmd := exec.Command("make", target,
-		fmt.Sprintf("WHAT=%s %s %s", kubectlPath, e2ePath, ginkgoPath))
+		fmt.Sprintf("WHAT=%s %s", e2ePath, ginkgoPath))
 	cmd.SetDir(d.KubeRoot)
 	exec.InheritOutput(cmd)
 	if err := cmd.Run(); err != nil {

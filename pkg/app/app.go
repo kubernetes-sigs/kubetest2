@@ -21,6 +21,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"k8s.io/klog/v2"
@@ -172,28 +173,40 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
+	// build common environment for pre-test-cmd and testers
+	envsForTester := os.Environ()
+	// We expose both ARTIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
+	// also add run_dir to $PATH for locally built binaries
+	updatedPath := opts.RunDir() + string(filepath.ListSeparator) + os.Getenv("PATH")
+	envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "PATH", updatedPath))
+	envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", artifacts.BaseDir()))
+	envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_DIR", opts.RunDir()))
+	envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
+	// If the deployer provides a kubeconfig pass it to the tester
+	// else assumes that it is handled offline by default methods like
+	// ~/.kube/config
+	if dWithKubeconfig, ok := d.(types.DeployerWithKubeconfig); ok {
+		if kconfig, err := dWithKubeconfig.Kubeconfig(); err == nil {
+			envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBECONFIG", kconfig))
+		}
+	}
+
+	// run pre-test-cmd if specified, after deployer up but before tester
+	if len(opts.PreTestCmd()) > 0 {
+		preTestArgs := expandEnv(opts.PreTestCmd())
+		klog.Infof("Running pre-test-cmd: %v", preTestArgs)
+		preTest := exec.Command(preTestArgs[0], preTestArgs[1:]...)
+		exec.InheritOutput(preTest)
+		preTest.SetEnv(envsForTester...)
+		if err := writer.WrapStep("PreTestCmd", preTest.Run); err != nil {
+			return err
+		}
+	}
+
 	// and finally test, if a test was specified
 	if opts.ShouldTest() {
 		test := exec.Command(tester.TesterPath, tester.TesterArgs...)
 		exec.InheritOutput(test)
-
-		envsForTester := os.Environ()
-		// We expose both ARIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
-		// also add run_dir to $PATH for locally built binaries
-		updatedPath := opts.RunDir() + string(filepath.ListSeparator) + os.Getenv("PATH")
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "PATH", updatedPath))
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "ARTIFACTS", artifacts.BaseDir()))
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_DIR", opts.RunDir()))
-		envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBETEST2_RUN_ID", opts.RunID()))
-		// If the deployer provides a kubeconfig pass it to the tester
-		// else assumes that it is handled offline by default methods like
-		// ~/.kube/config
-		if dWithKubeconfig, ok := d.(types.DeployerWithKubeconfig); ok {
-			if kconfig, err := dWithKubeconfig.Kubeconfig(); err == nil {
-				envsForTester = append(envsForTester, fmt.Sprintf("%s=%s", "KUBECONFIG", kconfig))
-			}
-
-		}
 		test.SetEnv(envsForTester...)
 
 		var testErr error
@@ -247,4 +260,18 @@ func writeVersionToMetadataJSON(d types.Deployer) error {
 		return err
 	}
 	return metadataJSON.Close()
+}
+
+// expandEnv expands environment variables in each argument,
+// matching the behavior of kubetest2-tester-exec.
+func expandEnv(args []string) []string {
+	expandedArgs := make([]string, len(args))
+	for i, arg := range args {
+		if strings.Contains(arg, `\$`) {
+			expandedArgs[i] = strings.ReplaceAll(arg, `\$`, `$`)
+		} else {
+			expandedArgs[i] = os.ExpandEnv(arg)
+		}
+	}
+	return expandedArgs
 }

@@ -39,6 +39,9 @@ func (d *deployer) IsUp() (up bool, err error) {
 }
 
 func (d *deployer) Up() error {
+	if d.ClusterName == "" {
+		d.ClusterName = "kind-" + d.commonOptions.RunID()[:4]
+	}
 	args := []string{
 		"create", "cluster",
 		"--name", d.ClusterName,
@@ -60,7 +63,7 @@ func (d *deployer) Up() error {
 		args = append(args, "--kubeconfig", d.KubeconfigPath)
 	}
 
-	klog.V(0).Infof("Up(): creating kind cluster...\n")
+	klog.V(0).Infof("Up(): creating kind cluster with name %s", d.ClusterName)
 	// we want to see the output so use process.ExecJUnit
 	return process.ExecJUnit("kind", args, os.Environ())
 }
