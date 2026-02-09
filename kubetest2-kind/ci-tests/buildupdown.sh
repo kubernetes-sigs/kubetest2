@@ -23,6 +23,7 @@ make install
 make install-deployer-kind
 make install-tester-ginkgo
 
+REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${GOPATH}/src/k8s.io/kubernetes"
 
 # kubetest2 against k/k
@@ -31,6 +32,7 @@ kubetest2 kind \
     --build \
     --up \
     --down \
+    --pre-test-cmd="${REPO_ROOT}/kubetest2-kind/ci-tests/test.sh" \
     --test=ginkgo \
     -- \
     --focus-regex='Secrets should be consumable via the environment' \

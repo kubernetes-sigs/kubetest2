@@ -191,6 +191,7 @@ type options struct {
 	skipTestJUnitReport bool
 	runid               string
 	rundirInArtifacts   bool
+	preTestCmd          []string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -211,6 +212,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	}
 	flags.StringVar(&o.runid, "run-id", defaultRunID, "unique identifier for a kubetest2 run")
 	flags.BoolVar(&o.rundirInArtifacts, "rundir-in-artifacts", false, `if true, the test binaries and run specific metadata will be in the ARTIFACTS`)
+	flags.StringSliceVar(&o.preTestCmd, "pre-test-cmd", nil, "command and args to run after the deployer (up) but before the tester, inherits the deployer environment (e.g. --pre-test-cmd=kubectl,apply,-f,foo.yaml)")
 }
 
 // assert that options implements deployer options
@@ -265,6 +267,10 @@ func subRunDir() string {
 
 func (o *options) RundirInArtifacts() bool {
 	return o.rundirInArtifacts
+}
+
+func (o *options) PreTestCmd() []string {
+	return o.preTestCmd
 }
 
 // metadata used for CLI usage string
