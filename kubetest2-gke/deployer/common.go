@@ -159,6 +159,24 @@ func (d *Deployer) Initialize() error {
 		klog.V(1).Infof("parsed extra subnet spec %q: %v", s, es)
 	}
 
+	// build extra network specs.
+	for i, n := range d.ExtraNetwork {
+		// defaults
+		en := &extraNetwork{
+			Index:     i,
+			Name:      fmt.Sprintf("extra-network-%d", i),
+			ExtraArgs: []string{},
+		}
+
+		if err := buildExtraNetworkOptions(n, en); err != nil {
+			return fmt.Errorf("invalid extra network spec %q", n)
+		}
+
+		d.extraNetworkSpecs = append(d.extraNetworkSpecs, en)
+
+		klog.V(1).Infof("parsed extra network spec %q: %v", n, en)
+	}
+
 	// Prepare the GCP environment for the following operations.
 	return d.PrepareGcpIfNeeded(d.Projects[0])
 }
@@ -265,6 +283,35 @@ func validateExtraSubnetOptions(es *extraSubnet) error {
 
 	if es.Range == "" {
 		return fmt.Errorf("range required")
+	}
+
+	return nil
+}
+
+func buildExtraNetworkOptions(n string, en *extraNetwork) error {
+	values, err := url.ParseQuery(n)
+	if err != nil {
+		return err
+	}
+	for k := range values {
+		switch k {
+		case "name":
+			en.Name = values.Get("name")
+		default:
+			v := values.Get(k)
+			if v == "" {
+				en.ExtraArgs = append(en.ExtraArgs, fmt.Sprintf("--%v", k))
+			} else {
+				en.ExtraArgs = append(en.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
+			}
+		}
+	}
+	return validateExtraNetworkOptions(en)
+}
+
+func validateExtraNetworkOptions(en *extraNetwork) error {
+	if en.Name == "" {
+		return fmt.Errorf("name required")
 	}
 
 	return nil

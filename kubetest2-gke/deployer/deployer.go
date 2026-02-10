@@ -113,6 +113,12 @@ type extraSubnet struct {
 	ExtraArgs []string
 }
 
+type extraNetwork struct {
+	Index     int
+	Name      string
+	ExtraArgs []string
+}
+
 type Deployer struct {
 	// generic parts
 	Kubetest2CommonOptions types.Options
@@ -135,6 +141,9 @@ type Deployer struct {
 
 	// extra subnets to create
 	extraSubnetSpecs []*extraSubnet
+
+	// extra networks to create
+	extraNetworkSpecs []*extraNetwork
 
 	kubecfgPath  string
 	testPrepared bool

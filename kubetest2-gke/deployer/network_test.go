@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 func TestPrivateClusterArgs(t *testing.T) {
@@ -215,11 +216,65 @@ func TestBuildExtraSubnetOptions(t *testing.T) {
 				return
 			}
 
-			if !cmp.Equal(es, tc.expectedSubnet) {
-				fmt.Printf("es: %v\n", es)
-				fmt.Printf("tc.expectedSubnet: %v\n", tc.expectedSubnet)
+			sorter := cmpopts.SortSlices(func(a, b string) bool { return a < b })
+			if !cmp.Equal(es, tc.expectedSubnet, sorter) {
 				t.Logf("unexpected extra subnet, got(+), want(-): %s",
 					cmp.Diff(tc.expectedSubnet, es))
+				t.Fail()
+			}
+		})
+
+	}
+}
+
+func TestBuildExtraNetworkOptions(t *testing.T) {
+	testCases := []struct {
+		name            string
+		n               string
+		expectedNetwork extraNetwork
+		expectedError   string
+	}{
+		{
+			name: "valid network",
+			n:    "name=extra-network",
+			expectedNetwork: extraNetwork{
+				Name: "extra-network",
+			},
+			expectedError: "%!s(<nil>)",
+		},
+		{
+			name:          "undefined name",
+			n:             "",
+			expectedError: "name required",
+		},
+		{
+			name: "valid network with extra flags",
+			n:    "name=extra-network&subnet-mode=custom&enable-ula-internal-ipv6",
+			expectedNetwork: extraNetwork{
+				Name:      "extra-network",
+				ExtraArgs: []string{"--subnet-mode=custom", "--enable-ula-internal-ipv6"},
+			},
+			expectedError: "%!s(<nil>)",
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			en := extraNetwork{}
+			err := buildExtraNetworkOptions(tc.n, &en)
+			if fmt.Sprintf("%s", err) != tc.expectedError {
+				t.Logf("unexpected error: want %q, got %q", tc.expectedError, fmt.Errorf("%s", err))
+				t.Fail()
+			}
+			if err != nil {
+				return
+			}
+
+			sorter := cmpopts.SortSlices(func(a, b string) bool { return a < b })
+			if !cmp.Equal(en, tc.expectedNetwork, sorter) {
+				t.Logf("unexpected extra network, got(+), want(-): %s",
+					cmp.Diff(tc.expectedNetwork, en))
 				t.Fail()
 			}
 		})

@@ -88,6 +88,15 @@ func (d *Deployer) VerifyNetworkFlags() error {
 		}
 	}
 
+	for _, n := range d.ExtraNetwork {
+		// defaults
+		en := &extraNetwork{}
+
+		if err := buildExtraNetworkOptions(n, en); err != nil {
+			return fmt.Errorf("invalid extra network spec %q: %v", n, err)
+		}
+	}
+
 	return d.internalizeNetworkFlags(numProjects)
 }
 
@@ -188,6 +197,20 @@ func (d *Deployer) CreateNetwork() error {
 			return err
 		}
 	}
+
+	for _, en := range d.extraNetworkSpecs {
+		createNetworkCommand := []string{
+			"gcloud", "compute", "networks", "create",
+			en.Name,
+			"--project=" + d.Projects[0],
+		}
+		createNetworkCommand = append(createNetworkCommand, en.ExtraArgs...)
+		output, err := runWithOutputAndReturn(exec.Command(createNetworkCommand[0], createNetworkCommand[1:]...))
+		if err != nil {
+			return fmt.Errorf("error creating network %q: %v, output: %q", en.Name, err, output)
+		}
+	}
+
 	return nil
 }
 
@@ -276,12 +299,29 @@ func (d *Deployer) DeleteSubnets(retryCount int) error {
 }
 
 func (d *Deployer) DeleteNetwork() error {
-	if d.Network == "default" || !d.RemoveNetwork {
-		return nil
+	if d.Network != "default" && d.RemoveNetwork {
+		if err := runWithOutput(exec.Command("gcloud", "compute", "networks", "delete",
+			d.Network,
+			"--project="+d.Projects[0],
+			"--quiet",
+		)); err != nil {
+			return err
+		}
 	}
 
-	return runWithOutput(exec.Command("gcloud", "compute", "networks", "delete", "-q", d.Network,
-		"--project="+d.Projects[0], "--quiet"))
+	for _, en := range d.extraNetworkSpecs {
+		deleteNetworkCommand := []string{
+			"gcloud", "compute", "networks", "delete", en.Name,
+			"--project=" + d.Projects[0],
+			"--quiet",
+		}
+		output, err := runWithOutputAndReturn(exec.Command(deleteNetworkCommand[0], deleteNetworkCommand[1:]...))
+		if err != nil {
+			return fmt.Errorf("error deleting network %q: %v, output: %q", en.Name, err, output)
+		}
+	}
+
+	return nil
 }
 
 func transformNetworkName(projects []string, network string) string {
