@@ -224,11 +224,12 @@ func buildExtraNodePoolOptions(np string, enp *extraNodepool) error {
 			}
 			enp.NumNodes = n
 		default:
-			v := values.Get(k)
-			if v == "" {
-				enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v", k))
-			} else {
-				enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v=%v", k, values.Get(k)))
+			for _, v := range values[k] {
+				if v == "" {
+					enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v", k))
+				} else {
+					enp.ExtraArgs = append(enp.ExtraArgs, fmt.Sprintf("--%v=%v", k, v))
+				}
 			}
 		}
 	}
