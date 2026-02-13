@@ -75,8 +75,13 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 			}
 		}
 
+		logDumpScript := "./cluster/log-dump/log-dump.sh"
+		if envOverride := os.Getenv("LOG_DUMP_SCRIPT_PATH"); envOverride != "" {
+			logDumpScript = envOverride
+		}
+
 		// Generate the log-dump.sh command-line
-		dumpCmd := fmt.Sprintf("./cluster/log-dump/log-dump.sh '%s'", d.localLogsDir)
+		dumpCmd := fmt.Sprintf("%s '%s'", logDumpScript, d.localLogsDir)
 		if d.gcsLogsDir != "" {
 			dumpCmd += " " + d.gcsLogsDir
 		}
