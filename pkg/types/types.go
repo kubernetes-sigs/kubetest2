@@ -62,6 +62,8 @@ type Options interface {
 	RunDir() string
 	// if this is true, kubetest2 will copy the RunDIR to ARTIFACTS
 	RundirInArtifacts() bool
+	// PostTestCmd returns a command (and args) to run after the tester
+	PostTestCmd() []string
 	// PreTestCmd returns a command (and args) to run after the deployer but before the tester
 	PreTestCmd() []string
 }
