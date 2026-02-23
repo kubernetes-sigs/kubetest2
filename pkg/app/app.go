@@ -173,7 +173,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
-	// build common environment for pre-test-cmd and testers
+	// build common environment for pre-test-cmd, post-test-cmd and testers
 	envsForTester := os.Environ()
 	// We expose both ARTIFACTS and KUBETEST2_RUN_DIR so we can more granular about caching vs output in future.
 	// also add run_dir to $PATH for locally built binaries
@@ -203,19 +203,26 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
+	var postTestErr, testErr error
 	// and finally test, if a test was specified
 	if opts.ShouldTest() {
 		test := exec.Command(tester.TesterPath, tester.TesterArgs...)
 		exec.InheritOutput(test)
 		test.SetEnv(envsForTester...)
 
-		var testErr error
 		if !opts.SkipTestJUnitReport() {
 			testErr = writer.WrapStep("Test", test.Run)
 		} else {
 			testErr = test.Run()
 		}
+	}
 
+	// run post-test-cmd if specified, after the tester
+	if err := runPostTestCmd(opts.PostTestCmd(), envsForTester, writer); err != nil {
+		postTestErr = err
+	}
+
+	if opts.ShouldTest() {
 		if dWithPostTester, ok := d.(types.DeployerWithPostTester); ok {
 			if err := dWithPostTester.PostTest(testErr); err != nil {
 				return err
@@ -226,7 +233,7 @@ func RealMain(opts types.Options, d types.Deployer, tester types.Tester) (result
 		}
 	}
 
-	return nil
+	return postTestErr
 }
 
 func writeVersionToMetadataJSON(d types.Deployer) error {
@@ -274,4 +281,18 @@ func expandEnv(args []string) []string {
 		}
 	}
 	return expandedArgs
+}
+
+func runPostTestCmd(postTestCmd []string, envs []string, writer *metadata.Writer) error {
+	if len(postTestCmd) > 0 {
+		postTestArgs := expandEnv(postTestCmd)
+		klog.Infof("Running post-test-cmd: %v", postTestArgs)
+		postTest := exec.Command(postTestArgs[0], postTestArgs[1:]...)
+		exec.InheritOutput(postTest)
+		postTest.SetEnv(envs...)
+		if err := writer.WrapStep("PostTestCmd", postTest.Run); err != nil {
+			return err
+		}
+	}
+	return nil
 }

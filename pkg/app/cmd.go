@@ -126,6 +126,10 @@ func runE(
 		}
 	})
 
+	// Reset slice flags to avoid duplication during the second parse.
+	// Since stringSlice appends, parsing the same args twice results in doubled values.
+	opts.preTestCmd = nil
+	opts.postTestCmd = nil
 	// parse the combined deployer flags and kubetest2 flags
 	allFlags := pflag.NewFlagSet(deployerName, pflag.ContinueOnError)
 	allFlags.AddFlagSet(kubetest2Flags)
@@ -192,6 +196,7 @@ type options struct {
 	runid               string
 	rundirInArtifacts   bool
 	preTestCmd          []string
+	postTestCmd         []string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -212,6 +217,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	}
 	flags.StringVar(&o.runid, "run-id", defaultRunID, "unique identifier for a kubetest2 run")
 	flags.BoolVar(&o.rundirInArtifacts, "rundir-in-artifacts", false, `if true, the test binaries and run specific metadata will be in the ARTIFACTS`)
+	flags.StringSliceVar(&o.postTestCmd, "post-test-cmd", nil, "command and args to run after the tester, inherits the deployer environment (e.g. --post-test-cmd=post-test.sh,--flag,value)")
 	flags.StringSliceVar(&o.preTestCmd, "pre-test-cmd", nil, "command and args to run after the deployer (up) but before the tester, inherits the deployer environment (e.g. --pre-test-cmd=kubectl,apply,-f,foo.yaml)")
 }
 
@@ -267,6 +273,10 @@ func subRunDir() string {
 
 func (o *options) RundirInArtifacts() bool {
 	return o.rundirInArtifacts
+}
+
+func (o *options) PostTestCmd() []string {
+	return o.postTestCmd
 }
 
 func (o *options) PreTestCmd() []string {
