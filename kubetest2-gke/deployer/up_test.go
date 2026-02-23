@@ -152,6 +152,24 @@ func TestBuildExtraNodePoolOptions(t *testing.T) {
 			expectedError: "%!s(<nil>)",
 		},
 		{
+			name: "valid nodepool with extra repeated flags",
+			np:   "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type&num-nodes=2&disk-size=30GB&no-enable-autoupgrade&additional-node-network=network%3Dnet0%2Csubnetwork%3Dnet0-sub&additional-node-network=network%3Dnet1%2Csubnetwork%3Dnet1-sub&additional-node-network=network%3Dnet2%2Csubnetwork%3Dnet2-sub",
+			expectedNodepool: extraNodepool{
+				Name:        "extra-nodepool",
+				MachineType: "test-machine-type",
+				ImageType:   "test-image-type",
+				NumNodes:    2,
+				ExtraArgs: []string{
+					"--disk-size=30GB",
+					"--no-enable-autoupgrade",
+					"--additional-node-network=network=net0,subnetwork=net0-sub",
+					"--additional-node-network=network=net1,subnetwork=net1-sub",
+					"--additional-node-network=network=net2,subnetwork=net2-sub",
+				},
+			},
+			expectedError: "%!s(<nil>)",
+		},
+		{
 			name:          "num-nodes less than 0",
 			np:            "name=extra-nodepool&machine-type=test-machine-type&image-type=test-image-type&num-nodes=-1",
 			expectedError: "num-nodes must be a positive integer, got -1",
