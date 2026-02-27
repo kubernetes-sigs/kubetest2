@@ -34,8 +34,7 @@ type Krel struct {
 
 var _ Stager = &Krel{}
 
-// Stage stages the build to GCS using
-// essentially release/push-build.sh --bucket=B --ci --gcs-suffix=S --noupdatelatest
+// Stage stages the build to GCS using krel push.
 func (rpb *Krel) Stage(version string) error {
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
