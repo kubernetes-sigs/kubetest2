@@ -211,6 +211,7 @@ func NewDeployer(opts types.Options) *Deployer {
 		},
 		CommonOptions: &options.CommonOptions{
 			GCPSSHKeyIgnored: true,
+			DumpConfigMaps:   "[]",
 		},
 		ProjectOptions: &options.ProjectOptions{
 			BoskosLocation:                 defaultBoskosLocation,

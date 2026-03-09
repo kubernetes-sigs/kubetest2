@@ -17,12 +17,21 @@ limitations under the License.
 package deployer
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
+
+type configMap struct {
+	Name      string
+	Namespace string
+	DataKey   string
+}
 
 // DumpClusterLogs for GKE generates a small script that wraps
 // log-dump.sh with the appropriate shell-fu to get the cluster
@@ -95,6 +104,48 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		if err := runWithOutput(cmd); err != nil {
 			return err
 		}
+	}
+
+	if err := dumpConfigMaps(d.DumpConfigMaps); err != nil {
+		log.Printf("Failed to dump configmaps: %v\n", err)
+	}
+
+	return nil
+}
+
+func dumpConfigMaps(dumpConfigMapsJsonString string) error {
+	var configMaps []configMap
+
+	err := json.Unmarshal([]byte(dumpConfigMapsJsonString), &configMaps)
+	if err != nil {
+		return err
+	}
+
+	// Fetch any ConfigMap data fields that were requested to be dumped
+	var errorMessages []string
+	dumpValues := make(map[string]string)
+	for _, cm := range configMaps {
+		cmd := exec.Command("kubectl", "get", fmt.Sprintf("ConfigMaps/%s", cm.Name), "-n", cm.Namespace, "-o", fmt.Sprintf("jsonpath={.data.%s}", cm.DataKey))
+		log.Printf("Running: %s", cmd)
+		out, err := exec.Output(cmd)
+		if err != nil {
+			errorMessages = append(errorMessages, execError(err))
+			continue
+		}
+		jsonKey := strings.Join([]string{cm.Namespace, cm.Name, cm.DataKey}, ".")
+		dumpValues[jsonKey] = string(out)
+	}
+	if len(errorMessages) > 0 {
+		return fmt.Errorf("errors while dumping ConfigMaps: %s", strings.Join(errorMessages, ", "))
+	}
+
+	jsonDump, err := json.Marshal(dumpValues)
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(filepath.Join(os.Getenv("ARTIFACTS"), "gke-configmap.json"), jsonDump, 0644); err != nil {
+		return err
 	}
 
 	return nil
