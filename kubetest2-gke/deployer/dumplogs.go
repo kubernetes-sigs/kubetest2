@@ -113,10 +113,10 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 	return nil
 }
 
-func dumpConfigMaps(dumpConfigMapsJsonString string) error {
+func dumpConfigMaps(dumpConfigMapsJSONString string) error {
 	var configMaps []configMap
 
-	err := json.Unmarshal([]byte(dumpConfigMapsJsonString), &configMaps)
+	err := json.Unmarshal([]byte(dumpConfigMapsJSONString), &configMaps)
 	if err != nil {
 		return err
 	}
