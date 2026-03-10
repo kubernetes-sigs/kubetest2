@@ -17,12 +17,25 @@ limitations under the License.
 package deployer
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
+
+type configMap struct {
+	Name      string
+	Namespace string
+	DataKey   string
+}
 
 // DumpClusterLogs for GKE generates a small script that wraps
 // log-dump.sh with the appropriate shell-fu to get the cluster
@@ -97,5 +110,73 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		}
 	}
 
+	if err := dumpConfigMaps(d.DumpConfigMaps); err != nil {
+		log.Printf("Failed to dump configmaps: %v\n", err)
+	}
+
 	return nil
+}
+
+func dumpConfigMaps(dumpConfigMapsJSONString string) error {
+	var configMaps []configMap
+	if err := json.Unmarshal([]byte(dumpConfigMapsJSONString), &configMaps); err != nil {
+		return err
+	}
+
+	var errorMessages []string
+	dumpValues := make(map[string]string)
+	ctx := context.Background()
+
+	clientset, err := createClientset()
+	if err != nil {
+		return err
+	}
+
+	for _, cm := range configMaps {
+		kubeCm, err := clientset.CoreV1().ConfigMaps(cm.Namespace).Get(ctx, cm.Name, metav1.GetOptions{})
+		if err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("failed to get %s/%s: %v", cm.Namespace, cm.Name, err))
+			continue
+		}
+
+		val, ok := kubeCm.Data[cm.DataKey]
+		if !ok {
+			errorMessages = append(errorMessages, fmt.Sprintf("key %s not found in %s/%s", cm.DataKey, cm.Namespace, cm.Name))
+			continue
+		}
+
+		jsonKey := strings.Join([]string{cm.Namespace, cm.Name, cm.DataKey}, ".")
+		dumpValues[jsonKey] = val
+	}
+
+	if len(errorMessages) > 0 {
+		return fmt.Errorf("errors while dumping ConfigMaps: %s", strings.Join(errorMessages, "; "))
+	}
+
+	jsonDump, err := json.Marshal(dumpValues)
+	if err != nil {
+		return err
+	}
+
+	outputPath := filepath.Join(os.Getenv("ARTIFACTS"), "gke-configmap.json")
+	return os.WriteFile(outputPath, jsonDump, 0644)
+}
+
+// createClientset initializes a Kubernetes clientset.
+// It tries to use the default kubeconfig file.
+func createClientset() (kubernetes.Interface, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+
+	config, err := kubeConfig.ClientConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get kubernetes config: %w", err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kubernetes clientset: %w", err)
+	}
+	return clientset, nil
 }

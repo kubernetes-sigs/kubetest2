@@ -13,6 +13,8 @@ require (
 	github.com/spf13/pflag v1.0.9
 	golang.org/x/sync v0.16.0
 	google.golang.org/api v0.218.0
+	k8s.io/apimachinery v0.32.2
+	k8s.io/client-go v0.29.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/release v0.18.0
 	sigs.k8s.io/boskos v0.0.0-20250612085457-e9e53220ffb6
@@ -286,8 +288,6 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.29.1 // indirect
-	k8s.io/apimachinery v0.32.2 // indirect
-	k8s.io/client-go v0.29.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
 	modernc.org/libc v1.41.0 // indirect
