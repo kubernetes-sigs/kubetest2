@@ -40,23 +40,38 @@ func TestMergeMetadata(t *testing.T) {
 		"key1": "value1",
 		"key2": "value2",
 	}
-	initialData, _ := json.Marshal(initialMetadata)
-	os.WriteFile(metadataPath, initialData, 0644)
+	initialData, err := json.Marshal(initialMetadata)
+	if err != nil {
+		t.Fatalf("failed to marshal initial metadata: %v", err)
+	}
+	if err := os.WriteFile(metadataPath, initialData, 0644); err != nil {
+		t.Fatalf("failed to write metadata.json: %v", err)
+	}
 
 	source1Path := filepath.Join(tmpDir, "source1.json")
 	source1Metadata := map[string]string{
 		"key2": "new-value2",
 		"key3": "value3",
 	}
-	source1Data, _ := json.Marshal(source1Metadata)
-	os.WriteFile(source1Path, source1Data, 0644)
+	source1Data, err := json.Marshal(source1Metadata)
+	if err != nil {
+		t.Fatalf("failed to marshal source1 metadata: %v", err)
+	}
+	if err := os.WriteFile(source1Path, source1Data, 0644); err != nil {
+		t.Fatalf("failed to write source1.json: %v", err)
+	}
 
 	source2Path := filepath.Join(tmpDir, "source2.json")
 	source2Metadata := map[string]string{
 		"key4": "value4",
 	}
-	source2Data, _ := json.Marshal(source2Metadata)
-	os.WriteFile(source2Path, source2Data, 0644)
+	source2Data, err := json.Marshal(source2Metadata)
+	if err != nil {
+		t.Fatalf("failed to marshal source2 metadata: %v", err)
+	}
+	if err := os.WriteFile(source2Path, source2Data, 0644); err != nil {
+		t.Fatalf("failed to write source2.json: %v", err)
+	}
 
 	d := &Deployer{
 		CommonOptions: &options.CommonOptions{
