@@ -75,7 +75,7 @@ func TestMergeMetadata(t *testing.T) {
 
 	d := &Deployer{
 		CommonOptions: &options.CommonOptions{
-			MetadataSources: source1Path + "," + source2Path,
+			MetadataSources: source1Path + "," + source2Path + ",does_not_exist.json",
 		},
 	}
 

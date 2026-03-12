@@ -149,11 +149,13 @@ func (d *Deployer) mergeMetadata() error {
 		}
 		sourceData, err := os.ReadFile(source)
 		if err != nil {
-			return fmt.Errorf("failed to read metadata source file %s: %w", source, err)
+			log.Printf("failed to read metadata source file %s: %v\n", source, err)
+			continue
 		}
 		var sourceMap map[string]string
 		if err := json.Unmarshal(sourceData, &sourceMap); err != nil {
-			return fmt.Errorf("failed to unmarshal metadata source file %s: %w", source, err)
+			log.Printf("failed to unmarshal metadata source file %s: %v\n", source, err)
+			continue
 		}
 		for k, v := range sourceMap {
 			metadata[k] = v
