@@ -21,4 +21,5 @@ type CommonOptions struct {
 	GCPServiceAccount string `flag:"~gcp-service-account" desc:"Service account to activate before using gcloud."`
 	GCPSSHKeyIgnored  bool   `flag:"~ignore-gcp-ssh-key" desc:"Whether the GCP SSH key should be ignored or not for bringing up the cluster."`
 	DumpConfigMaps    string `flag:"~dump-configmaps" desc:"A JSON description of ConfigMaps to dump as part of gathering cluster logs."`
+	MetadataSources   string `flag:"~metadata-sources" desc:"A comma-separated list of JSON files to merge into metadata.json."`
 }
