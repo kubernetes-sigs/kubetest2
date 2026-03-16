@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
@@ -114,7 +115,59 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		log.Printf("Failed to dump configmaps: %v\n", err)
 	}
 
+	if err := d.mergeMetadata(); err != nil {
+		log.Printf("Failed to merge metadata: %v\n", err)
+	}
+
 	return nil
+}
+
+func (d *Deployer) mergeMetadata() error {
+	if d.MetadataSources == "" {
+		return nil
+	}
+	metadataPath := filepath.Join(artifacts.BaseDir(), "metadata.json")
+
+	// Read existing metadata
+	metadata := make(map[string]string)
+	if _, err := os.Stat(metadataPath); err == nil {
+		data, err := os.ReadFile(metadataPath)
+		if err != nil {
+			return fmt.Errorf("failed to read existing metadata.json: %w", err)
+		}
+		if err := json.Unmarshal(data, &metadata); err != nil {
+			return fmt.Errorf("failed to unmarshal existing metadata.json: %w", err)
+		}
+	}
+
+	// Merge from sources
+	sources := strings.Split(d.MetadataSources, ",")
+	for _, source := range sources {
+		source = strings.TrimSpace(source)
+		if source == "" {
+			continue
+		}
+		sourceData, err := os.ReadFile(source)
+		if err != nil {
+			log.Printf("failed to read metadata source file %s: %v\n", source, err)
+			continue
+		}
+		var sourceMap map[string]string
+		if err := json.Unmarshal(sourceData, &sourceMap); err != nil {
+			log.Printf("failed to unmarshal metadata source file %s: %v\n", source, err)
+			continue
+		}
+		for k, v := range sourceMap {
+			metadata[k] = v
+		}
+	}
+
+	// Write back
+	newData, err := json.MarshalIndent(metadata, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal merged metadata: %w", err)
+	}
+	return os.WriteFile(metadataPath, newData, 0644)
 }
 
 func dumpConfigMaps(dumpConfigMapsJSONString string) error {
