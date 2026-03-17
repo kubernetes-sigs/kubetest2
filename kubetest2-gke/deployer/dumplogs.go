@@ -44,8 +44,6 @@ type configMap struct {
 //
 // TODO(RonWeber): This whole path is really gross, but this seemed
 // the least gross hack to get this done.
-//
-// TODO(RonWeber): Make this work with multizonal and regional clusters.
 func (d *Deployer) DumpClusterLogs() error {
 	if err := dumpConfigMaps(d.DumpConfigMaps); err != nil {
 		log.Printf("Failed to dump configmaps: %v\n", err)
@@ -55,6 +53,7 @@ func (d *Deployer) DumpClusterLogs() error {
 		log.Printf("Failed to merge metadata: %v\n", err)
 	}
 
+	// TODO(RonWeber): Make this work with multizonal and regional clusters.
 	if len(d.Zones) <= 0 {
 		return fmt.Errorf("DumpClusterLogs is currently only supported for zonal clusters")
 	}
