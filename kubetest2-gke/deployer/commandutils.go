@@ -31,20 +31,35 @@ import (
 	"sigs.k8s.io/kubetest2/pkg/exec"
 )
 
+var envToEndpoint = map[string]string{
+	"test":     "https://test-container.sandbox.googleapis.com/",
+	"staging":  "https://staging-container.sandbox.googleapis.com/",
+	"staging2": "https://staging2-container.sandbox.googleapis.com/",
+	"prod":     "https://container.googleapis.com/",
+}
+
+// See: https://docs.cloud.google.com/access-context-manager/docs/understand-mtls
+var envToMTLSEndpoint = map[string]string{
+	"test":     "https://test-container.mtls.sandbox.googleapis.com/",
+	"staging":  "https://staging-container.mtls.sandbox.googleapis.com/",
+	"staging2": "https://staging2-container.mtls.sandbox.googleapis.com/",
+	"prod":     "https://container.mtls.googleapis.com/",
+}
+
 func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
 	// TODO(RonWeber): This is an almost direct copy/paste from kubetest's prepareGcp()
 	// It badly needs refactored.
 
 	var endpoint string
 	switch env := d.Environment; {
-	case env == "test":
-		endpoint = "https://test-container.sandbox.googleapis.com/"
-	case env == "staging":
-		endpoint = "https://staging-container.sandbox.googleapis.com/"
-	case env == "staging2":
-		endpoint = "https://staging2-container.sandbox.googleapis.com/"
-	case env == "prod":
-		endpoint = "https://container.googleapis.com/"
+	case env == "test" || env == "staging" || env == "staging2" || env == "prod":
+		if mtls, err := d.isUsingClientCertificate(); err != nil {
+			return err
+		} else if mtls {
+			endpoint = envToMTLSEndpoint[env]
+		} else {
+			endpoint = envToEndpoint[env]
+		}
 	case urlRe.MatchString(env):
 		endpoint = env
 	default:
@@ -82,6 +97,17 @@ func (d *Deployer) PrepareGcpIfNeeded(projectID string) error {
 
 	//TODO(RonWeber): kubemark
 	return nil
+}
+
+func (d *Deployer) isUsingClientCertificate() (bool, error) {
+	klog.V(1).Info("Checking if using client certificate... ")
+	value, err := runWithNoOutputAndReturnStdout(exec.RawCommand("gcloud config get-value context_aware/use_client_certificate"))
+	if err != nil {
+		return false, fmt.Errorf("could not get use_client_certificate: %v", err)
+	}
+	value = strings.TrimSpace(value)
+	klog.V(1).Infof("use_client_certificate=%q", value)
+	return value == "true", nil
 }
 
 // Activate service account if set or do nothing.
@@ -133,6 +159,16 @@ func runWithNoOutput(cmd exec.Cmd) error {
 func runWithOutput(cmd exec.Cmd) error {
 	exec.InheritOutput(cmd)
 	return cmd.Run()
+}
+
+func runWithNoOutputAndReturnStdout(cmd exec.Cmd) (string, error) {
+	var buf bytes.Buffer
+
+	exec.SetOutput(cmd, &buf, nil)
+	if err := cmd.Run(); err != nil {
+		return buf.String(), err
+	}
+	return buf.String(), nil
 }
 
 func runWithOutputAndReturn(cmd exec.Cmd) (string, error) {
