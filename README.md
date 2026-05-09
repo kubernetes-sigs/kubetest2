@@ -111,7 +111,7 @@ Participation in the Kubernetes community is governed by the [Kubernetes Code of
 [kubetest]: https://git.k8s.io/test-infra/kubetest
 [kubetest2-aks]: https://sigs.k8s.io/cloud-provider-azure/kubetest2-aks
 [kubetest2-kops]: https://git.k8s.io/kops/tests/e2e/kubetest2-kops
-[kubetest2-tf]: https://github.com/ppc64le-cloud/kubetest2-plugins/tree/master/kubetest2-tf
+[kubetest2-tf]: https://github.com/kubernetes-sigs/provider-ibmcloud-test-infra/tree/main/kubetest2-tf
 [kubetest2-ec2]: https://github.com/kubernetes-sigs/provider-aws-test-infra/tree/main/kubetest2-ec2
 [kubetest2-tester-kops]: https://git.k8s.io/kops/tests/e2e/kubetest2-tester-kops
 [k8s-supported-releases]: https://kubernetes.io/releases/patch-releases/#support-period
