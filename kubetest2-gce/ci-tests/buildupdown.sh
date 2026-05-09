@@ -28,23 +28,6 @@ make install-tester-ginkgo
 
 REPO_ROOT="${GOPATH}"/src/k8s.io/cloud-provider-gcp;
 
-# TODO(spiffxp): remove this when gce-build-up-down job updated to do this,
-#                or when bazel 5.3.0 is preinstalled on kubekins image
-if [ "${CI}" == "true" ]; then
-  go install github.com/bazelbuild/bazelisk@latest
-  mkdir -p /tmp/use-bazelisk
-  ln -s "$(go env GOPATH)/bin/bazelisk" /tmp/use-bazelisk/bazel
-  export PATH="/tmp/use-bazelisk:${PATH}"
-fi
-
-if [[ -f "${REPO_ROOT}/ginko-test-package-version.env" ]]; then
-  TEST_PACKAGE_VERSION=$(cat "${REPO_ROOT}/ginko-test-package-version.env")
-  export TEST_PACKAGE_VERSION
-  echo "TEST_PACKAGE_VERSION set to ${TEST_PACKAGE_VERSION}"
-else
-  export TEST_PACKAGE_VERSION="v1.25.0"
-  echo "TEST_PACKAGE_VERSION - Falling back to v1.25.0"
-fi;
 
 kubetest2 gce \
     -v=2 \
@@ -52,14 +35,12 @@ kubetest2 gce \
     --build \
     --up \
     --down \
-    --strategy=bazel \
     --test=ginkgo \
     --master-size=e2-standard-2 \
     --node-size=e2-standard-2 \
     --env=KUBE_IMAGE_FAMILY=cos-121-lts \
     -- \
     --provider=gce \
-    --test-package-version="${TEST_PACKAGE_VERSION}" \
     --focus-regex='Secrets should be consumable via the environment' \
     --skip-regex='\[Driver:.gcepd\]|\[Slow\]|\[Serial\]|\[Disruptive\]|\[Flaky\]|\[Feature:.+\]' \
     --timeout=60m
