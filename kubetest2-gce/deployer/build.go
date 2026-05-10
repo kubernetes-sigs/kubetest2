@@ -67,8 +67,6 @@ func (d *deployer) Build() error {
 		switch d.BuildOptions.CommonBuildOptions.Strategy {
 		case "make":
 			cmd = exec.Command("make", "release-tars")
-		case "bazel":
-			cmd = exec.Command("bazel", "build", "//release:release-tars")
 		default:
 			return fmt.Errorf("unsupported build strategy: %s", d.BuildOptions.CommonBuildOptions.Strategy)
 		}

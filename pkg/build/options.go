@@ -24,14 +24,12 @@ import (
 type BuildAndStageStrategy string //nolint:revive
 
 const (
-	// BazelStrategy builds and (optionally) stages using bazel
-	BazelStrategy BuildAndStageStrategy = "bazel"
 	// MakeStrategy builds using make and (optionally) stages using krel
 	MakeStrategy BuildAndStageStrategy = "make"
 )
 
 type Options struct {
-	Strategy           string `flag:"~strategy" desc:"Determines the build strategy to use either make or bazel."`
+	Strategy           string `flag:"~strategy" desc:"Determines the build strategy to use"`
 	StageLocation      string `flag:"~stage" desc:"Upload binaries to gs://bucket/ci/job-suffix if set"`
 	RepoRoot           string `flag:"-"`
 	ImageLocation      string `flag:"~image-location" desc:"Image registry where built images are stored."`
@@ -49,14 +47,6 @@ func (o *Options) Validate() error {
 
 func (o *Options) implementationFromStrategy() error {
 	switch BuildAndStageStrategy(o.Strategy) {
-	case BazelStrategy:
-		bazel := &Bazel{
-			RepoRoot:      o.RepoRoot,
-			StageLocation: o.StageLocation,
-			ImageLocation: o.ImageLocation,
-		}
-		o.Builder = bazel
-		o.Stager = bazel
 	case MakeStrategy:
 		o.Builder = &MakeBuilder{
 			RepoRoot:        o.RepoRoot,
