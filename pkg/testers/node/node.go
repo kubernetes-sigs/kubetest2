@@ -50,6 +50,7 @@ const (
 
 type Tester struct {
 	RepoRoot                       string        `desc:"Absolute path to the kubernetes or provider-aws-test-infra repository root. Only needed when not using some kind of pre-built binaries."`
+	BuildBinaries                  bool          `desc:"Build required binaries in the repo root (required parameter), then call them directly. This is also how UseBuiltBinaries/UseBinariesFromPath/UseBinariesFromPackage work. The traditional and default mode of operation is to call 'make test-e2e-node'."`
 	UseBuiltBinaries               bool          `desc:"Look for binaries in _rundir/$KUBETEST2_RUN_DIR."`
 	UseBinariesFromPath            bool          `desc:"Look for binaries in the $PATH."`
 	UseBinariesFromPackage         bool          `desc:"Look for binaries in a kubernetes test package."`
@@ -250,6 +251,9 @@ func (t *Tester) validateFlags() error {
 	if modeCount != 1 {
 		return errors.New("required exactly one of --repo-root, --use-built-binaries, --use-binaries-from-path, --use-binaries-from-package")
 	}
+	if t.BuildBinaries && t.RepoRoot == "" {
+		return errors.New("--repo-root is required when using --build-binaries")
+	}
 	if t.GCPZone == "" && t.Provider == "gce" {
 		return fmt.Errorf("required --gcp-zone")
 	}
@@ -321,7 +325,7 @@ func (t *Tester) maybeSetupSSHKeys() {
 }
 
 func (t *Tester) constructArgs() []string {
-	if t.RepoRoot == "" {
+	if t.RepoRoot == "" || t.BuildBinaries {
 		// When using pre-built binaries, all parameters get passed through to e2e_node.test
 		// with the exact same parameter names. We could have skipped parsing them earlier
 		// except that we had to parse first to determine in which mode we are operating.
@@ -410,6 +414,9 @@ func (t *Tester) pretestSetup() error {
 			return fmt.Errorf("failed to get packages from published releases: %s", err)
 		}
 	}
+	if t.BuildBinaries {
+		return t.buildBinaries()
+	}
 	return nil
 }
 
@@ -445,10 +452,28 @@ func (t *Tester) validateBinariesFromPath() error {
 	return nil
 }
 
+func (t *Tester) buildBinaries() error {
+	cmd := exec.Command("make", "WHAT=cmd/kubelet ginkgo test/e2e_node/e2e_node.test")
+	cmd.SetDir(t.RepoRoot)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Building test binaries failed: %w", err)
+	}
+	for _, binary := range testBinaries {
+		path := filepath.Join(t.RepoRoot, "_output", "bin", string(binary))
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("failed to validate binary %s: %w", binary, err)
+		}
+		klog.V(2).Infof("found built %s at %s", binary, path)
+		t.paths[binary] = path
+	}
+	return nil
+}
+
 func (t *Tester) Test() error {
 	var args []string
 	command := ""
-	if t.RepoRoot == "" {
+	if t.RepoRoot == "" || t.BuildBinaries {
 		// When using pre-built binaries, `e2e_node.test remote <flags>` itself is the entry point.
 		command = t.paths[e2eNodeTest]
 		args = []string{"remote"}
