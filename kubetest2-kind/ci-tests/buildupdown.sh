@@ -23,6 +23,15 @@ make install
 make install-deployer-kind
 make install-tester-ginkgo
 
+# Latest kind could have breaking changes, but as we don't lock
+# down Kubernetes or kubeadm either, we have to use the latest,
+# potentially not even released revision.
+#
+# This matches how kind is used elsewhere to test Kubernetes master:
+# - https://github.com/kubernetes/test-infra/blob/e1c19ef211ccf4bb242a59e08efc658b511641e6/config/jobs/kubernetes/sig-testing/kubernetes-kind-presubmits.yaml#L26
+# - https://github.com/kubernetes/test-infra/blob/e1c19ef211ccf4bb242a59e08efc658b511641e6/config/jobs/kubernetes-sigs/kind/kind.yaml#L58
+curl -sSL https://kind.sigs.k8s.io/dl/latest/linux-amd64.tgz | tar xvfz - -C "${GOPATH}/bin"
+
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${GOPATH}/src/k8s.io/kubernetes"
 
