@@ -21,9 +21,11 @@ limitations under the License.
 package node
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
+	stdexec "os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -32,6 +34,7 @@ import (
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/boskos/client"
+	"sigs.k8s.io/kubetest2/pkg/artifacts"
 	"sigs.k8s.io/kubetest2/pkg/boskos"
 	"sigs.k8s.io/kubetest2/pkg/exec"
 	"sigs.k8s.io/kubetest2/pkg/fs"
@@ -41,13 +44,20 @@ import (
 var GitTag string
 
 const (
-	target          = "test-e2e-node"
 	ciPrivateKeyEnv = "GCE_SSH_PRIVATE_KEY_FILE"
 	ciPublicKeyEnv  = "GCE_SSH_PUBLIC_KEY_FILE"
 )
 
 type Tester struct {
-	RepoRoot                       string        `desc:"Absolute path to the kubernetes or provider-aws-test-infra repository root."`
+	RepoRoot                       string        `desc:"Absolute path to the kubernetes or provider-aws-test-infra repository root. Only needed when not using some kind of pre-built binaries."`
+	BuildBinaries                  bool          `desc:"Build required binaries in the repo root (required parameter), then call them directly. This is also how UseBuiltBinaries/UseBinariesFromPath/UseBinariesFromPackage work. The traditional and default mode of operation is to call 'make test-e2e-node'."`
+	UseBuiltBinaries               bool          `desc:"Look for binaries in _rundir/$KUBETEST2_RUN_DIR."`
+	UseBinariesFromPath            bool          `desc:"Look for binaries in the $PATH."`
+	UseBinariesFromPackage         bool          `desc:"Look for binaries in a kubernetes test package."`
+	TestPackageURL                 string        `desc:"The url to download a kubernetes test package from."`
+	TestPackageVersion             string        `desc:"The ginkgo tester uses a test package made during the kubernetes build. The tester downloads this test package from one of the release tars published to the Release bucket. Defaults to latest. visit https://kubernetes.io/releases/ to find release names. Example: v1.20.0-alpha.0"`
+	TestPackageDir                 string        `desc:"The directory in the bucket which represents the type of release. Default to the release directory."`
+	TestPackageMarker              string        `desc:"The version marker in the directory containing the package version to download when unspecified. Defaults to latest.txt."`
 	GCPProject                     string        `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
 	GCPZone                        string        `desc:"GCP Zone to create VMs in."`
 	SkipRegex                      string        `desc:"Regular expression of jobs to skip."`
@@ -85,10 +95,42 @@ type Tester struct {
 	// this contains ssh key path
 	privateKey string
 	sshUser    string
+
+	runDir string
+
+	// These paths are set up while checking for each required binary.
+	// The key is the binary base name (e.g. "e2e_node.test").
+	paths map[bin]string
 }
+
+// These are the binaries required for E2E node testing when using pre-built binaries.
+//
+// Local and remote OS+arch must be the same and are determined by the platform
+// the tester was compiled for. If testing of e.g. linux-arm64 is needed while
+// running in a linux-amd64 Prow container, then --repo-root and building for
+// the target architecture from source have to be used.
+//
+// This restriction comes from running the same e2e_node.test binary both
+// locally and remotely. It could be removed by acquiring that binary once for
+// local and remote platform and adding more parameters to `e2e_node.test
+// remote`, but that would be more complicated everywhere.
+type bin string
+
+const (
+	e2eNodeTest = bin("e2e_node.test")
+	ginkgo      = bin("ginkgo")
+	kubelet     = bin("kubelet")
+)
+
+var (
+	testBinaries = []bin{e2eNodeTest, ginkgo, kubelet}
+)
 
 func NewDefaultTester() *Tester {
 	return &Tester{
+		TestPackageURL:                 "https://dl.k8s.io",
+		TestPackageDir:                 "release",
+		TestPackageMarker:              "latest.txt",
 		SkipRegex:                      `\[Flaky\]|\[Slow\]|\[Serial\]`,
 		BoskosLocation:                 "http://boskos.test-pods.svc.cluster.local.",
 		BoskosAcquireTimeoutSeconds:    5 * 60,
@@ -98,6 +140,7 @@ func NewDefaultTester() *Tester {
 		GCPProjectType:                 "gce-project",
 		Provider:                       "gce",
 		DeleteInstances:                true,
+		paths:                          make(map[bin]string),
 	}
 }
 
@@ -124,6 +167,15 @@ func (t *Tester) Execute() error {
 	}
 	if err := t.validateFlags(); err != nil {
 		return fmt.Errorf("failed to validate flags: %v", err)
+	}
+	if err := t.initKubetest2Info(); err != nil {
+		return err
+	}
+	if err := t.pretestSetup(); err != nil {
+		return err
+	}
+	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion); err != nil {
+		return err
 	}
 
 	// Use the KUBE_SSH_USER environment variable if it is set. This is particularly
@@ -179,19 +231,52 @@ func (t *Tester) Execute() error {
 			}
 		}
 	}()
-	if err := testers.WriteVersionToMetadata(GitTag, ""); err != nil {
-		return err
-	}
 	return t.Test()
 }
 
 func (t *Tester) validateFlags() error {
-	if t.RepoRoot == "" {
-		return fmt.Errorf("required --repo-root")
+	modeCount := 0
+	if t.RepoRoot != "" {
+		modeCount++
+	}
+	if t.UseBuiltBinaries {
+		modeCount++
+	}
+	if t.UseBinariesFromPath {
+		modeCount++
+	}
+	if t.UseBinariesFromPackage {
+		modeCount++
+	}
+	if modeCount != 1 {
+		return errors.New("required exactly one of --repo-root, --use-built-binaries, --use-binaries-from-path, --use-binaries-from-package")
+	}
+	if t.BuildBinaries && t.RepoRoot == "" {
+		return errors.New("--repo-root is required when using --build-binaries")
 	}
 	if t.GCPZone == "" && t.Provider == "gce" {
 		return fmt.Errorf("required --gcp-zone")
 	}
+	return nil
+}
+
+// initKubetest2Info sets relevant information from the well defined kubetest2 environment variables.
+func (t *Tester) initKubetest2Info() error {
+	if dir, ok := os.LookupEnv("KUBETEST2_RUN_DIR"); ok {
+		t.runDir = dir
+		return nil
+	}
+	// Binaries can be found in rundir when they are built
+	if t.UseBuiltBinaries {
+		t.runDir = artifacts.RunDir()
+		return nil
+	}
+	// default to current working directory if for some reason the env is not set
+	dir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to set run dir: %v", err)
+	}
+	t.runDir = dir
 	return nil
 }
 
@@ -240,6 +325,47 @@ func (t *Tester) maybeSetupSSHKeys() {
 }
 
 func (t *Tester) constructArgs() []string {
+	if t.RepoRoot == "" || t.BuildBinaries {
+		// When using pre-built binaries, all parameters get passed through to e2e_node.test
+		// with the exact same parameter names. We could have skipped parsing them earlier
+		// except that we had to parse first to determine in which mode we are operating.
+		//
+		// Parsing also provides some early checking for unsupported parameters.
+		// The downside is a closer coupling of the node tester to the k/k repo.
+		args := []string{
+			"--skip-regex=" + t.SkipRegex,
+			"--focus-regex=" + t.FocusRegex,
+			"--label-filter=" + t.LabelFilter,
+			"--gcp-project=" + t.GCPProject,
+			"--gcp-zone=" + t.GCPZone,
+			"--test-args=" + t.TestArgs,
+			"--node-env=" + t.NodeEnv,
+			"--delete-instances=" + strconv.FormatBool(t.DeleteInstances),
+			"--parallelism=" + strconv.Itoa(t.Parallelism),
+			"--image-config-file=" + t.ImageConfigFile,
+			"--image-config-dir=" + t.ImageConfigDir,
+			"--image-project=" + t.ImageProject,
+			"--images=" + t.Images,
+			"--instance-metadata=" + t.InstanceMetadata,
+			"--user-data-file=" + t.UserDataFile,
+			"--instance-type=" + t.InstanceType,
+			"--ssh-user=" + t.sshUser,
+			"--ssh-key=" + t.privateKey,
+			"--timeout=" + t.Timeout.String(),
+
+			// Not relevant: t.UseDockerizedBuild, t.TargetBuildArch
+			// Replaced by:
+			"--ginkgo-binary=" + t.paths[ginkgo],
+			"--kubelet-binary=" + t.paths[kubelet],
+			"--e2e-node-binary=" + t.paths[e2eNodeTest],
+		}
+
+		if t.RuntimeConfig != "" {
+			args = append(args, "--runtime-config="+t.RuntimeConfig)
+		}
+		return args
+	}
+
 	defaultArgs := []string{
 		"REMOTE=true",
 	}
@@ -276,12 +402,92 @@ func (t *Tester) constructArgs() []string {
 	return append(defaultArgs, argsFromFlags...)
 }
 
+func (t *Tester) pretestSetup() error {
+	if t.UseBuiltBinaries {
+		return t.validateLocalBinaries()
+	}
+	if t.UseBinariesFromPath {
+		return t.validateBinariesFromPath()
+	}
+	if t.UseBinariesFromPackage {
+		if err := t.acquirePackages(); err != nil {
+			return fmt.Errorf("failed to get packages from published releases: %s", err)
+		}
+	}
+	if t.BuildBinaries {
+		return t.buildBinaries()
+	}
+	return nil
+}
+
+func (t *Tester) validateLocalBinaries() error {
+	klog.V(2).Infof("checking existing test binaries ...")
+	for _, binary := range testBinaries {
+		path := filepath.Join(t.runDir, string(binary))
+		if _, err := os.Stat(path); err != nil {
+			logPath := path
+			if abspath, err := filepath.Abs(path); err != nil {
+				klog.Warningf("failed to convert path %q to absolute path: %v", path, err)
+			} else {
+				logPath = abspath
+			}
+			return fmt.Errorf("failed to validate pre-built binary %s (checked at %q): %w", binary, logPath, err)
+		}
+		klog.V(2).Infof("found existing %s at %s", binary, path)
+		t.paths[binary] = path
+	}
+	return nil
+}
+
+func (t *Tester) validateBinariesFromPath() error {
+	klog.V(2).Infof("checking for test binaries on PATH...")
+	for _, binary := range testBinaries {
+		path, err := stdexec.LookPath(string(binary))
+		if err != nil {
+			return fmt.Errorf("failed to validate binary %s from PATH: %w", binary, err)
+		}
+		klog.V(2).Infof("found existing %s at %s", binary, path)
+		t.paths[binary] = path
+	}
+	return nil
+}
+
+func (t *Tester) buildBinaries() error {
+	cmd := exec.Command("make", "WHAT=cmd/kubelet ginkgo test/e2e_node/e2e_node.test")
+	cmd.SetDir(t.RepoRoot)
+	exec.InheritOutput(cmd)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("Building test binaries failed: %w", err)
+	}
+	for _, binary := range testBinaries {
+		path := filepath.Join(t.RepoRoot, "_output", "bin", string(binary))
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("failed to validate binary %s: %w", binary, err)
+		}
+		klog.V(2).Infof("found built %s at %s", binary, path)
+		t.paths[binary] = path
+	}
+	return nil
+}
+
 func (t *Tester) Test() error {
 	var args []string
-	args = append(args, target)
+	command := ""
+	if t.RepoRoot == "" || t.BuildBinaries {
+		// When using pre-built binaries, `e2e_node.test remote <flags>` itself is the entry point.
+		command = t.paths[e2eNodeTest]
+		args = []string{"remote"}
+	} else {
+		// When using the repository, `make test-e2e-node` bootstraps and runs the test.
+		command = "make"
+		args = []string{"test-e2e-node"}
+	}
 	args = append(args, t.constructArgs()...)
-	cmd := exec.Command("make", args...)
-	cmd.SetDir(t.RepoRoot)
+	cmd := exec.Command(command, args...)
+	if t.RepoRoot != "" {
+		cmd.SetDir(t.RepoRoot)
+	}
+	klog.Infof("Running command %q with arguments %q", command, args)
 	exec.InheritOutput(cmd)
 	return cmd.Run()
 }
