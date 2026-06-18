@@ -197,6 +197,7 @@ type options struct {
 	rundirInArtifacts   bool
 	preTestCmd          []string
 	postTestCmd         []string
+	metadata            map[string]string
 }
 
 // bindFlags registers all first class kubetest2 flags
@@ -219,6 +220,7 @@ func (o *options) bindFlags(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.rundirInArtifacts, "rundir-in-artifacts", false, `if true, the test binaries and run specific metadata will be in the ARTIFACTS`)
 	flags.StringSliceVar(&o.postTestCmd, "post-test-cmd", nil, "command and args to run after the tester, inherits the deployer environment (e.g. --post-test-cmd=post-test.sh,--flag,value)")
 	flags.StringSliceVar(&o.preTestCmd, "pre-test-cmd", nil, "command and args to run after the deployer (up) but before the tester, inherits the deployer environment (e.g. --pre-test-cmd=kubectl,apply,-f,foo.yaml)")
+	flags.StringToStringVar(&o.metadata, "metadata", nil, "extra key=value pairs to record in metadata.json, repeatable (e.g. --metadata=variant=restart)")
 }
 
 // assert that options implements deployer options
@@ -281,6 +283,10 @@ func (o *options) PostTestCmd() []string {
 
 func (o *options) PreTestCmd() []string {
 	return o.preTestCmd
+}
+
+func (o *options) Metadata() map[string]string {
+	return o.metadata
 }
 
 // metadata used for CLI usage string
