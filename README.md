@@ -71,6 +71,7 @@ See individual READMEs for more information
 - [`kubetest2-tester-clusterloader2`](/kubetest2-tester-clusterloader2)  - use clusterloader2
 - [`kubetest2-tester-exec`](/kubetest2-tester-exec) - exec a given command with the given args / flags
 - [`kubetest2-tester-ginkgo`](/kubetest2-tester-ginkgo) - runs e2e tests from `kubernetes/kubernetes`
+- [`kubetest2-tester-kube-burner`](/kubetest2-tester-kube-burner) - runs scalability workloads using [kube-burner](https://github.com/kube-burner/kube-burner)
 - [`kubetest2-tester-node`](/kubetest2-tester-node) - runs node e2e tests from `kubernetes/kubernetes`
 
 ## External Implementations
