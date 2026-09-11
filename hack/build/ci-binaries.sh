@@ -31,7 +31,7 @@ OS_ARCHES=(
   linux_arm64
   linux_ppc64le
   linux_s390x
-  darwin_amd64
+  linux_riscv64
   darwin_arm64
 )
 

@@ -50,7 +50,7 @@ function main() {
         --boskos-resource-type gce-project \
         --num-clusters=1 \
         --num-nodes 1 \
-        --cluster-version=1.34 \
+        --release-channel=rapid \
         --zone us-central1-c \
         --network ci-tests-network \
         --up \
@@ -69,6 +69,7 @@ function main() {
         -v 2 \
         --boskos-resource-type gce-project \
         --num-clusters=2 \
+        --release-channel=rapid \
         --num-nodes 1 \
         --zone us-central1-c,us-west1-a,us-east1-b \
         --network ci-tests-network \

@@ -20,7 +20,7 @@ set -o errexit -o nounset -o pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "${REPO_ROOT}" &> /dev/null
 source hack/build/setup-go.sh
-go env -w GOTOOLCHAIN=go1.25.0+auto # https://github.com/golang/go/issues/75031
+go env -w GOTOOLCHAIN=go1.26.8+auto # https://github.com/golang/go/issues/75031
 
 # build gotestsum
 cd "${REPO_ROOT}/hack/tools" &> /dev/null

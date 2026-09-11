@@ -23,7 +23,7 @@ source hack/build/setup-go.sh
 
 # build golangci-lint
 cd "${REPO_ROOT}/hack/tools" &> /dev/null
-go build -o "${REPO_ROOT}/bin/golangci-lint" github.com/golangci/golangci-lint/cmd/golangci-lint
+go build -o "${REPO_ROOT}/bin/golangci-lint" github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 cd "${REPO_ROOT}" &> /dev/null
 
 # first for the repo in general

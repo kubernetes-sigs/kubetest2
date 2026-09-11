@@ -68,7 +68,7 @@ type ClusterOptions struct {
 func (uo *ClusterOptions) Validate() error {
 	// allow max 99 clusters (should be sufficient for most use cases)
 	if uo.NumClusters < 1 || uo.NumClusters > 99 {
-		return fmt.Errorf("need to specify between 1 and 99 clusters got %q: ", uo.NumClusters)
+		return fmt.Errorf("need to specify between 1 and 99 clusters, got %d", uo.NumClusters)
 	}
 
 	return nil
