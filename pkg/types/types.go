@@ -66,6 +66,8 @@ type Options interface {
 	PostTestCmd() []string
 	// PreTestCmd returns a command (and args) to run after the deployer but before the tester
 	PreTestCmd() []string
+	// Metadata returns extra key=value pairs to record in metadata.json
+	Metadata() map[string]string
 }
 
 // Deployer defines the interface between kubetest and a deployer
