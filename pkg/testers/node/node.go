@@ -174,7 +174,7 @@ func (t *Tester) Execute() error {
 	if err := t.pretestSetup(); err != nil {
 		return err
 	}
-	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion); err != nil {
+	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion, nil); err != nil {
 		return err
 	}
 

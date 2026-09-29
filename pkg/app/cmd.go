@@ -67,7 +67,7 @@ func runE(
 	artifacts.MustBindFlags(kubetest2Flags)
 
 	// NOTE: unknown flags are forwarded to the deployer as arguments
-	kubetest2Flags.ParseErrorsWhitelist.UnknownFlags = true
+	kubetest2Flags.ParseErrorsAllowlist.UnknownFlags = true
 
 	// parse arguments, splitting out test args (after the `--`)
 	deployerArgs, testerArgs := splitArgs(args)

@@ -58,9 +58,10 @@ type Tester struct {
 	runDir         string
 
 	// These paths are set up by AcquireTestPackage()
-	e2eTestPath string
-	ginkgoPath  string
-	kubectlPath string
+	e2eTestPath         string
+	ginkgoPath          string
+	kubectlPath         string
+	extraMetadataValues map[string]string
 }
 
 // Test runs the test
@@ -69,7 +70,7 @@ func (t *Tester) Test() error {
 		return err
 	}
 
-	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion); err != nil {
+	if err := testers.WriteVersionToMetadata(GitTag, t.TestPackageVersion, t.extraMetadataValues); err != nil {
 		return err
 	}
 
