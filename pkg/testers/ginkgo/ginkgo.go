@@ -64,6 +64,13 @@ type Tester struct {
 	extraMetadataValues map[string]string
 }
 
+func (t *Tester) AddMetadata(key, value string) {
+	if t.extraMetadataValues == nil {
+		t.extraMetadataValues = make(map[string]string)
+	}
+	t.extraMetadataValues[key] = value
+}
+
 // Test runs the test
 func (t *Tester) Test() error {
 	if err := t.pretestSetup(); err != nil {
