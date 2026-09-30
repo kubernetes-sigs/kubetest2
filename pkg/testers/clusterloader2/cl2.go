@@ -25,6 +25,8 @@ import (
 	"github.com/kballard/go-shellquote"
 	"github.com/octago/sflags/gen/gpflag"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 
 	"sigs.k8s.io/kubetest2/pkg/exec"
@@ -149,10 +151,26 @@ func (t *Tester) Execute() error {
 		fs.PrintDefaults()
 		return nil
 	}
-	if err := testers.WriteVersionToMetadata(GitTag, ""); err != nil {
+	if err := t.writeVersionToMetadata(); err != nil {
 		return err
 	}
 	return t.Test(fs)
+}
+
+func (t *Tester) writeVersionToMetadata() error {
+	config, err := clientcmd.BuildConfigFromFlags("", t.KubeConfig)
+	if err != nil {
+		return fmt.Errorf("failed to load kubeconfig: %w", err)
+	}
+	client, err := discovery.NewDiscoveryClientForConfig(config)
+	if err != nil {
+		return fmt.Errorf("failed to initialize Kubernetes discovery client: %w", err)
+	}
+	version, err := client.ServerVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get Kubernetes API server version: %w", err)
+	}
+	return testers.WriteVersionToMetadata(GitTag, version.GitVersion, nil)
 }
 
 func Main() {
