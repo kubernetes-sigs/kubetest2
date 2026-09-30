@@ -41,6 +41,7 @@ kubetest2 kind \
     --build \
     --up \
     --down \
+    --metadata=kind-version="$(kind --version)" \
     --pre-test-cmd="${REPO_ROOT}/kubetest2-kind/ci-tests/test.sh" \
     --test=ginkgo \
     -- \
