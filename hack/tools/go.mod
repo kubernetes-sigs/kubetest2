@@ -1,6 +1,6 @@
 module sigs.k8s.io/kubetest2/hack/tools
 
-go 1.26.8
+go 1.27.1
 
 tool (
 	github.com/golangci/golangci-lint/v2/cmd/golangci-lint
@@ -207,7 +207,7 @@ require (
 	go.augendre.info/arangolint v0.4.0 // indirect
 	go.augendre.info/fatcontext v0.10.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260811152304-ee035b5b010f // indirect
 	golang.org/x/mod v0.40.0 // indirect
