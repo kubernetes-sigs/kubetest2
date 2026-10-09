@@ -78,6 +78,7 @@ type deployer struct {
 	RepoRoot                       string `desc:"The path to the root of the local kubernetes/cloud-provider-gcp repo. Necessary to call certain scripts. Defaults to the current directory. If operating in legacy mode, this should be set to the local kubernetes/kubernetes repo."`
 	GCPProject                     string `desc:"GCP Project to create VMs in. If unset, the deployer will attempt to get a project from boskos."`
 	GCPZone                        string `desc:"GCP Zone to create VMs in. If unset, kube-up.sh and kube-down.sh defaults apply."`
+	GCPRegion                      string `desc:"GCP Region to create VMs in. kube-up.sh tries each zone in the region, two attempts per zone, until the master VM is created. Mutually exclusive with --gcp-zone. If neither is set, kube-up.sh picks a region from us-central1, us-east1, us-east2, europe-west1."`
 	EnableComputeAPI               bool   `desc:"If set, the deployer will enable the compute API for the project during the Up phase. This is necessary if the project has not been used before. WARNING: The currently configured GCP account must have permission to enable this API on the configured project."`
 	OverwriteLogsDir               bool   `desc:"If set, will overwrite an existing logs directory if one is encountered during dumping of logs. Useful when runnning tests locally."`
 	BoskosLocation                 string `desc:"If set, manually specifies the location of the boskos server. If unset and boskos is needed, defaults to http://boskos.test-pods.svc.cluster.local."`
