@@ -44,11 +44,13 @@ func (d *Deployer) setupBastion() error {
 	for _, ig := range instanceGroups {
 		igFilters = append(igFilters, fmt.Sprintf("(metadata.created-by ~ %s)", ig.path))
 	}
-	// Match VM name or wildcard passed by kubetest parameters
-	fuzzyFilter := fmt.Sprintf("(name ~ %s) AND (%s)",
-		d.SSHProxyInstanceName,
-		strings.Join(igFilters, " OR "))
-	filtersToTry = append(filtersToTry, fuzzyFilter)
+	if len(igFilters) > 0 {
+		// Match VM name or wildcard passed by kubetest parameters
+		fuzzyFilter := fmt.Sprintf("(name ~ %s) AND (%s)",
+			d.SSHProxyInstanceName,
+			strings.Join(igFilters, " OR "))
+		filtersToTry = append(filtersToTry, fuzzyFilter)
+	}
 
 	// Find hostname of VM that matches criteria
 	var bastion, zone string

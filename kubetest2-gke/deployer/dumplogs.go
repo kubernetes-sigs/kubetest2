@@ -95,6 +95,9 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 				filters = append(filters, fmt.Sprintf("(metadata.created-by:*%s)", ig.path))
 			}
 		}
+		if len(filters) == 0 {
+			continue
+		}
 
 		logDumpScript := "./cluster/log-dump/log-dump.sh"
 		if envOverride := os.Getenv("LOG_DUMP_SCRIPT_PATH"); envOverride != "" {

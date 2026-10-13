@@ -62,6 +62,9 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 			"--allow=" + d.FirewallRuleAllow,
 		}
 		if !d.Autopilot {
+			if len(d.instanceGroups[project][clusterName]) == 0 {
+				return fmt.Errorf("no instance groups found for cluster %s in project %s", clusterName, project)
+			}
 			tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
 				"--project="+project,
 				"--filter=metadata.created-by:"+d.instanceGroups[project][clusterName][0].path,
@@ -85,6 +88,9 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 }
 
 func clusterFirewallName(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
+	if len(instanceGroups[project][cluster]) == 0 {
+		return "e2e-ports-" + cluster
+	}
 	// We want to ensure that there's an e2e-ports-* firewall rule
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
@@ -179,24 +185,33 @@ func (d *Deployer) GetInstanceGroups() error {
 			if err != nil {
 				return fmt.Errorf("instance group URL fetch failed: %s", execError(err))
 			}
-			igURLs := strings.Split(strings.TrimSpace(string(igs)), ";")
-			if len(igURLs) == 0 {
-				return fmt.Errorf("no instance group URLs returned by gcloud, output %q", string(igs))
+			instanceGroups, err := parseInstanceGroupsFromGcloud(string(igs))
+			if err != nil {
+				return err
 			}
-			sort.Strings(igURLs)
-
-			// Initialize cluster instance groups
-			d.instanceGroups[project][clusterName] = make([]*ig, 0)
-
-			for _, igURL := range igURLs {
-				m := poolRe.FindStringSubmatch(igURL)
-				if len(m) == 0 {
-					return fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
-				}
-				d.instanceGroups[project][clusterName] = append(d.instanceGroups[project][clusterName], &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
-			}
+			d.instanceGroups[project][clusterName] = instanceGroups
 		}
 	}
 
 	return nil
+}
+
+func parseInstanceGroupsFromGcloud(igs string) ([]*ig, error) {
+	trimmed := strings.TrimSpace(igs)
+	if len(trimmed) == 0 {
+		klog.Warningf("No instance group URLs returned by gcloud, output %q", igs)
+		return make([]*ig, 0), nil
+	}
+	igURLs := strings.Split(trimmed, ";")
+	sort.Strings(igURLs)
+
+	instanceGroups := make([]*ig, 0, len(igURLs))
+	for _, igURL := range igURLs {
+		m := poolRe.FindStringSubmatch(igURL)
+		if len(m) == 0 {
+			return nil, fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
+		}
+		instanceGroups = append(instanceGroups, &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
+	}
+	return instanceGroups, nil
 }
