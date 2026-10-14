@@ -79,6 +79,10 @@ export KUBERNETES_PROVIDER=gke
 export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 %[5]s
 `
+	if err := d.GetInstanceGroups(); err != nil {
+		return err
+	}
+
 	for _, project := range d.Projects {
 		// Prevent an obvious injection.
 		if strings.Contains(d.localLogsDir, "'") || strings.Contains(d.gcsLogsDir, "'") {
@@ -88,9 +92,6 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 		// Generate a slice of filters to be OR'd together below
 		var filters []string
 		for _, cluster := range d.projectClustersLayout[project] {
-			if err := d.GetInstanceGroups(); err != nil {
-				return err
-			}
 			for _, ig := range d.instanceGroups[project][cluster.name] {
 				filters = append(filters, fmt.Sprintf("(metadata.created-by:*%s)", ig.path))
 			}

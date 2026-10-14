@@ -46,7 +46,10 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 	for _, cluster := range d.projectClustersLayout[project] {
 		clusterName := cluster.name
 		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", clusterName, project)
-		firewall := clusterFirewallName(project, clusterName, d.instanceGroups)
+		if !d.Autopilot && len(d.instanceGroups[project][clusterName]) == 0 {
+			return fmt.Errorf("no instance groups found for cluster %s in project %s", clusterName, project)
+		}
+		firewall := clusterFirewallName(d.Autopilot, project, clusterName, d.instanceGroups)
 		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
 			"--project="+project,
 			"--format=value(name)")) == nil {
@@ -62,9 +65,6 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 			"--allow=" + d.FirewallRuleAllow,
 		}
 		if !d.Autopilot {
-			if len(d.instanceGroups[project][clusterName]) == 0 {
-				return fmt.Errorf("no instance groups found for cluster %s in project %s", clusterName, project)
-			}
 			tagOut, err := exec.Output(exec.Command("gcloud", "compute", "instances", "list",
 				"--project="+project,
 				"--filter=metadata.created-by:"+d.instanceGroups[project][clusterName][0].path,
@@ -87,8 +87,11 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 	return nil
 }
 
-func clusterFirewallName(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
-	if len(instanceGroups[project][cluster]) == 0 {
+func clusterFirewallName(autopilot bool, project, cluster string, instanceGroups map[string]map[string][]*ig) string {
+	// Autopilot firewall rules are network-wide (no --target-tags) and node pools
+	// are created/deleted dynamically, so use the cluster name directly to keep
+	// the rule name stable across 0 -> N node pool transitions.
+	if autopilot || len(instanceGroups[project][cluster]) == 0 {
 		return "e2e-ports-" + cluster
 	}
 	// We want to ensure that there's an e2e-ports-* firewall rule
@@ -183,7 +186,8 @@ func (d *Deployer) GetInstanceGroups() error {
 
 		for _, cluster := range d.projectClustersLayout[project] {
 			clusterName := cluster.name
-			// If instanceGroups for this cluster has already been populated with non-empty results, skip fetching.
+			// Only 0 -> N is refreshed: a cluster already cached with instance
+			// groups is never re-queried, so scale-down to 0 is not observed.
 			if len(d.instanceGroups[project][clusterName]) > 0 {
 				continue
 			}

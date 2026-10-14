@@ -102,15 +102,17 @@ func TestParseInstanceGroupsFromGcloud(t *testing.T) {
 func TestClusterFirewallName(t *testing.T) {
 	testCases := []struct {
 		name           string
+		autopilot      bool
 		project        string
 		cluster        string
 		instanceGroups map[string]map[string][]*ig
 		expected       string
 	}{
 		{
-			name:    "cluster with instance groups uses first uniq hash",
-			project: "test-proj",
-			cluster: "cluster1",
+			name:      "standard cluster with instance groups uses first uniq hash",
+			autopilot: false,
+			project:   "test-proj",
+			cluster:   "cluster1",
 			instanceGroups: map[string]map[string][]*ig{
 				"test-proj": {
 					"cluster1": {
@@ -122,12 +124,27 @@ func TestClusterFirewallName(t *testing.T) {
 			expected: "e2e-ports-12345678",
 		},
 		{
-			name:    "cluster with zero instance groups falls back to cluster name",
-			project: "test-proj",
-			cluster: "autopilot-cluster",
+			name:      "Autopilot cluster with zero instance groups uses cluster name",
+			autopilot: true,
+			project:   "test-proj",
+			cluster:   "autopilot-cluster",
 			instanceGroups: map[string]map[string][]*ig{
 				"test-proj": {
 					"autopilot-cluster": {},
+				},
+			},
+			expected: "e2e-ports-autopilot-cluster",
+		},
+		{
+			name:      "Autopilot cluster with instance groups keeps cluster name without flipping to uniq",
+			autopilot: true,
+			project:   "test-proj",
+			cluster:   "autopilot-cluster",
+			instanceGroups: map[string]map[string][]*ig{
+				"test-proj": {
+					"autopilot-cluster": {
+						{uniq: "abcdef01"},
+					},
 				},
 			},
 			expected: "e2e-ports-autopilot-cluster",
@@ -138,7 +155,7 @@ func TestClusterFirewallName(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := clusterFirewallName(tc.project, tc.cluster, tc.instanceGroups)
+			got := clusterFirewallName(tc.autopilot, tc.project, tc.cluster, tc.instanceGroups)
 			if got != tc.expected {
 				t.Errorf("clusterFirewallName() = %q, want %q", got, tc.expected)
 			}
