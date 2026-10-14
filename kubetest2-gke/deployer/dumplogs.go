@@ -96,6 +96,7 @@ export KUBE_NODE_OS_DISTRIBUTION='%[3]s'
 			}
 		}
 		if len(filters) == 0 {
+			log.Printf("No instance groups found for project %s, skipping node log dump", project)
 			continue
 		}
 

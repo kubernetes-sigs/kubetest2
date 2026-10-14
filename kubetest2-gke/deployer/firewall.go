@@ -161,27 +161,34 @@ func (d *Deployer) CleanupNetworkFirewalls(hostProject, network string) (int, er
 	return len(fws), nil
 }
 
-func (d *Deployer) GetInstanceGroups() error {
-	// If instanceGroups has already been populated, return directly.
-	if d.instanceGroups != nil {
-		return nil
-	}
+var describeClusterInstanceGroups = func(project, clusterName, location string) ([]byte, error) {
+	return exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", clusterName,
+		"--format=value(instanceGroupUrls)",
+		"--project="+project,
+		location)...))
+}
 
-	// Initialize project instance groups structure
-	d.instanceGroups = map[string]map[string][]*ig{}
+func (d *Deployer) GetInstanceGroups() error {
+	if d.instanceGroups == nil {
+		// Initialize project instance groups structure
+		d.instanceGroups = map[string]map[string][]*ig{}
+	}
 
 	location := locationFlag(d.Regions, d.Zones, d.retryCount)
 
 	for _, project := range d.Projects {
-		d.instanceGroups[project] = map[string][]*ig{}
+		if d.instanceGroups[project] == nil {
+			d.instanceGroups[project] = map[string][]*ig{}
+		}
 
 		for _, cluster := range d.projectClustersLayout[project] {
 			clusterName := cluster.name
+			// If instanceGroups for this cluster has already been populated with non-empty results, skip fetching.
+			if len(d.instanceGroups[project][clusterName]) > 0 {
+				continue
+			}
 
-			igs, err := exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", clusterName,
-				"--format=value(instanceGroupUrls)",
-				"--project="+project,
-				location)...))
+			igs, err := describeClusterInstanceGroups(project, clusterName, location)
 			if err != nil {
 				return fmt.Errorf("instance group URL fetch failed: %s", execError(err))
 			}

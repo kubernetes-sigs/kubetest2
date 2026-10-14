@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	"sigs.k8s.io/kubetest2/kubetest2-gke/deployer/options"
 )
 
 func TestParseInstanceGroupsFromGcloud(t *testing.T) {
@@ -141,5 +143,76 @@ func TestClusterFirewallName(t *testing.T) {
 				t.Errorf("clusterFirewallName() = %q, want %q", got, tc.expected)
 			}
 		})
+	}
+}
+
+func TestGetInstanceGroupsCaching(t *testing.T) {
+	origDescribe := describeClusterInstanceGroups
+	defer func() {
+		describeClusterInstanceGroups = origDescribe
+	}()
+
+	outputs := map[string]string{
+		"cluster-empty":     "",
+		"cluster-populated": "https://www.googleapis.com/compute/v1/projects/test-proj/zones/us-central1-a/instanceGroupManagers/gke-cluster-populated-pool-12345678-grp",
+	}
+	callCounts := map[string]int{}
+
+	describeClusterInstanceGroups = func(project, clusterName, location string) ([]byte, error) {
+		callCounts[clusterName]++
+		return []byte(outputs[clusterName]), nil
+	}
+
+	d := &Deployer{
+		ProjectOptions: &options.ProjectOptions{
+			Projects: []string{"test-proj"},
+		},
+		ClusterOptions: &options.ClusterOptions{
+			Regions: []string{"us-central1"},
+		},
+		projectClustersLayout: map[string][]cluster{
+			"test-proj": {
+				{index: 0, name: "cluster-empty"},
+				{index: 1, name: "cluster-populated"},
+			},
+		},
+	}
+
+	// 1. First call: both clusters are queried; cluster-empty has 0 IGs, cluster-populated has 1 IG.
+	if err := d.GetInstanceGroups(); err != nil {
+		t.Fatalf("first GetInstanceGroups() failed: %v", err)
+	}
+	if callCounts["cluster-empty"] != 1 || callCounts["cluster-populated"] != 1 {
+		t.Fatalf("unexpected call counts after first call: %v", callCounts)
+	}
+	if len(d.instanceGroups["test-proj"]["cluster-empty"]) != 0 {
+		t.Errorf("expected 0 IGs for cluster-empty, got %d", len(d.instanceGroups["test-proj"]["cluster-empty"]))
+	}
+	if len(d.instanceGroups["test-proj"]["cluster-populated"]) != 1 {
+		t.Errorf("expected 1 IG for cluster-populated, got %d", len(d.instanceGroups["test-proj"]["cluster-populated"]))
+	}
+
+	// 2. Simulate node pool creation on cluster-empty and call GetInstanceGroups() again:
+	// cluster-populated should be served from cache, while cluster-empty is re-queried.
+	outputs["cluster-empty"] = "https://www.googleapis.com/compute/v1/projects/test-proj/zones/us-central1-a/instanceGroupManagers/gk3-cluster-empty-pool-1-abcdef01-grp"
+	if err := d.GetInstanceGroups(); err != nil {
+		t.Fatalf("second GetInstanceGroups() failed: %v", err)
+	}
+	if callCounts["cluster-empty"] != 2 {
+		t.Errorf("expected cluster-empty to be queried a 2nd time, got %d", callCounts["cluster-empty"])
+	}
+	if callCounts["cluster-populated"] != 1 {
+		t.Errorf("expected cluster-populated to remain at 1 query (cached), got %d", callCounts["cluster-populated"])
+	}
+	if len(d.instanceGroups["test-proj"]["cluster-empty"]) != 1 {
+		t.Errorf("expected 1 IG for cluster-empty after scale-up, got %d", len(d.instanceGroups["test-proj"]["cluster-empty"]))
+	}
+
+	// 3. Third call: both clusters now have non-empty cached IGs, so neither should be re-queried.
+	if err := d.GetInstanceGroups(); err != nil {
+		t.Fatalf("third GetInstanceGroups() failed: %v", err)
+	}
+	if callCounts["cluster-empty"] != 2 || callCounts["cluster-populated"] != 1 {
+		t.Errorf("expected no additional queries on third call, got %v", callCounts)
 	}
 }
