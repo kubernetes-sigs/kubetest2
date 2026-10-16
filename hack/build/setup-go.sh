@@ -18,6 +18,7 @@
 
 # read go-version file unless GO_VERSION is set
 GO_VERSION="${GO_VERSION:-"$(cat .go-version)"}"
+export GOTOOLCHAIN="go${GO_VERSION}"
 
 # we don't actually care where the .env files are
 # however, GIMME_SILENT_ENV doesn't trigger re-generating a .env if it
