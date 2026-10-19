@@ -33,17 +33,16 @@ BINARY_PATH?=.
 # the container cli to use e.g. docker,podman
 DOCKER?=$(shell which docker || which podman || echo "docker")
 export DOCKER
-# ========================= Setup Go With Gimme ================================
+# =============================== Setup Go =====================================
 # go version to use for build etc.
-# setup correct go version with gimme
-PATH:=$(shell . hack/build/setup-go.sh && echo "$${PATH}")
+GOTOOLCHAIN:=$(shell . hack/build/setup-go.sh && echo "$${GOTOOLCHAIN}")
 # go1.9+ can autodetect GOROOT, but if some other tool sets it ...
 GOROOT:=
 # enable modules
 GO111MODULE=on
 # disable CGO by default for static binaries
 CGO_ENABLED=0
-export PATH GOROOT GO111MODULE CGO_ENABLED
+export PATH GOROOT GOTOOLCHAIN GO111MODULE CGO_ENABLED
 # work around broken PATH export
 SPACE:=$(subst ,, )
 SHELL:=env PATH=$(subst $(SPACE),\$(SPACE),$(PATH)) $(SHELL)
