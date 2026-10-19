@@ -46,7 +46,10 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 	for _, cluster := range d.projectClustersLayout[project] {
 		clusterName := cluster.name
 		klog.V(1).Infof("Ensuring firewall rules for cluster %s in %s", clusterName, project)
-		firewall := clusterFirewallName(project, clusterName, d.instanceGroups)
+		if !d.Autopilot && len(d.instanceGroups[project][clusterName]) == 0 {
+			return fmt.Errorf("no instance groups found for cluster %s in project %s", clusterName, project)
+		}
+		firewall := clusterFirewallName(d.Autopilot, project, clusterName, d.instanceGroups)
 		if runWithNoOutput(exec.Command("gcloud", "compute", "firewall-rules", "describe", firewall,
 			"--project="+project,
 			"--format=value(name)")) == nil {
@@ -84,7 +87,13 @@ func (d *Deployer) ensureFirewallRulesForSingleProject() error {
 	return nil
 }
 
-func clusterFirewallName(project, cluster string, instanceGroups map[string]map[string][]*ig) string {
+func clusterFirewallName(autopilot bool, project, cluster string, instanceGroups map[string]map[string][]*ig) string {
+	// Autopilot firewall rules are network-wide (no --target-tags) and node pools
+	// are created/deleted dynamically, so use the cluster name directly to keep
+	// the rule name stable across 0 -> N node pool transitions.
+	if autopilot || len(instanceGroups[project][cluster]) == 0 {
+		return "e2e-ports-" + cluster
+	}
 	// We want to ensure that there's an e2e-ports-* firewall rule
 	// that maps to the cluster nodes, but the target tag for the
 	// nodes can be slow to get. Use the hash from the lexically first
@@ -155,48 +164,65 @@ func (d *Deployer) CleanupNetworkFirewalls(hostProject, network string) (int, er
 	return len(fws), nil
 }
 
-func (d *Deployer) GetInstanceGroups() error {
-	// If instanceGroups has already been populated, return directly.
-	if d.instanceGroups != nil {
-		return nil
-	}
+var describeClusterInstanceGroups = func(project, clusterName, location string) ([]byte, error) {
+	return exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", clusterName,
+		"--format=value(instanceGroupUrls)",
+		"--project="+project,
+		location)...))
+}
 
-	// Initialize project instance groups structure
-	d.instanceGroups = map[string]map[string][]*ig{}
+func (d *Deployer) GetInstanceGroups() error {
+	if d.instanceGroups == nil {
+		// Initialize project instance groups structure
+		d.instanceGroups = map[string]map[string][]*ig{}
+	}
 
 	location := locationFlag(d.Regions, d.Zones, d.retryCount)
 
 	for _, project := range d.Projects {
-		d.instanceGroups[project] = map[string][]*ig{}
+		if d.instanceGroups[project] == nil {
+			d.instanceGroups[project] = map[string][]*ig{}
+		}
 
 		for _, cluster := range d.projectClustersLayout[project] {
 			clusterName := cluster.name
+			// Only 0 -> N is refreshed: a cluster already cached with instance
+			// groups is never re-queried, so scale-down to 0 is not observed.
+			if len(d.instanceGroups[project][clusterName]) > 0 {
+				continue
+			}
 
-			igs, err := exec.Output(exec.Command("gcloud", containerArgs("clusters", "describe", clusterName,
-				"--format=value(instanceGroupUrls)",
-				"--project="+project,
-				location)...))
+			igs, err := describeClusterInstanceGroups(project, clusterName, location)
 			if err != nil {
 				return fmt.Errorf("instance group URL fetch failed: %s", execError(err))
 			}
-			igURLs := strings.Split(strings.TrimSpace(string(igs)), ";")
-			if len(igURLs) == 0 {
-				return fmt.Errorf("no instance group URLs returned by gcloud, output %q", string(igs))
+			instanceGroups, err := parseInstanceGroupsFromGcloud(string(igs))
+			if err != nil {
+				return err
 			}
-			sort.Strings(igURLs)
-
-			// Initialize cluster instance groups
-			d.instanceGroups[project][clusterName] = make([]*ig, 0)
-
-			for _, igURL := range igURLs {
-				m := poolRe.FindStringSubmatch(igURL)
-				if len(m) == 0 {
-					return fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
-				}
-				d.instanceGroups[project][clusterName] = append(d.instanceGroups[project][clusterName], &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
-			}
+			d.instanceGroups[project][clusterName] = instanceGroups
 		}
 	}
 
 	return nil
+}
+
+func parseInstanceGroupsFromGcloud(igs string) ([]*ig, error) {
+	trimmed := strings.TrimSpace(igs)
+	if len(trimmed) == 0 {
+		klog.Warningf("No instance group URLs returned by gcloud, output %q", igs)
+		return make([]*ig, 0), nil
+	}
+	igURLs := strings.Split(trimmed, ";")
+	sort.Strings(igURLs)
+
+	instanceGroups := make([]*ig, 0, len(igURLs))
+	for _, igURL := range igURLs {
+		m := poolRe.FindStringSubmatch(igURL)
+		if len(m) == 0 {
+			return nil, fmt.Errorf("instanceGroupUrl %q did not match regex %v", igURL, poolRe)
+		}
+		instanceGroups = append(instanceGroups, &ig{path: m[0], zone: m[1], name: m[2], uniq: m[3]})
+	}
+	return instanceGroups, nil
 }
