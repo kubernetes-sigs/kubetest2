@@ -37,6 +37,10 @@ func (d *deployer) init() error {
 
 // initialize should only be called by init(), behind a sync.Once
 func (d *deployer) initialize() error {
+	if d.GCPZone != "" && d.GCPRegion != "" {
+		return fmt.Errorf("--gcp-zone and --gcp-region are mutually exclusive")
+	}
+
 	if d.commonOptions.ShouldBuild() {
 		if err := d.verifyBuildFlags(); err != nil {
 			return fmt.Errorf("init failed to check build flags: %s", err)
@@ -120,6 +124,12 @@ func (d *deployer) buildEnv() []string {
 	// to set the ZONE var, which can't be set directly here because it
 	// will be overridden when the scripts check KUBE_GCE_ZONE.
 	env = append(env, fmt.Sprintf("KUBE_GCE_ZONE=%s", d.GCPZone))
+
+	// KUBE_GCE_REGION makes the scripts pick a zone in the region, falling back
+	// to the next zone if the master VM can't be created.
+	if d.GCPRegion != "" {
+		env = append(env, fmt.Sprintf("KUBE_GCE_REGION=%s", d.GCPRegion))
+	}
 
 	// kubeconfig is set to tell kube-up.sh where to generate the kubeconfig
 	// we don't want this to be the default because this kubeconfig "belongs" to
